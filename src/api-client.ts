@@ -3,7 +3,7 @@ import * as https from 'https';
 
 export class HTTPClient {
   private static instance: HTTPClient;
-  private baseURL: string = 'http://localhost:8000/api/parea/v1'; // "https://optimus-prompt-backend.vercel.app/api/parea/v1";
+  private baseURL: string = 'http://127.0.0.1:8000/api/parea/v1'; // "https://optimus-prompt-backend.vercel.app/api/parea/v1";
   private apiKey: string | null = null;
   private client: AxiosInstance;
 

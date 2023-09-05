@@ -78,39 +78,39 @@ const deployedArgumentChain2 = async (
 
 export const TdeployedArgumentChain2 = trace('TdeployedArgumentChain2', deployedArgumentChain2);
 
-(async () => {
-  const result1 = await deployedArgumentChain(
-    'Whether coffee is good for you.',
-    'Provide a concise, few sentence argument on why coffee is good for you.',
-  );
-  console.log(result1);
-})();
-
-(async () => {
-  const result2 = await deployedArgumentChain2(
-    'Whether coffee is good for you.',
-    'Provide a concise, few sentence argument on why coffee is good for you.',
-  );
-  console.log(result2);
-  await p.recordFeedback({
-    trace_id: result2.inference_id,
-    score: 0.7, // 0.0 (bad) to 1.0 (good)
-    target: 'Coffee is wonderful. End of story.',
-  });
-})();
-
-(async () => {
-  const result3 = await TdeployedArgumentChain2(
-    'Whether wine is good for you.',
-    'Provide a concise, few sentence argument on why wine is good for you.',
-  );
-  console.log(result3);
-  await p.recordFeedback({
-    trace_id: result3.inference_id,
-    score: 0.3, // 0.0 (bad) to 1.0 (good)
-    target: 'wine is wonderful. End of story.',
-  });
-})();
+// (async () => {
+//   const result1 = await deployedArgumentChain(
+//     'Whether coffee is good for you.',
+//     'Provide a concise, few sentence argument on why coffee is good for you.',
+//   );
+//   console.log(result1);
+// })();
+//
+// (async () => {
+//   const result2 = await deployedArgumentChain2(
+//     'Whether coffee is good for you.',
+//     'Provide a concise, few sentence argument on why coffee is good for you.',
+//   );
+//   console.log(result2);
+//   await p.recordFeedback({
+//     trace_id: result2.inference_id,
+//     score: 0.7, // 0.0 (bad) to 1.0 (good)
+//     target: 'Coffee is wonderful. End of story.',
+//   });
+// })();
+//
+// (async () => {
+//   const result3 = await TdeployedArgumentChain2(
+//     'Whether wine is good for you.',
+//     'Provide a concise, few sentence argument on why wine is good for you.',
+//   );
+//   console.log(result3);
+//   await p.recordFeedback({
+//     trace_id: result3.inference_id,
+//     score: 0.3, // 0.0 (bad) to 1.0 (good)
+//     target: 'wine is wonderful. End of story.',
+//   });
+// })();
 
 (async () => {
   const [result4, result5] = await Promise.all([
