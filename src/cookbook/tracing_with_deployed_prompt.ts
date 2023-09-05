@@ -16,17 +16,12 @@ const deployedArgumentGenerator = async (query: string, additionalDescription: s
       date: new Date().toISOString(),
       query: query,
     },
+    metadata: { source: 'parea-js-sdk' },
   };
   const response = await p.completion(completion);
   return response.content;
 };
-const TdeployedArgumentGenerator = trace(
-  'deployedArgumentGenerator',
-  deployedArgumentGenerator,
-  'TdeployedArgumentGenerator',
-  ['parea-js-sdk'],
-  { source: 'parea-js-sdk-base' },
-);
+const TdeployedArgumentGenerator = trace('deployedArgumentGenerator', deployedArgumentGenerator);
 
 const deployedCritic = async (argument: string): Promise<string> => {
   const completion: Completion = {
