@@ -1,18 +1,50 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
+import axiosRetry from 'axios-retry';
 import * as https from 'https';
+import * as http from 'http';
+
+interface RequestConfig {
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  endpoint: string;
+  data?: any;
+  params?: any;
+  apiKey?: string;
+}
 
 export class HTTPClient {
   private static instance: HTTPClient;
-  private baseURL: string = 'http://127.0.0.1:8000/api/parea/v1'; // "https://optimus-prompt-backend.vercel.app/api/parea/v1";
+  private baseURL: string = 'http://127.0.0.1:8000/api/parea/v1';
   private apiKey: string | null = null;
   private client: AxiosInstance;
 
   private constructor() {
     this.client = axios.create({
       httpsAgent: new https.Agent({ keepAlive: true }),
+      httpAgent: new http.Agent({ keepAlive: true }),
       baseURL: this.baseURL,
       timeout: 60 * 3.0 * 1000,
     });
+
+    // Apply retry mechanism with axios-retry
+    axiosRetry(this.client, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
+
+    this.client.interceptors.request.use(this.requestInterceptor);
+    this.client.interceptors.response.use(this.responseInterceptor, this.errorInterceptor);
+  }
+
+  private requestInterceptor(config: any) {
+    // Add any request modifications here
+    return config;
+  }
+
+  private responseInterceptor(response: AxiosResponse) {
+    // Add any response modifications here
+    return response;
+  }
+
+  private errorInterceptor(error: AxiosError) {
+    // Add any error modifications here
+    return Promise.reject(error);
   }
 
   public static getInstance(): HTTPClient {
@@ -26,24 +58,18 @@ export class HTTPClient {
     this.apiKey = apiKey;
   }
 
-  public async request(
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
-    endpoint: string,
-    data?: any,
-    params?: any,
-    apiKey?: string,
-  ): Promise<AxiosResponse<any>> {
-    const headers = { 'x-api-key': this.apiKey || apiKey || '' };
+  public async request(config: RequestConfig): Promise<AxiosResponse<any>> {
+    const headers = { 'x-api-key': this.apiKey || config.apiKey || '' };
     try {
       return await this.client.request({
-        method,
-        url: endpoint,
-        data,
-        params,
+        method: config.method,
+        url: config.endpoint,
+        data: config.data,
+        params: config.params,
         headers,
       });
     } catch (error) {
-      console.error(error);
+      console.error(`Request to ${config.endpoint} failed with error ${error}`);
       throw error;
     }
   }

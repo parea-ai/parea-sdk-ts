@@ -21,17 +21,17 @@ export class Parea {
 
   public async completion(data: Completion): Promise<CompletionResponse> {
     data.inference_id = getCurrentTraceId();
-    const response = await this.client.request('POST', COMPLETION_ENDPOINT, data);
+    const response = await this.client.request({ method: 'POST', endpoint: COMPLETION_ENDPOINT, data });
     return response.data;
   }
 
   public async getPrompt(data: UseDeployedPrompt): Promise<UseDeployedPromptResponse> {
-    const response = await this.client.request('POST', DEPLOYED_PROMPT_ENDPOINT, data);
+    const response = await this.client.request({ method: 'POST', endpoint: DEPLOYED_PROMPT_ENDPOINT, data });
     return response.data;
   }
 
   public async recordFeedback(data: FeedbackRequest): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 2000)); // give logs time to update
-    await this.client.request('POST', RECORD_FEEDBACK_ENDPOINT, data);
+    await this.client.request({ method: 'POST', endpoint: RECORD_FEEDBACK_ENDPOINT, data });
   }
 }

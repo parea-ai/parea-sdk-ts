@@ -16,7 +16,7 @@ class PareaLogger {
   }
 
   public async recordLog(data: TraceLog): Promise<AxiosResponse<any>> {
-    return await this.client.request('POST', LOG_ENDPOINT, data);
+    return await this.client.request({ method: 'POST', endpoint: LOG_ENDPOINT, data });
   }
 }
 
