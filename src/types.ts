@@ -1,17 +1,17 @@
-enum Role {
-  user = "user",
-  assistant = "assistant",
-  system = "system",
-  example_user = "example_user",
-  example_assistant = "example_assistant",
+export enum Role {
+  user = 'user',
+  assistant = 'assistant',
+  system = 'system',
+  example_user = 'example_user',
+  example_assistant = 'example_assistant',
 }
 
-interface Message {
+export interface Message {
   content: string;
   role: Role;
 }
 
-interface ModelParams {
+export interface ModelParams {
   temp?: number;
   top_p?: number;
   frequency_penalty?: number;
@@ -19,7 +19,7 @@ interface ModelParams {
   max_length?: number;
 }
 
-interface LLMInputs {
+export interface LLMInputs {
   model?: string;
   provider?: string;
   model_params?: ModelParams;
@@ -28,7 +28,7 @@ interface LLMInputs {
   function_call?: string | { [key: string]: string };
 }
 
-interface Completion {
+export interface Completion {
   inference_id?: string;
   trace_name?: string;
   llm_inputs?: { [key: string]: any };
@@ -45,7 +45,7 @@ interface Completion {
   log_omit?: boolean;
 }
 
-interface CompletionResponse {
+export interface CompletionResponse {
   inference_id: string;
   content: string;
   latency: number;
@@ -62,18 +62,18 @@ interface CompletionResponse {
   error?: string;
 }
 
-interface UseDeployedPrompt {
+export interface UseDeployedPrompt {
   deployment_id: string;
   llm_inputs?: { [key: string]: any };
 }
 
-interface Prompt {
+export interface Prompt {
   raw_messages: { [key: string]: any }[];
   messages: { [key: string]: any }[];
   inputs?: { [key: string]: any };
 }
 
-interface UseDeployedPromptResponse {
+export interface UseDeployedPromptResponse {
   deployment_id: string;
   name?: string;
   functions?: { [key: string]: any };
@@ -84,7 +84,7 @@ interface UseDeployedPromptResponse {
   model_params?: { [key: string]: any };
 }
 
-interface FeedbackRequest {
+export interface FeedbackRequest {
   score: number;
   trace_id?: string;
   inference_id?: string;
@@ -92,11 +92,11 @@ interface FeedbackRequest {
   target?: string;
 }
 
-interface TraceLogInputs {
+export interface TraceLogInputs {
   [key: string]: string;
 }
 
-interface TraceLog {
+export interface TraceLog {
   trace_id: string;
   start_timestamp: string;
   organization_id?: string;
@@ -123,7 +123,7 @@ interface TraceLog {
   output?: string;
 }
 
-interface TraceLogTree {
+export interface TraceLogTree {
   trace_id: string;
   start_timestamp: string;
   organization_id?: string;
@@ -149,19 +149,3 @@ interface TraceLogTree {
   inputs?: { [key: string]: string };
   output?: string;
 }
-
-export {
-  Role,
-  Message,
-  ModelParams,
-  LLMInputs,
-  Completion,
-  CompletionResponse,
-  UseDeployedPrompt,
-  Prompt,
-  UseDeployedPromptResponse,
-  FeedbackRequest,
-  TraceLogInputs,
-  TraceLog,
-  TraceLogTree,
-};

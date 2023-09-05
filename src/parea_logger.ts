@@ -1,8 +1,8 @@
-import HTTPClient from "./api-client.js";
-import { TraceLog } from "./types.js";
-import { AxiosResponse } from "axios";
+import { TraceLog } from './types.js';
+import { AxiosResponse } from 'axios';
+import { HTTPClient } from './api-client';
 
-const LOG_ENDPOINT = "/trace_log";
+const LOG_ENDPOINT = '/trace_log';
 
 class PareaLogger {
   private client: HTTPClient;
@@ -16,10 +16,8 @@ class PareaLogger {
   }
 
   public async recordLog(data: TraceLog): Promise<AxiosResponse<any>> {
-    return await this.client.request("POST", LOG_ENDPOINT, data);
+    return await this.client.request('POST', LOG_ENDPOINT, data);
   }
 }
 
-const pareaLogger = new PareaLogger();
-
-export default pareaLogger;
+export const pareaLogger = new PareaLogger();

@@ -1,6 +1,6 @@
-import { v4 as uuidv4 } from "uuid";
-import { CompletionResponse, TraceLog } from "../types.js";
-import pareaLogger from "../parea_logger.js";
+import { v4 as uuidv4 } from 'uuid';
+import { CompletionResponse, TraceLog } from '../types';
+import { pareaLogger } from '../parea_logger';
 
 const traceData: { [key: string]: TraceLog } = {};
 export const traceContext: string[] = [];
@@ -10,7 +10,7 @@ export const getCurrentTraceId = (): string => {
 };
 
 const merge = (old: any, newValue: any) => {
-  if (typeof old === "object" && typeof newValue === "object") {
+  if (typeof old === 'object' && typeof newValue === 'object') {
     return { ...old, ...newValue };
   }
   if (Array.isArray(old) && Array.isArray(newValue)) {
@@ -19,20 +19,18 @@ const merge = (old: any, newValue: any) => {
   return newValue;
 };
 
-const traceInsert = (traceId: string, data: { [key: string]: any }) => {
+export const traceInsert = (traceId: string, data: { [key: string]: any }) => {
   const currentTraceData = traceData[traceId];
 
   for (const key in data) {
     const newValue = data[key];
     const existingValue = currentTraceData[key as keyof TraceLog];
     // @ts-ignore
-    currentTraceData[key] = existingValue
-      ? merge(existingValue, newValue)
-      : newValue;
+    currentTraceData[key] = existingValue ? merge(existingValue, newValue) : newValue;
   }
 };
 
-const trace = (
+export const trace = (
   funcName: string,
   func: (...args: any[]) => any,
   name?: string,
@@ -50,7 +48,7 @@ const trace = (
       trace_id: traceId,
       start_timestamp: startTimestamp,
       // TODO: figure out how to extract the function signature
-      inputs: { args: JSON.stringify(args) || "" },
+      inputs: { args: JSON.stringify(args) || '' },
       metadata,
       tags,
       target,
@@ -67,14 +65,12 @@ const trace = (
 
     try {
       const result = await func(args);
-      const output = (result as CompletionResponse)
-        ? JSON.stringify(result)
-        : result;
+      const output = (result as CompletionResponse) ? JSON.stringify(result) : result;
       traceInsert(traceId, { output });
       return result;
     } catch (error: any) {
       console.error(`Error occurred in function ${func.name}, ${error}`);
-      traceInsert(traceId, { error: error.toString(), status: "error" });
+      traceInsert(traceId, { error: error.toString(), status: 'error' });
       throw error;
     } finally {
       const endTimestamp = new Date().toISOString();
@@ -84,5 +80,3 @@ const trace = (
     }
   };
 };
-
-export { trace };

@@ -1,9 +1,9 @@
-import axios, { AxiosInstance, AxiosResponse } from "axios";
-import * as https from "https";
+import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import * as https from 'https';
 
-class HTTPClient {
+export class HTTPClient {
   private static instance: HTTPClient;
-  private baseURL: string = "http://localhost:8000/api/parea/v1"; // "https://optimus-prompt-backend.vercel.app/api/parea/v1";
+  private baseURL: string = 'http://localhost:8000/api/parea/v1'; // "https://optimus-prompt-backend.vercel.app/api/parea/v1";
   private apiKey: string | null = null;
   private client: AxiosInstance;
 
@@ -27,13 +27,13 @@ class HTTPClient {
   }
 
   public async request(
-    method: "GET" | "POST" | "PUT" | "DELETE",
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
     endpoint: string,
     data?: any,
     params?: any,
     apiKey?: string,
   ): Promise<AxiosResponse<any>> {
-    const headers = { "x-api-key": this.apiKey || apiKey || "" };
+    const headers = { 'x-api-key': this.apiKey || apiKey || '' };
     try {
       return await this.client.request({
         method,
@@ -48,5 +48,3 @@ class HTTPClient {
     }
   }
 }
-
-export default HTTPClient;

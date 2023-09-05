@@ -15,17 +15,13 @@
     "strictPropertyInitialization": false,
     "allowJs": true,
     "strict": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "types": ["jest"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "coverage", "**/__tests__/*"],
   "includeVersion": true,
   "typedocOptions": {
-    "entryPoints": [
-      "src/client.ts",
-      "src/api-client.ts",
-      "src/parea_logger.ts",
-      "src/types.ts"
-    ]
+    "entryPoints": ["src/client.ts", "src/api-client.ts", "src/parea_logger.ts", "src/types.ts"]
   }
 }
