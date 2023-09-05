@@ -2,12 +2,8 @@
   "extends": "@tsconfig/recommended",
   "compilerOptions": {
     "target": "ES2021",
-    "lib": [
-      "ES2021",
-      "ES2022.Object",
-      "DOM"
-    ],
-    "module": "ES2020",
+    "lib": ["ES2021", "ES2022.Object", "DOM"],
+    "module": "nodenext",
     "moduleResolution": "nodenext",
     "esModuleInterop": true,
     "declaration": true,
@@ -21,14 +17,8 @@
     "strict": true,
     "outDir": "dist"
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "coverage"
-  ],
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "coverage", "**/__tests__/*"],
   "includeVersion": true,
   "typedocOptions": {
     "entryPoints": [
