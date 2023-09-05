@@ -1,4 +1,5 @@
 import axios, {AxiosInstance, AxiosResponse} from 'axios';
+import * as https from "https";
 
 class HTTPClient {
     private static instance: HTTPClient;
@@ -8,6 +9,7 @@ class HTTPClient {
 
     private constructor() {
         this.client = axios.create({
+            httpsAgent: new https.Agent({keepAlive: true}),
             baseURL: this.baseURL,
             timeout: 60 * 3.0 * 1000
         });

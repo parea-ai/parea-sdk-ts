@@ -1,5 +1,6 @@
 import HTTPClient from "./api-client.js";
 import {TraceLog} from "./types.js";
+import {AxiosResponse} from "axios";
 
 
 const LOG_ENDPOINT = "/trace_log";
@@ -15,8 +16,8 @@ class PareaLogger {
         this.client = client;
     }
 
-    public async recordLog(data: TraceLog): Promise<void> {
-        await this.client.request(
+    public async recordLog(data: TraceLog): Promise<AxiosResponse<any>> {
+        return await this.client.request(
             "POST",
             LOG_ENDPOINT,
             data

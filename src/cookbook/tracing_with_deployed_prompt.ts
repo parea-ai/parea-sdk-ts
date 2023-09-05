@@ -1,6 +1,7 @@
 import * as dotenv from 'dotenv';
 import Parea from "../client.js";
 import {Completion, CompletionResponse} from "../types.js";
+import {trace} from "../utils/trace_utils";
 
 
 
@@ -21,6 +22,7 @@ const deployedArgumentGenerator = async (query: string, additionalDescription: s
     const response = await p.completion(completion);
     return response.content;
 };
+const TdeployedArgumentGenerator = trace('deployedArgumentGenerator', deployedArgumentGenerator);
 
 const deployedCritic = async (argument: string): Promise<string> => {
     const completion: Completion = {
@@ -31,6 +33,7 @@ const deployedCritic = async (argument: string): Promise<string> => {
     const response = await p.completion(completion);
     return response.content;
 };
+const TdeployedCritic = trace('deployedCritic', deployedCritic);
 
 const deployedRefiner = async (query: string, additionalDescription: string, currentArg: string, criticism: string): Promise<CompletionResponse> => {
     const completion: Completion = {
@@ -46,26 +49,35 @@ const deployedRefiner = async (query: string, additionalDescription: string, cur
     };
     return await p.completion(completion);
 };
+const TdeployedRefiner = trace('deployedRefiner', deployedRefiner);
 
-// export const deployedArgumentChain = async (query: string, additionalDescription: string = ""): Promise<string> => {
-//     const argument = await deployedArgumentGenerator(query, additionalDescription);
-//     const criticism = await deployedCritic(argument);
-//     const response = await deployedRefiner(query, additionalDescription, argument, criticism);
-//     return response.content;
-// };
-//
-// export const deployedArgumentChain2 = async (query: string, additionalDescription: string = ""): Promise<string> => {
-//     const argument = await deployedArgumentGenerator(query, additionalDescription);
-//     const criticism = await deployedCritic(argument);
-//     const response =  await deployedRefiner(query, additionalDescription, argument, criticism);
-//     return response.content;
-// };
+export const deployedArgumentChain = async (query: string, additionalDescription: string = ""): Promise<string> => {
+    const argument = await deployedArgumentGenerator(query, additionalDescription);
+    const criticism = await deployedCritic(argument);
+    const response = await deployedRefiner(query, additionalDescription, argument, criticism);
+    return response.content;
+};
 
-export const deployedArgumentChain3 = async (query: string, additionalDescription: string = ""): Promise<CompletionResponse> => {
+export const deployedArgumentChain2 = async (query: string, additionalDescription: string = ""): Promise<string> => {
+    const argument = await deployedArgumentGenerator(query, additionalDescription);
+    const criticism = await deployedCritic(argument);
+    const response =  await deployedRefiner(query, additionalDescription, argument, criticism);
+    return response.content;
+};
+
+const deployedArgumentChain3 = async (query: string, additionalDescription: string = ""): Promise<CompletionResponse> => {
     const argument = await deployedArgumentGenerator(query, additionalDescription);
     const criticism = await deployedCritic(argument);
     return await deployedRefiner(query, additionalDescription, argument, criticism);
 };
+
+const deployedArgumentChain4 = async (query: string, additionalDescription: string = ""): Promise<CompletionResponse> => {
+    const argument = await TdeployedArgumentGenerator(query, additionalDescription);
+    const criticism = await TdeployedCritic(argument);
+    return await TdeployedRefiner(query, additionalDescription, argument, criticism);
+};
+
+const TdeployedArgumentChain4 = trace('deployedArgumentChain3', deployedArgumentChain4);
 
 // (async () => {
 //     const result1 = await deployedArgumentChain(
@@ -82,16 +94,58 @@ export const deployedArgumentChain3 = async (query: string, additionalDescriptio
 //     );
 //     console.log(result2);
 // })();
+//
+// (async () => {
+//     const result3 = await deployedArgumentChain3(
+//         "Whether coffee is good for you.",
+//         "Provide a concise, few sentence argument on why coffee is good for you."
+//     );
+//     console.log(result3);
+//     await p.recordFeedback({
+//         trace_id: result3.inference_id,
+//         score: 0.7,  // 0.0 (bad) to 1.0 (good)
+//         target: "Coffee is wonderful. End of story."
+//     });
+// })();
+//
+// (async () => {
+//     const result4 = await TdeployedArgumentChain4(
+//         "Whether wine is good for you.",
+//         "Provide a concise, few sentence argument on why wine is good for you."
+//     );
+//     console.log(result4);
+//     await p.recordFeedback({
+//         trace_id: result4.inference_id,
+//         score: 0.3,  // 0.0 (bad) to 1.0 (good)
+//         target: "wine is wonderful. End of story."
+//     });
+// })();
 
 (async () => {
-    const result3 = await deployedArgumentChain3(
-        "Whether coffee is good for you.",
-        "Provide a concise, few sentence argument on why coffee is good for you."
-    );
+    const [result3, result4] = await Promise.all([
+        deployedArgumentChain3(
+            "Whether coffee is good for you.",
+            "Provide a concise, few sentence argument on why coffee is good for you."
+        ),
+        TdeployedArgumentChain4(
+            "Whether wine is good for you.",
+            "Provide a concise, few sentence argument on why wine is good for you."
+        ),
+    ]);
+
     console.log(result3);
-    await p.recordFeedback({
-        trace_id: result3.inference_id,
-        score: 0.7,  // 0.0 (bad) to 1.0 (good)
-        target: "Coffee is wonderful. End of story."
-    });
+    console.log(result4);
+
+    await Promise.all([
+        p.recordFeedback({
+            trace_id: result3.inference_id,
+            score: 0.7,  // 0.0 (bad) to 1.0 (good)
+            target: "Coffee is wonderful. End of story."
+        }),
+        p.recordFeedback({
+            trace_id: result4.inference_id,
+            score: 0.3,  // 0.0 (bad) to 1.0 (good)
+            target: "wine is wonderful. End of story."
+        }),
+    ]);
 })();
