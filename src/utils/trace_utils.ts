@@ -46,8 +46,7 @@ export const trace = (
       trace_name: funcName,
       trace_id: traceId,
       start_timestamp: toDateTimeString(startTimestamp),
-      // TODO: figure out how to extract the function signature
-      inputs: { args: JSON.stringify(args) || '' },
+      inputs: extractFunctionParams(func, args),
       metadata,
       tags,
       target,
@@ -79,3 +78,21 @@ export const trace = (
     }
   };
 };
+
+export function extractFunctionParams(func: Function, args: any[]): { [key: string]: any } {
+  const functionString = func.toString();
+  const match = functionString.match(/\(([^)]*)\)/);
+  if (!match) return {}; // handle case of no match (shouldn't happen if function is valid)
+
+  const paramNamesRaw = match[1]; // get the raw parameters string
+  const paramNames = paramNamesRaw.split(',').map((param) => {
+    // use regex to match the parameter name, it should be the first word before space or colon
+    const match = param.trim().match(/(\w+)/);
+    return match ? match[0] : ''; // return the matched parameter name, or empty string if no match
+  });
+
+  // Constructing an object of paramName: value
+  return paramNames.reduce((acc, paramName, index) => {
+    return { ...acc, [paramName]: JSON.stringify(args[index]) };
+  }, {});
+}
