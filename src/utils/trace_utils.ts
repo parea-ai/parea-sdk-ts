@@ -64,7 +64,7 @@ export const trace = (
     }
 
     try {
-      const result = await func(args);
+      const result = await func(...args);
       const output = (result as CompletionResponse) ? JSON.stringify(result) : result;
       traceInsert(traceId, { output });
       return result;
