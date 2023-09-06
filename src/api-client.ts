@@ -33,17 +33,17 @@ export class HTTPClient {
   }
 
   private requestInterceptor(config: any) {
-    // Add any request modifications here
+    // TBD: Add any request modifications here
     return config;
   }
 
   private responseInterceptor(response: AxiosResponse) {
-    // Add any response modifications here
+    // TBD: Add any response modifications here
     return response;
   }
 
   private errorInterceptor(error: AxiosError) {
-    // Add any error modifications here
+    // TBD: Add any error modifications here
     return Promise.reject(error);
   }
 

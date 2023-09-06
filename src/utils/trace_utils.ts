@@ -79,7 +79,7 @@ export const trace = (
   };
 };
 
-export function extractFunctionParams(func: Function, args: any[]): { [key: string]: any } {
+function extractFunctionParams(func: Function, args: any[]): { [key: string]: any } {
   const functionString = func.toString();
   const match = functionString.match(/\(([^)]*)\)/);
   if (!match) return {}; // handle case of no match (shouldn't happen if function is valid)
