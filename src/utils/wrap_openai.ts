@@ -29,6 +29,7 @@ function wrapMethod(method: Function) {
 
     try {
       response = await method.apply(this, args);
+      // TODO: handle functions
       traceData.output = response.choices[0]?.message?.content ?? '';
       traceData.input_tokens = response.usage.prompt_tokens;
       traceData.output_tokens = response.usage.completion_tokens;
