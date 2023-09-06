@@ -33,9 +33,8 @@ export const traceInsert = (traceId: string, data: { [key: string]: any }) => {
 export const trace = (
   funcName: string,
   func: (...args: any[]) => any,
-  name?: string,
-  tags?: string[],
   metadata?: any,
+  tags?: string[],
   target?: string,
   endUserIdentifier?: string,
 ) => {
@@ -44,7 +43,7 @@ export const trace = (
     const startTimestamp = new Date().toISOString();
 
     traceData[traceId] = {
-      trace_name: name || funcName,
+      trace_name: funcName,
       trace_id: traceId,
       start_timestamp: startTimestamp,
       // TODO: figure out how to extract the function signature
