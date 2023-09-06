@@ -7,7 +7,7 @@ export { Parea } from './client';
 
 export { pareaLogger } from './parea_logger';
 
-export { genTraceId, toDateAndTimeString } from './helpers';
+export { genTraceId, toDateTimeString } from './helpers';
 
 export {
   Role,

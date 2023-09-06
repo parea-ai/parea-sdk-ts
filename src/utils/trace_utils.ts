@@ -1,6 +1,6 @@
-import { v4 as uuidv4 } from 'uuid';
 import { CompletionResponse, TraceLog } from '../types';
 import { pareaLogger } from '../parea_logger';
+import { genTraceId, toDateTimeString } from '../helpers';
 
 const traceData: { [key: string]: TraceLog } = {};
 export const traceContext: string[] = [];
@@ -39,13 +39,13 @@ export const trace = (
   endUserIdentifier?: string,
 ) => {
   return async (...args: any[]) => {
-    const traceId = uuidv4();
-    const startTimestamp = new Date().toISOString();
+    const traceId = genTraceId();
+    const startTimestamp = new Date();
 
     traceData[traceId] = {
       trace_name: funcName,
       trace_id: traceId,
-      start_timestamp: startTimestamp,
+      start_timestamp: toDateTimeString(startTimestamp),
       // TODO: figure out how to extract the function signature
       inputs: { args: JSON.stringify(args) || '' },
       metadata,
@@ -72,8 +72,8 @@ export const trace = (
       traceInsert(traceId, { error: error.toString(), status: 'error' });
       throw error;
     } finally {
-      const endTimestamp = new Date().toISOString();
-      traceInsert(traceId, { endTimestamp });
+      const endTimestamp = new Date();
+      traceInsert(traceId, { endTimestamp: toDateTimeString(endTimestamp) });
       await pareaLogger.recordLog(traceData[traceId]); // log the trace data
       traceContext.pop();
     }

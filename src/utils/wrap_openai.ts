@@ -1,8 +1,8 @@
-import { v4 as uuidv4 } from 'uuid';
 import OpenAI from 'openai';
 import { LLMInputs, Role, TraceLog } from '../types';
 import { pareaLogger } from '../parea_logger';
 import { getCurrentTraceId } from './trace_utils';
+import { genTraceId, toDateTimeString } from '../helpers';
 
 const MODEL_COST_MAPPING: { [key: string]: number } = {
   'gpt-4': 0.03,
@@ -50,7 +50,7 @@ function getModelCost(modelName: string, isCompletion: boolean = false): number 
 
 function wrapMethod(method: Function) {
   return async function (this: any, ...args: any[]) {
-    const traceId = getCurrentTraceId() || uuidv4();
+    const traceId = getCurrentTraceId() || genTraceId();
     const startTimestamp = new Date();
     let error: string | null = null;
     let status: string | undefined = undefined;
@@ -59,7 +59,7 @@ function wrapMethod(method: Function) {
 
     const traceData: TraceLog = {
       trace_id: traceId,
-      start_timestamp: startTimestamp.toISOString(),
+      start_timestamp: toDateTimeString(startTimestamp),
       configuration: {
         model: args[0].model,
         provider: 'openai',
@@ -92,7 +92,7 @@ function wrapMethod(method: Function) {
       status = 'error';
     } finally {
       endTimestamp = new Date();
-      traceData.end_timestamp = endTimestamp.toISOString();
+      traceData.end_timestamp = toDateTimeString(endTimestamp);
       traceData.latency = (endTimestamp.getTime() - startTimestamp.getTime()) / 1000;
       traceData.status = status;
       if (error) {
