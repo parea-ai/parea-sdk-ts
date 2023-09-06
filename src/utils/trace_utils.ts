@@ -72,7 +72,7 @@ export const trace = (
       throw error;
     } finally {
       const endTimestamp = new Date();
-      traceInsert(traceId, { endTimestamp: toDateTimeString(endTimestamp) });
+      traceInsert(traceId, { end_timestamp: toDateTimeString(endTimestamp) });
       await pareaLogger.recordLog(traceData[traceId]); // log the trace data
       traceContext.pop();
     }
