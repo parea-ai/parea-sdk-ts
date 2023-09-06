@@ -2,7 +2,7 @@ import { CompletionResponse, TraceLog } from '../types';
 import { pareaLogger } from '../parea_logger';
 import { genTraceId, toDateTimeString } from '../helpers';
 
-const traceData: { [key: string]: TraceLog } = {};
+export const traceData: { [key: string]: TraceLog } = {};
 export const traceContext: string[] = [];
 
 export const getCurrentTraceId = (): string => {
@@ -52,6 +52,7 @@ export const trace = (
       target,
       end_user_identifier: endUserIdentifier,
       children: [],
+      status: 'success',
     };
 
     traceContext.push(traceId);

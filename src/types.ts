@@ -4,6 +4,7 @@ export enum Role {
   system = 'system',
   example_user = 'example_user',
   example_assistant = 'example_assistant',
+  function = 'function',
 }
 
 export interface Message {
