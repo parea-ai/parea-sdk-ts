@@ -2,6 +2,22 @@
   "name": "parea-ai",
   "version": "0.0.1",
   "description": "Client SDK library to connect to Parea AI.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/parea-ai/parea-sdk-js.git"
+  },
+  "keywords": [
+    "LLM",
+    "Tracing",
+    "Evaluation",
+    "Parea"
+  ],
+  "author": "Parea AI",
+  "homepage": "https://github.com/parea-ai/parea-sdk-js#readme",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/parea-ai/parea-sdk-js/issues"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "type": "commonjs",
@@ -57,22 +73,6 @@
     "dist/**/*",
     "README.md"
   ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/parea-ai/parea-sdk-js.git"
-  },
-  "keywords": [
-    "LLM",
-    "Tracing",
-    "Evaluation",
-    "Parea"
-  ],
-  "author": "Parea AI",
-  "homepage": "https://github.com/parea-ai/parea-sdk-js#readme",
-  "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/parea-ai/parea-sdk-js/issues"
-  },
   "commitlint": {
     "extends": [
       "@commitlint/config-conventional"
