@@ -1,6 +1,6 @@
 {
   "name": "parea-ai",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Client SDK library to connect to Parea AI.",
   "repository": {
     "type": "git",
@@ -75,7 +75,11 @@
   ],
   "commitlint": {
     "rules": {
-      "body-max-line-length": [0, "always", "Infinity"]
+      "body-max-line-length": [
+        0,
+        "always",
+        "Infinity"
+      ]
     },
     "extends": [
       "@commitlint/config-conventional"
@@ -87,7 +91,10 @@
     }
   },
   "release": {
-    "branches": ["master", "main"],
+    "branches": [
+      "master",
+      "main"
+    ],
     "plugins": [
       "@semantic-release/release-notes-generator",
       "@semantic-release/changelog",
