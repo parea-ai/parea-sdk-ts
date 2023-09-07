@@ -66,7 +66,7 @@ const generateTasks = async (mainObjective: string, expoundedInitialTask: any[])
   const response = await callLLM(prompt, selectLLMOption[0], selectLLMOption[1]);
   const newTasks: string[] = response.content.includes('\n') ? response.content.split('\n') : [response.content];
   const taskList = newTasks.map((taskName) => ({ task_name: taskName }));
-  let newTasksList: string[] = [];
+  const newTasksList: string[] = [];
   for (const taskItem of taskList) {
     const taskDescription = taskItem.task_name;
     if (taskDescription) {
