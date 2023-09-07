@@ -16,10 +16,11 @@
     "allowJs": true,
     "strict": true,
     "outDir": "dist",
-    "types": ["jest"]
+    "types": ["jest"],
+    "typeRoots": ["./node_modules/@types"]
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "coverage", "**/__tests__/*"],
+  "exclude": ["node_modules", "dist", "coverage", "**/__tests__/*", "**/*.test.ts"],
   "includeVersion": true,
   "typedocOptions": {
     "entryPoints": ["src/client.ts", "src/api-client.ts", "src/parea_logger.ts", "src/types.ts"]
