@@ -1,7 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 import axiosRetry from 'axios-retry';
-import * as https from 'https';
-// import * as http from 'http';
 
 interface RequestConfig {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -19,8 +17,6 @@ export class HTTPClient {
 
   private constructor() {
     this.client = axios.create({
-      httpsAgent: new https.Agent({ keepAlive: true }),
-      // httpAgent: new http.Agent({ keepAlive: true }),
       baseURL: this.baseURL,
       timeout: 60 * 3.0 * 1000,
     });
