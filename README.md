@@ -17,18 +17,14 @@ npm install parea-ai
 ## Getting Started
 
 ```typescript
-import * as dotenv from 'dotenv';
 import { Completion, CompletionResponse } from '../types';
 import { Parea } from '../client';
-import { trace } from '../utils/trace_utils';
 
-dotenv.config();
-
-const p = new Parea(process.env.DEV_API_KEY);
+const p = new Parea('API_KEY');
 
 const deployedPromptCall = async (query: string): Promise<string> => {
   const completion: Completion = {
-    deployment_id: 'p-XOh3kp8BdnIE82WgioPnr',
+    deployment_id: 'Deployment_ID',
     llm_inputs: { query: query },
   };
   const response = await p.completion(completion);
@@ -45,17 +41,10 @@ main().then((result) => console.log(result));
 ### Logging results from LLM providers
 
 ```typescript
-import * as dotenv from 'dotenv';
-import { getCurrentTraceId, trace } from '../utils/trace_utils';
 import OpenAI from 'openai';
 import { patchOpenAI } from '../utils/wrap_openai';
-import { Parea } from '../client';
 
-dotenv.config();
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = new OpenAI({ apiKey: 'OPENAI_API_KEY' });
 
 // Patch OpenAI to add trace logs
 patchOpenAI(openai);
