@@ -1,8 +1,8 @@
 import * as dotenv from 'dotenv';
 
 import { Completion, CompletionResponse } from '../types';
-import { trace } from '../utils/trace_utils';
 import { Parea } from '../client';
+import { trace } from '../utils/trace_utils';
 
 dotenv.config();
 
@@ -10,128 +10,125 @@ const p = new Parea(process.env.DEV_API_KEY);
 
 const deployedArgumentGenerator = async (query: string, additionalDescription: string = ''): Promise<string> => {
   const completion: Completion = {
-    deployment_id: 'p-Ar-Oi14-nBxHUiradyql9',
+    deployment_id: 'p-XOh3kp8B0nIE82WgioPnr',
     llm_inputs: {
       additional_description: additionalDescription,
       date: new Date().toISOString(),
       query: query,
     },
     metadata: { source: 'parea-js-sdk' },
+    trace_name: 'deployedArgumentGenerator',
   };
   const response = await p.completion(completion);
   return response.content;
 };
-const TdeployedArgumentGenerator = trace('TdeployedArgumentGenerator', deployedArgumentGenerator);
 
 const deployedCritic = async (argument: string): Promise<string> => {
   const completion: Completion = {
-    deployment_id: 'p-W2yPy93tAczYrxkipjli6',
+    deployment_id: 'p-PSOwRyIPaQRq4xQW3MbpV',
     llm_inputs: { argument: argument },
     metadata: { source: 'parea-js-sdk' },
+    trace_name: 'deployedCritic',
   };
   const response = await p.completion(completion);
   return response.content;
 };
-const TdeployedCritic = trace('TdeployedCritic', deployedCritic);
 
 const deployedRefiner = async (
   query: string,
   additionalDescription: string,
-  currentArg: string,
+  argument: string,
   criticism: string,
 ): Promise<CompletionResponse> => {
   const completion: Completion = {
-    deployment_id: 'p-8Er1Xo0GDGF2xtpmMOpbn',
+    deployment_id: 'p-bJ3-UKh9-ixapZafaRBsj',
     llm_inputs: {
       additional_description: additionalDescription,
       date: new Date().toISOString(),
       query: query,
-      current_arg: currentArg,
+      argument: argument,
       criticism: criticism,
     },
     metadata: { source: 'parea-js-sdk' },
+    trace_name: 'deployedRefiner',
   };
   return await p.completion(completion);
 };
-const TdeployedRefiner = trace('TdeployedRefiner', deployedRefiner);
 
-export const deployedArgumentChain = async (query: string, additionalDescription: string = ''): Promise<string> => {
-  const argument = await deployedArgumentGenerator(query, additionalDescription);
-  const criticism = await deployedCritic(argument);
-  const response = await deployedRefiner(query, additionalDescription, argument, criticism);
-  return response.content;
-};
-
-const deployedArgumentChain2 = async (
+const deployedArgumentChain = async (
   query: string,
   additionalDescription: string = '',
 ): Promise<CompletionResponse> => {
-  const argument = await TdeployedArgumentGenerator(query, additionalDescription);
-  const criticism = await TdeployedCritic(argument);
-  return await TdeployedRefiner(query, additionalDescription, argument, criticism);
+  const argument = await deployedArgumentGenerator(query, additionalDescription);
+  const criticism = await deployedCritic(argument);
+  return await deployedRefiner(query, additionalDescription, argument, criticism);
 };
 
-export const TdeployedArgumentChain2 = trace('TdeployedArgumentChain2', deployedArgumentChain2);
+// Traced versions of the functions above
+const TdeployedArgumentGenerator = trace('TdeployedArgumentGenerator', deployedArgumentGenerator);
+const TdeployedCritic = trace('TdeployedCritic', deployedCritic);
+const TdeployedRefiner = trace('TdeployedRefiner', deployedRefiner);
 
-(async () => {
-  const result1 = await deployedArgumentChain(
-    'Whether coffee is good for you.',
-    'Provide a concise, few sentence argument on why coffee is good for you.',
-  );
-  console.log(result1);
-})();
+// Traced version of the parent function
+const TdeployedArgumentChain = trace(
+  'TdeployedArgumentChain',
+  async (query: string, additionalDescription: string = ''): Promise<CompletionResponse> => {
+    const argument = await TdeployedArgumentGenerator(query, additionalDescription);
+    const criticism = await TdeployedCritic(argument);
+    return await TdeployedRefiner(query, additionalDescription, argument, criticism);
+  },
+);
 
-(async () => {
-  const result2 = await deployedArgumentChain2(
-    'Whether coffee is good for you.',
-    'Provide a concise, few sentence argument on why coffee is good for you.',
+const RefinedArgument = async (
+  query: string,
+  refined: string,
+  additionalDescription: string = '',
+): Promise<CompletionResponse> => {
+  const criticism = await TdeployedCritic(refined);
+  return await TdeployedRefiner(query, additionalDescription, refined, criticism);
+};
+
+const TRefinedArgument = trace('TRefinedArgument', RefinedArgument);
+
+const NestedChain = trace(
+  'NestedChain',
+  async (query: string, additionalDescription: string = ''): Promise<CompletionResponse> => {
+    const refined = await TdeployedArgumentChain(query, additionalDescription);
+    return await TRefinedArgument(query, refined.content, additionalDescription);
+  },
+);
+
+async function main() {
+  return await deployedArgumentChain(
+    'Whether Oxygen is good for you.',
+    'Provide a concise, few sentence argument on why Oxygen is good for you.',
   );
-  console.log(result2);
+}
+
+async function main2() {
+  const result2 = await TdeployedArgumentChain(
+    'Whether lime juice is good for you.',
+    'Provide a concise, few sentence argument on why lime juice is good for you.',
+  );
   await p.recordFeedback({
     trace_id: result2.inference_id,
-    score: 0.7, // 0.0 (bad) to 1.0 (good)
-    target: 'Coffee is wonderful. End of story.',
+    score: 1, // 0.0 (bad) to 1.0 (good)
   });
-})();
+  return result2;
+}
 
-(async () => {
-  const result3 = await TdeployedArgumentChain2(
-    'Whether wine is good for you.',
-    'Provide a concise, few sentence argument on why wine is good for you.',
+async function main3() {
+  const result2 = await NestedChain(
+    'Whether apple juice is good for you.',
+    'Provide a concise, few sentence argument on why apple juice is good for you.',
   );
-  console.log(result3);
   await p.recordFeedback({
-    trace_id: result3.inference_id,
-    score: 0.3, // 0.0 (bad) to 1.0 (good)
-    target: 'wine is wonderful. End of story.',
+    trace_id: result2.inference_id,
+    score: 0, // 0.0 (bad) to 1.0 (good)
   });
-})();
+  return result2;
+}
 
-// (async () => {
-//   const [result4, result5] = await Promise.all([
-//     deployedArgumentChain2(
-//       'Whether coffee is good for you.',
-//       'Provide a concise, few sentence argument on why coffee is good for you.',
-//     ),
-//     TdeployedArgumentChain2(
-//       'Whether wine is good for you.',
-//       'Provide a concise, few sentence argument on why wine is good for you.',
-//     ),
-//   ]);
-//
-//   console.log(result4);
-//   console.log(result5);
-//
-//   await Promise.all([
-//     p.recordFeedback({
-//       trace_id: result4.inference_id,
-//       score: 0.7, // 0.0 (bad) to 1.0 (good)
-//       target: 'Coffee is wonderful. End of story.',
-//     }),
-//     p.recordFeedback({
-//       trace_id: result5.inference_id,
-//       score: 0.3, // 0.0 (bad) to 1.0 (good)
-//       target: 'wine is wonderful. End of story.',
-//     }),
-//   ]);
-// })();
+main().then((result) => console.log(result));
+main2().then((result) => console.log(result));
+main3().then((result) => console.log(result));

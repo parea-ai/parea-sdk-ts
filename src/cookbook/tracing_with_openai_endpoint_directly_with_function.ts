@@ -15,7 +15,7 @@ const openai = new OpenAI({
 // needed for tracing
 new Parea(process.env.DEV_API_KEY);
 
-// Patch OpenAI
+// Patch OpenAI to add trace logs
 patchOpenAI(openai);
 
 const functions: OpenAI.Chat.ChatCompletionCreateParams.Function[] = [
@@ -68,7 +68,6 @@ async function callFunction(function_call: ChatCompletionMessage.FunctionCall): 
       throw new Error('No function found');
   }
 }
-const TcallFunction = trace('callFunction', callFunction, { source: 'tool-oai-function-call' });
 
 const db = [
   {
@@ -119,6 +118,8 @@ async function callOpenAI(
   return response.choices[0]!.message;
 }
 
+const TcallFunction = trace('callFunction', callFunction, { source: 'tool-oai-function-call' });
+
 const functionCaller = async (query: string) => {
   const messages: ChatCompletionMessageParam[] = [
     {
@@ -141,7 +142,7 @@ const functionCaller = async (query: string) => {
     const newMessage = {
       role: 'function' as const,
       name: message.function_call.name!,
-      content: JSON.stringify(result) || '',
+      content: JSON.stringify(result),
     };
     messages.push(newMessage);
     console.log('THIS IS NEW MESSAGE:', newMessage, '\n');
@@ -150,8 +151,10 @@ const functionCaller = async (query: string) => {
 
 const TfunctionCaller = trace('functionCaller', functionCaller, { source: 'parea-js-sdk-oai-functions' });
 
-(async () => {
+async function main() {
   await TfunctionCaller(
     'I really enjoyed reading To Kill a Mockingbird, could you recommend me a book that is similar and tell me why?',
   );
-})();
+}
+
+main();

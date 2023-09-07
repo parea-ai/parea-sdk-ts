@@ -24,26 +24,23 @@ const dumpTask = (task: any[]) => {
   return d.trim();
 };
 
-const callLLM = trace(
-  'callLLM',
-  async (
-    data: Message[],
-    model: string = 'gpt-3.5-turbo',
-    provider: string = 'openai',
-    temperature: number = 0.0,
-  ): Promise<CompletionResponse> => {
-    const completion: Completion = {
-      llm_configuration: {
-        model: model,
-        provider: provider,
-        model_params: { temp: temperature },
-        messages: data,
-      },
-      metadata: { source: 'parea-js-sdk' },
-    };
-    return await p.completion(completion);
-  },
-);
+const callLLM = async (
+  data: Message[],
+  model: string = 'gpt-3.5-turbo',
+  provider: string = 'openai',
+  temperature: number = 0.0,
+): Promise<CompletionResponse> => {
+  const completion: Completion = {
+    llm_configuration: {
+      model: model,
+      provider: provider,
+      model_params: { temp: temperature },
+      messages: data,
+    },
+    metadata: { source: 'parea-js-sdk' },
+  };
+  return await p.completion(completion);
+};
 
 const expoundTask = async (mainObjective: string, currentTask: string) => {
   const prompt: Message[] = [
@@ -56,7 +53,6 @@ const expoundTask = async (mainObjective: string, currentTask: string) => {
   const newTasks: string[] = response.content.includes('\n') ? response.content.split('\n') : [response.content];
   return newTasks.map((taskName) => ({ task_name: taskName }));
 };
-const TexpoundTask = trace('expoundTask', expoundTask);
 
 const generateTasks = async (mainObjective: string, expoundedInitialTask: any[]) => {
   const selectLLMOption = LLM_OPTIONS[Math.floor(Math.random() * LLM_OPTIONS.length)];
@@ -83,6 +79,8 @@ const generateTasks = async (mainObjective: string, expoundedInitialTask: any[])
   }
   return newTasksList;
 };
+
+const TexpoundTask = trace('expoundTask', expoundTask);
 const TgenerateTasks = trace('generateTasks', generateTasks);
 
 const runAgent = async (mainObjective: string, initialTask: string = '') => {
@@ -103,11 +101,13 @@ const runAgent = async (mainObjective: string, initialTask: string = '') => {
 };
 const TrunAgent = trace('TrunAgent', runAgent);
 
-(async () => {
+async function main() {
   const [result, traceId] = await TrunAgent('Become a machine learning expert.', 'Learn about tensors.');
-  console.log(result);
   await p.recordFeedback({
     trace_id: traceId,
     score: 0.642,
   });
-})();
+  return result;
+}
+
+main().then((result) => console.log(result));
