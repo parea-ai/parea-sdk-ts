@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 import axiosRetry from 'axios-retry';
 import * as https from 'https';
-import * as http from 'http';
+// import * as http from 'http';
 
 interface RequestConfig {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -13,14 +13,14 @@ interface RequestConfig {
 
 export class HTTPClient {
   private static instance: HTTPClient;
-  private baseURL: string = 'http://127.0.0.1:8000/api/parea/v1';
+  private baseURL: string = 'https://optimus-prompt-backend.vercel.app/api/parea/v1'; // 'http://127.0.0.1:8000/api/parea/v1';
   private apiKey: string | null = null;
   private client: AxiosInstance;
 
   private constructor() {
     this.client = axios.create({
       httpsAgent: new https.Agent({ keepAlive: true }),
-      httpAgent: new http.Agent({ keepAlive: true }),
+      // httpAgent: new http.Agent({ keepAlive: true }),
       baseURL: this.baseURL,
       timeout: 60 * 3.0 * 1000,
     });
