@@ -53,6 +53,7 @@
     "Parea"
   ],
   "author": "Parea AI",
+  "homepage": "https://github.com/parea-ai/parea-sdk-js#readme",
   "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/parea-ai/parea-sdk-js/issues"
