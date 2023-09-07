@@ -17,8 +17,7 @@ npm install parea-ai
 ## Getting Started
 
 ```typescript
-import { Completion, CompletionResponse } from '../types';
-import { Parea } from '../client';
+import {Completion, CompletionResponse, Parea} from "parea-ai";
 
 const p = new Parea('API_KEY');
 
@@ -42,7 +41,7 @@ main().then((result) => console.log(result));
 
 ```typescript
 import OpenAI from 'openai';
-import { patchOpenAI } from '../utils/wrap_openai';
+import {patchOpenAI} from "parea-ai";
 
 const openai = new OpenAI({ apiKey: 'OPENAI_API_KEY' });
 
