@@ -9,7 +9,7 @@ export enum Role {
 
 export interface Message {
   content: string;
-  role: Role;
+  role: Role | string;
 }
 
 export interface ModelParams {

@@ -72,27 +72,15 @@ const argumentChain = async (query: string, additionalDescription: string = ''):
   return await refiner(query, additionalDescription, argument, criticism);
 };
 
-// Traced versions of the functions above
-const TargumentGenerator = trace('TDargumentGenerator', argumentGenerator, { source: 'parea-js-sdk-oai' });
-const Tcritic = trace('TDcritic', critic, { source: 'parea-js-sdk-oai' });
-const Trefiner = trace('TDrefiner', refiner, { source: 'parea-js-sdk-oai' });
-
-// Traced version of the parent function
-const TargumentChain = trace(
-  'TDargumentChain',
-  async (query: string, additionalDescription: string = ''): Promise<string> => {
-    const argument = await TargumentGenerator(query, additionalDescription);
-    const criticism = await Tcritic(argument);
-    return await Trefiner(query, additionalDescription, argument, criticism);
-  },
-);
+const TargumentChain = trace('argumentChain', argumentChain);
 
 const TRefinedArgument = trace(
   'TDrefinedArgument',
   async (query: string, refined: string, additionalDescription: string = ''): Promise<string[]> => {
-    const criticism = await Tcritic(refined);
-    const refined_arg = await Trefiner(query, additionalDescription, refined, criticism);
-    return [refined_arg, getCurrentTraceId()];
+    const traceId = getCurrentTraceId() || '';
+    const criticism = await critic(refined);
+    const refined_arg = await refiner(query, additionalDescription, refined, criticism);
+    return [refined_arg, traceId];
   },
 );
 

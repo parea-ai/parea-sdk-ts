@@ -64,18 +64,13 @@ const deployedArgumentChain = async (
   return await deployedRefiner(query, additionalDescription, argument, criticism);
 };
 
-// Traced versions of the functions above
-const TdeployedArgumentGenerator = trace('TdeployedArgumentGenerator', deployedArgumentGenerator);
-const TdeployedCritic = trace('TdeployedCritic', deployedCritic);
-const TdeployedRefiner = trace('TdeployedRefiner', deployedRefiner);
-
 // Traced version of the parent function
 const TdeployedArgumentChain = trace(
   'TdeployedArgumentChain',
   async (query: string, additionalDescription: string = ''): Promise<CompletionResponse> => {
-    const argument = await TdeployedArgumentGenerator(query, additionalDescription);
-    const criticism = await TdeployedCritic(argument);
-    return await TdeployedRefiner(query, additionalDescription, argument, criticism);
+    const argument = await deployedArgumentGenerator(query, additionalDescription);
+    const criticism = await deployedCritic(argument);
+    return await deployedRefiner(query, additionalDescription, argument, criticism);
   },
 );
 
@@ -84,8 +79,8 @@ const RefinedArgument = async (
   refined: string,
   additionalDescription: string = '',
 ): Promise<CompletionResponse> => {
-  const criticism = await TdeployedCritic(refined);
-  return await TdeployedRefiner(query, additionalDescription, refined, criticism);
+  const criticism = await deployedCritic(refined);
+  return await deployedRefiner(query, additionalDescription, refined, criticism);
 };
 
 const TRefinedArgument = trace('TRefinedArgument', RefinedArgument);
