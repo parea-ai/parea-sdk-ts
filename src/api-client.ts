@@ -11,7 +11,7 @@ interface RequestConfig {
 
 export class HTTPClient {
   private static instance: HTTPClient;
-  private baseURL: string = 'http://localhost:8000/api/parea/v1'; // 'https://optimus-prompt-backend.vercel.app/api/parea/v1';
+  private baseURL: string = 'https://optimus-prompt-backend.vercel.app/api/parea/v1';
   private apiKey: string | null = null;
   private client: AxiosInstance;
 
