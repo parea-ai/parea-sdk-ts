@@ -1,8 +1,9 @@
 import { Completion, CompletionResponse, FeedbackRequest, UseDeployedPrompt, UseDeployedPromptResponse } from './types';
 
-import { getCurrentTraceId } from './utils/trace_utils';
 import { HTTPClient } from './api-client';
 import { pareaLogger } from './parea_logger';
+import { genTraceId } from './helpers';
+import { getCurrentTraceId, traceData } from './utils/trace_utils';
 
 const COMPLETION_ENDPOINT = '/completion';
 const DEPLOYED_PROMPT_ENDPOINT = '/deployed-prompt';
@@ -20,8 +21,15 @@ export class Parea {
   }
 
   public async completion(data: Completion): Promise<CompletionResponse> {
-    data.inference_id = getCurrentTraceId();
+    const inference_id = genTraceId();
+    data.inference_id = inference_id;
     const response = await this.client.request({ method: 'POST', endpoint: COMPLETION_ENDPOINT, data });
+
+    const parentTraceId = getCurrentTraceId();
+    if (parentTraceId) {
+      traceData[parentTraceId].children.push(inference_id);
+    }
+
     return response.data;
   }
 

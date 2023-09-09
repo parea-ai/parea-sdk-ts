@@ -5,8 +5,8 @@ import { genTraceId, toDateTimeString } from '../helpers';
 export const traceData: { [key: string]: TraceLog } = {};
 export const traceContext: string[] = [];
 
-export const getCurrentTraceId = (): string => {
-  return traceContext[traceContext.length - 1];
+export const getCurrentTraceId = (): string | undefined => {
+  return traceContext[traceContext.length - 1] || undefined;
 };
 
 const merge = (old: any, newValue: any) => {
@@ -73,7 +73,10 @@ export const trace = (
       throw error;
     } finally {
       const endTimestamp = new Date();
-      traceInsert(traceId, { end_timestamp: toDateTimeString(endTimestamp) });
+      traceInsert(traceId, {
+        end_timestamp: toDateTimeString(endTimestamp),
+        latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
+      });
       await pareaLogger.recordLog(traceData[traceId]); // log the trace data
       traceContext.pop();
     }

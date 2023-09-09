@@ -84,6 +84,7 @@ const TexpoundTask = trace('expoundTask', expoundTask);
 const TgenerateTasks = trace('generateTasks', generateTasks);
 
 const runAgent = async (mainObjective: string, initialTask: string = '') => {
+  const traceId = getCurrentTraceId() || '';
   const generatedTasks = [];
   const expoundedInitialTask = await TexpoundTask(mainObjective, initialTask);
   const newTasks = await TgenerateTasks(mainObjective, expoundedInitialTask);
@@ -97,7 +98,7 @@ const runAgent = async (mainObjective: string, initialTask: string = '') => {
       break;
     }
   }
-  return [generatedTasks, getCurrentTraceId()];
+  return [generatedTasks, traceId];
 };
 const TrunAgent = trace('TrunAgent', runAgent);
 
