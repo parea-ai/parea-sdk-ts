@@ -19,7 +19,7 @@ npm install parea-ai
 ```typescript
 import {Completion, CompletionResponse, Parea} from "parea-ai";
 
-const p = new Parea('API_KEY');
+const p = new Parea('PAREA_API_KEY');
 
 const deployedPromptCall = async (query: string): Promise<string> => {
   const completion: Completion = {
@@ -37,11 +37,11 @@ async function main() {
 main().then((result) => console.log(result));
 ```
 
-### Logging results from LLM providers
+### Logging results from LLM providers & recording user feedback
 
 ```typescript
 import OpenAI from 'openai';
-import {patchOpenAI, Parea} from "parea-ai";
+import {patchOpenAI, Parea, getCurrentTraceId} from "parea-ai";
 
 const openai = new OpenAI({ apiKey: 'OPENAI_API_KEY' });
 
@@ -59,7 +59,14 @@ async function callOpenAI(
 }
 
 async function main() {
-   return await callOpenAI([{ role: 'user', content: 'Write a hello world program using Typescript and the React framework.'}]);
+   const result = await callOpenAI([{ role: 'user', content: 'Write a hello world program using Typescript and the React framework.'}]);
+   // record feedback on result
+   const traceId = getCurrentTraceId();
+   await p.recordFeedback({
+      trace_id: traceId,
+      score: 0.21, // 0.0 (bad) to 1.0 (good)
+   });
+   return result;
 }
 
 main().then((result) => console.log(result));
