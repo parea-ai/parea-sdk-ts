@@ -41,12 +41,13 @@ main().then((result) => console.log(result));
 
 ```typescript
 import OpenAI from 'openai';
-import {patchOpenAI} from "parea-ai";
+import {patchOpenAI, Parea} from "parea-ai";
 
 const openai = new OpenAI({ apiKey: 'OPENAI_API_KEY' });
 
 // Patch OpenAI to add trace logs
 patchOpenAI(openai);
+const p = new Parea('API_KEY');
 
 async function callOpenAI(
   messages: any[],
@@ -57,12 +58,8 @@ async function callOpenAI(
   return response.choices[0].message.content ?? '';
 }
 
-const deployedPromptCall = async (query: string): Promise<string> => {
-  return await callOpenAI([{ role: 'user', content: query }]);
-};
-
 async function main() {
-  return await deployedPromptCall('Write a hello world program using Typescript and the React framework.');
+   return await callOpenAI([{ role: 'user', content: 'Write a hello world program using Typescript and the React framework.'}]);
 }
 
 main().then((result) => console.log(result));
