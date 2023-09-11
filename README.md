@@ -47,7 +47,7 @@ const openai = new OpenAI({ apiKey: 'OPENAI_API_KEY' });
 
 // Patch OpenAI to add trace logs
 patchOpenAI(openai);
-const p = new Parea('API_KEY');
+const p = new Parea('PAREA_API_KEY');
 
 async function callOpenAI(
   messages: any[],
