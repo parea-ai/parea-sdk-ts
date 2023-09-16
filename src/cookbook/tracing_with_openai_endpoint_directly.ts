@@ -72,12 +72,13 @@ const argumentChain = async (query: string, additionalDescription: string = ''):
   return await refiner(query, additionalDescription, argument, criticism);
 };
 
-const TargumentChain = trace('argumentChain', argumentChain);
+// you can add metadata and endUserIdentifier to trace for filtering in the dashboard
+const TargumentChain = trace('argumentChain', argumentChain, { purpose: 'test' }, 'user_id');
 
 const TRefinedArgument = trace(
   'TDrefinedArgument',
   async (query: string, refined: string, additionalDescription: string = ''): Promise<string[]> => {
-    const traceId = getCurrentTraceId() || '';
+    const traceId = getCurrentTraceId() as string;
     const criticism = await critic(refined);
     const refined_arg = await refiner(query, additionalDescription, refined, criticism);
     return [refined_arg, traceId];

@@ -34,9 +34,9 @@ export const trace = (
   funcName: string,
   func: (...args: any[]) => any,
   metadata?: any,
+  endUserIdentifier?: string,
   tags?: string[],
   target?: string,
-  endUserIdentifier?: string,
 ) => {
   return async (...args: any[]) => {
     const traceId = genTraceId();
