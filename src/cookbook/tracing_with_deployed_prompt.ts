@@ -18,6 +18,7 @@ const deployedArgumentGenerator = async (query: string, additionalDescription: s
     },
     metadata: { source: 'parea-js-sdk' },
     trace_name: 'deployedArgumentGenerator',
+    end_user_identifier: 'test-user',
   };
   const response = await p.completion(completion);
   return response.content;
@@ -29,6 +30,7 @@ const deployedCritic = async (argument: string): Promise<string> => {
     llm_inputs: { argument: argument },
     metadata: { source: 'parea-js-sdk' },
     trace_name: 'deployedCritic',
+    end_user_identifier: 'test-user',
   };
   const response = await p.completion(completion);
   return response.content;
@@ -51,6 +53,7 @@ const deployedRefiner = async (
     },
     metadata: { source: 'parea-js-sdk' },
     trace_name: 'deployedRefiner',
+    end_user_identifier: 'test-user',
   };
   return await p.completion(completion);
 };
