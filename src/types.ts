@@ -91,6 +91,7 @@ export interface FeedbackRequest {
   inference_id?: string;
   name?: string;
   target?: string;
+  comment?: string;
 }
 
 export interface TraceLogInputs {
