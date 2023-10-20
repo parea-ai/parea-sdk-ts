@@ -118,7 +118,7 @@ async function callOpenAI(
   return response.choices[0]!.message;
 }
 
-const TcallFunction = trace('callFunction', callFunction, { source: 'tool-oai-function-call' });
+const TcallFunction = trace('callFunction', callFunction, { metadata: { source: 'tool-oai-function-call' } });
 
 const functionCaller = async (query: string) => {
   const messages: ChatCompletionMessageParam[] = [
@@ -149,7 +149,7 @@ const functionCaller = async (query: string) => {
   }
 };
 
-const TfunctionCaller = trace('functionCaller', functionCaller, { source: 'parea-js-sdk-oai-functions' });
+const TfunctionCaller = trace('functionCaller', functionCaller, { metadata: { source: 'parea-js-sdk-oai-functions' } });
 
 async function main() {
   await TfunctionCaller(
