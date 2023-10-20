@@ -1,4 +1,4 @@
-import { CompletionResponse, TraceLog } from '../types';
+import { TraceLog, TraceOptions } from '../types';
 import { pareaLogger } from '../parea_logger';
 import { genTraceId, toDateTimeString } from '../helpers';
 
@@ -30,14 +30,7 @@ export const traceInsert = (traceId: string, data: { [key: string]: any }) => {
   }
 };
 
-export const trace = (
-  funcName: string,
-  func: (...args: any[]) => any,
-  metadata?: any,
-  endUserIdentifier?: string,
-  tags?: string[],
-  target?: string,
-) => {
+export const trace = (funcName: string, func: (...args: any[]) => any, options?: TraceOptions) => {
   return async (...args: any[]) => {
     const traceId = genTraceId();
     const startTimestamp = new Date();
@@ -47,10 +40,10 @@ export const trace = (
       trace_id: traceId,
       start_timestamp: toDateTimeString(startTimestamp),
       inputs: extractFunctionParams(func, args),
-      metadata,
-      tags,
-      target,
-      end_user_identifier: endUserIdentifier,
+      metadata: options?.metadata,
+      tags: options?.tags,
+      target: options?.target,
+      end_user_identifier: options?.endUserIdentifier,
       children: [],
       status: 'success',
     };
@@ -64,8 +57,16 @@ export const trace = (
 
     try {
       const result = await func(...args);
-      const output = (result as CompletionResponse) ? JSON.stringify(result) : result;
-      traceInsert(traceId, { output });
+      const output = typeof result === 'string' ? result : JSON.stringify(result);
+      let outputForEvalMetrics = output;
+      if (options?.accessOutputOfFunc) {
+        outputForEvalMetrics = options?.accessOutputOfFunc(result);
+      }
+      traceInsert(traceId, {
+        output,
+        evaluation_metric_names: options?.evalFuncNames,
+        output_for_eval_metrics: outputForEvalMetrics,
+      });
       return result;
     } catch (error: any) {
       console.error(`Error occurred in function ${func.name}, ${error}`);

@@ -73,7 +73,12 @@ const argumentChain = async (query: string, additionalDescription: string = ''):
 };
 
 // you can add metadata and endUserIdentifier to trace for filtering in the dashboard
-const TargumentChain = trace('argumentChain', argumentChain, { purpose: 'test' }, 'user_id');
+const TargumentChain = trace('argumentChain', argumentChain, {
+  metadata: {
+    purpose: 'test',
+  },
+  endUserIdentifier: 'user_id',
+});
 
 const TRefinedArgument = trace(
   'TDrefinedArgument',
@@ -90,6 +95,10 @@ const NestedChain = trace(
   async (query: string, additionalDescription: string = ''): Promise<string[]> => {
     const refined = await TargumentChain(query, additionalDescription);
     return await TRefinedArgument(query, refined, additionalDescription);
+  },
+  {
+    evalFuncNames: ['Is equal'],
+    accessOutputOfFunc: (arg0: any) => arg0[0],
   },
 );
 
