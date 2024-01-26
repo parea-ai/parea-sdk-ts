@@ -38,6 +38,7 @@ export const trace = (funcName: string, func: (...args: any[]) => any, options?:
     traceData[traceId] = {
       trace_name: funcName,
       trace_id: traceId,
+      parent_trace_id: traceId,
       start_timestamp: toDateTimeString(startTimestamp),
       inputs: extractFunctionParams(func, args),
       metadata: options?.metadata,
@@ -46,12 +47,14 @@ export const trace = (funcName: string, func: (...args: any[]) => any, options?:
       end_user_identifier: options?.endUserIdentifier,
       children: [],
       status: 'success',
+      experiment_uuid: null,
     };
 
     traceContext.push(traceId);
 
     if (traceContext.length > 1) {
       const parentTraceId = traceContext[traceContext.length - 2];
+      traceData[traceId].parent_trace_id = parentTraceId;
       traceData[parentTraceId].children.push(traceId);
     }
 

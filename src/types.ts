@@ -31,6 +31,7 @@ export interface LLMInputs {
 
 export interface Completion {
   inference_id?: string;
+  parent_trace_id?: string;
   trace_name?: string;
   llm_inputs?: { [key: string]: any };
   llm_configuration?: LLMInputs;
@@ -61,6 +62,7 @@ export interface CompletionResponse {
   start_timestamp: string;
   end_timestamp: string;
   error?: string;
+  trace_id?: string;
 }
 
 export interface UseDeployedPrompt {
@@ -98,13 +100,20 @@ export interface TraceLogInputs {
   [key: string]: string;
 }
 
+export interface NamedEvaluationScore {
+  name: string;
+  score: number;
+}
+
 export interface TraceLog {
   trace_id: string;
+  parent_trace_id?: string;
   start_timestamp: string;
   organization_id?: string;
   error?: string;
   status?: string;
   deployment_id?: string;
+  output_for_eval_metrics?: string;
   cache_hit?: boolean;
   configuration?: LLMInputs;
   latency?: number;
@@ -113,6 +122,7 @@ export interface TraceLog {
   total_tokens?: number;
   cost?: number;
   evaluation_metric_names?: string[];
+  scores?: NamedEvaluationScore[];
   feedback_score?: number;
   trace_name?: string;
   children: string[];
@@ -123,34 +133,12 @@ export interface TraceLog {
   tags?: string[];
   inputs?: TraceLogInputs;
   output?: string;
+  experiment_uuid?: string | null;
 }
 
-export interface TraceLogTree {
-  trace_id: string;
-  start_timestamp: string;
-  organization_id?: string;
-  error?: string;
-  status?: string;
-  deployment_id?: string;
-  cache_hit?: boolean;
-  configuration?: LLMInputs;
-  latency?: number;
-  input_tokens?: number;
-  output_tokens?: number;
-  total_tokens?: number;
-  cost?: number;
-  evaluation_metric_names?: string[];
-  feedback_score?: number;
-  trace_name?: string;
-  children: TraceLog[];
-  end_timestamp?: string;
-  end_user_identifier?: string;
-  metadata?: { [key: string]: any };
-  target?: string;
-  tags?: string[];
-  inputs?: { [key: string]: string };
-  output?: string;
-}
+export type TraceLogTreeSchema = TraceLog & {
+  children_logs: TraceLogTreeSchema[];
+};
 
 export type TraceOptions = {
   metadata?: any;
@@ -159,4 +147,9 @@ export type TraceOptions = {
   target?: string;
   evalFuncNames?: string[];
   accessOutputOfFunc?: (arg0: any) => string;
+};
+
+export type UpdateLog = {
+  trace_id: string;
+  field_name_to_value_map: { [key: string]: any };
 };
