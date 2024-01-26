@@ -15,6 +15,7 @@ function wrapMethod(method: Function) {
 
     traceData[traceId] = {
       trace_id: traceId,
+      parent_trace_id: traceId,
       trace_name: 'llm-openai',
       start_timestamp: toDateTimeString(startTimestamp),
       configuration: {
@@ -27,12 +28,14 @@ function wrapMethod(method: Function) {
       } as LLMInputs,
       children: [],
       status: status,
+      experiment_uuid: null,
     };
 
     traceContext.push(traceId);
 
     if (traceContext.length > 1) {
       const parentTraceId = traceContext[traceContext.length - 2];
+      traceData[traceId].parent_trace_id = parentTraceId;
       traceData[parentTraceId].children.push(traceId);
     }
 
@@ -93,13 +96,19 @@ const MODEL_COST_MAPPING: { [key: string]: number } = {
   'gpt-3.5-turbo': 0.0015,
   'gpt-3.5-turbo-0301': 0.0015,
   'gpt-3.5-turbo-0613': 0.0015,
+  'gpt-3.5-turbo-1106': 0.001,
   'gpt-3.5-turbo-16k': 0.003,
   'gpt-3.5-turbo-16k-0613': 0.003,
   'gpt-3.5-turbo-completion': 0.002,
   'gpt-3.5-turbo-0301-completion': 0.002,
   'gpt-3.5-turbo-0613-completion': 0.004,
+  'gpt-3.5-turbo-1106-completion': 0.002,
   'gpt-3.5-turbo-16k-completion': 0.004,
   'gpt-3.5-turbo-16k-0613-completion': 0.004,
+  'gpt-4-vision-preview': 0.03,
+  'gpt-4-vision-preview-completion': 0.06,
+  'gpt-4-1106-preview': 0.01,
+  'gpt-4-1106-preview-completion': 0.03,
 };
 
 function getModelCost(modelName: string, isCompletion: boolean = false): number {

@@ -45,7 +45,7 @@ const callLLM = async (
 const expoundTask = async (mainObjective: string, currentTask: string) => {
   const prompt: Message[] = [
     {
-      role: Role.system,
+      role: Role.user,
       content: `You are an AI who performs one task based on the following objective: ${mainObjective}\nYour task: ${currentTask}\nResponse:`,
     },
   ];
@@ -59,7 +59,7 @@ const generateTasks = async (mainObjective: string, expoundedInitialTask: any[])
   const taskExpansion = dumpTask(expoundedInitialTask);
   const prompt: Message[] = [
     {
-      role: Role.system,
+      role: Role.user,
       content: `You are an AI who creates tasks based on the following MAIN OBJECTIVE: ${mainObjective}\nCreate tasks pertaining directly to your previous research here:\n${taskExpansion}\nResponse:`,
     },
   ];

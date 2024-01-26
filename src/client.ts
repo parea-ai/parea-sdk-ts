@@ -9,6 +9,9 @@ import { pareaProject } from './project';
 const COMPLETION_ENDPOINT = '/completion';
 const DEPLOYED_PROMPT_ENDPOINT = '/deployed-prompt';
 const RECORD_FEEDBACK_ENDPOINT = '/feedback';
+// const EXPERIMENT_ENDPOINT = "/experiment"
+// const EXPERIMENT_STATS_ENDPOINT = "/experiment/{experiment_uuid}/stats"
+// const EXPERIMENT_FINISHED_ENDPOINT = "/experiment/{experiment_uuid}/finished"
 
 export class Parea {
   private apiKey: string;
@@ -24,8 +27,11 @@ export class Parea {
   }
 
   public async completion(data: Completion): Promise<CompletionResponse> {
+    const parentTraceId = getCurrentTraceId();
     const inference_id = genTraceId();
     data.inference_id = inference_id;
+    data.parent_trace_id = parentTraceId || inference_id;
+    const response = await this.client.request({ method: 'POST', endpoint: COMPLETION_ENDPOINT, data });
     const response = await this.client.request({
       method: 'POST',
       endpoint: COMPLETION_ENDPOINT,
@@ -35,9 +41,9 @@ export class Parea {
       },
     });
 
-    const parentTraceId = getCurrentTraceId();
     if (parentTraceId) {
       traceData[parentTraceId].children.push(inference_id);
+      await pareaLogger.recordLog(traceData[parentTraceId]);
     }
 
     return response.data;
