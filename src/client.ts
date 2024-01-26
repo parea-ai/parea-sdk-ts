@@ -31,7 +31,6 @@ export class Parea {
     const inference_id = genTraceId();
     data.inference_id = inference_id;
     data.parent_trace_id = parentTraceId || inference_id;
-    const response = await this.client.request({ method: 'POST', endpoint: COMPLETION_ENDPOINT, data });
     const response = await this.client.request({
       method: 'POST',
       endpoint: COMPLETION_ENDPOINT,

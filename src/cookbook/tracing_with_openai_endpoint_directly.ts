@@ -97,7 +97,7 @@ const NestedChain = trace(
     return await TRefinedArgument(query, refined, additionalDescription);
   },
   {
-    evalFuncNames: ['Is equal'],
+    evalFuncNames: ['Is equal'], // this a deployed evaluation function
     accessOutputOfFunc: (arg0: any) => arg0[0],
   },
 );
