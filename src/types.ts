@@ -160,3 +160,12 @@ export type TraceOptions = {
   evalFuncNames?: string[];
   accessOutputOfFunc?: (arg0: any) => string;
 };
+
+export interface CreateGetProjectSchema {
+  name: string;
+}
+
+export type ProjectSchema = CreateGetProjectSchema & {
+  uuid: string;
+  createdAt: string;
+};

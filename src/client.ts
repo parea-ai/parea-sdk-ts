@@ -4,6 +4,7 @@ import { HTTPClient } from './api-client';
 import { pareaLogger } from './parea_logger';
 import { genTraceId } from './helpers';
 import { getCurrentTraceId, traceData } from './utils/trace_utils';
+import { pareaProject } from './project';
 
 const COMPLETION_ENDPOINT = '/completion';
 const DEPLOYED_PROMPT_ENDPOINT = '/deployed-prompt';
@@ -13,17 +14,26 @@ export class Parea {
   private apiKey: string;
   private client: HTTPClient;
 
-  constructor(apiKey: string = '') {
+  constructor(apiKey: string = '', projectName: string = 'default') {
     this.apiKey = apiKey;
     this.client = HTTPClient.getInstance();
     this.client.setApiKey(this.apiKey);
     pareaLogger.setClient(this.client);
+    pareaProject.setProjectName(projectName);
+    pareaProject.setClient(this.client);
   }
 
   public async completion(data: Completion): Promise<CompletionResponse> {
     const inference_id = genTraceId();
     data.inference_id = inference_id;
-    const response = await this.client.request({ method: 'POST', endpoint: COMPLETION_ENDPOINT, data });
+    const response = await this.client.request({
+      method: 'POST',
+      endpoint: COMPLETION_ENDPOINT,
+      data: {
+        project_uuid: await pareaProject.getProjectUUID(),
+        ...data,
+      },
+    });
 
     const parentTraceId = getCurrentTraceId();
     if (parentTraceId) {
