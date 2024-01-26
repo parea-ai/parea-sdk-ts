@@ -22,5 +22,5 @@ export {
   FeedbackRequest,
   TraceLogInputs,
   TraceLog,
-  TraceLogTree,
+  TraceLogTreeSchema,
 } from './types';
