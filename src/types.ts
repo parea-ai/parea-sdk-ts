@@ -7,29 +7,29 @@ export enum Role {
   function = 'function',
 }
 
-export interface Message {
+export type Message = {
   content: string;
   role: Role | string;
-}
+};
 
-export interface ModelParams {
+export type ModelParams = {
   temp?: number;
   top_p?: number;
   frequency_penalty?: number;
   presence_penalty?: number;
   max_length?: number;
-}
+};
 
-export interface LLMInputs {
+export type LLMInputs = {
   model?: string;
   provider?: string;
   model_params?: ModelParams;
   messages?: Message[];
   functions?: any[];
   function_call?: string | { [key: string]: string };
-}
+};
 
-export interface Completion {
+export type Completion = {
   inference_id?: string;
   parent_trace_id?: string;
   trace_name?: string;
@@ -45,9 +45,10 @@ export interface Completion {
   log_omit_inputs?: boolean;
   log_omit_outputs?: boolean;
   log_omit?: boolean;
-}
+  experiment_uuid?: string | null;
+};
 
-export interface CompletionResponse {
+export type CompletionResponse = {
   inference_id: string;
   content: string;
   latency: number;
@@ -63,20 +64,20 @@ export interface CompletionResponse {
   end_timestamp: string;
   error?: string;
   trace_id?: string;
-}
+};
 
-export interface UseDeployedPrompt {
+export type UseDeployedPrompt = {
   deployment_id: string;
   llm_inputs?: { [key: string]: any };
-}
+};
 
-export interface Prompt {
+export type Prompt = {
   raw_messages: { [key: string]: any }[];
   messages: { [key: string]: any }[];
   inputs?: { [key: string]: any };
-}
+};
 
-export interface UseDeployedPromptResponse {
+export type UseDeployedPromptResponse = {
   deployment_id: string;
   name?: string;
   functions?: { [key: string]: any };
@@ -85,27 +86,39 @@ export interface UseDeployedPromptResponse {
   model?: string;
   provider?: string;
   model_params?: { [key: string]: any };
-}
+};
 
-export interface FeedbackRequest {
+export type FeedbackRequest = {
   score: number;
   trace_id?: string;
   inference_id?: string;
   name?: string;
   target?: string;
   comment?: string;
-}
+};
 
-export interface TraceLogInputs {
+export type TraceLogInputs = {
   [key: string]: string;
-}
+};
 
-export interface NamedEvaluationScore {
+export type NamedEvaluationScore = {
   name: string;
   score: number;
-}
+};
 
-export interface TraceLog {
+export type Log = {
+  configuration?: LLMInputs;
+  inputs?: TraceLogInputs;
+  output?: string;
+  target?: string;
+  latency?: number;
+  input_tokens?: number;
+  output_tokens?: number;
+  total_tokens?: number;
+  cost?: number;
+};
+
+export type TraceLog = Log & {
   trace_id: string;
   parent_trace_id?: string;
   start_timestamp: string;
@@ -115,12 +128,6 @@ export interface TraceLog {
   deployment_id?: string;
   output_for_eval_metrics?: string;
   cache_hit?: boolean;
-  configuration?: LLMInputs;
-  latency?: number;
-  input_tokens?: number;
-  output_tokens?: number;
-  total_tokens?: number;
-  cost?: number;
   evaluation_metric_names?: string[];
   scores?: NamedEvaluationScore[];
   feedback_score?: number;
@@ -129,12 +136,9 @@ export interface TraceLog {
   end_timestamp?: string;
   end_user_identifier?: string;
   metadata?: { [key: string]: any };
-  target?: string;
   tags?: string[];
-  inputs?: TraceLogInputs;
-  output?: string;
   experiment_uuid?: string | null;
-}
+};
 
 export type TraceLogTreeSchema = TraceLog & {
   children_logs: TraceLogTreeSchema[];
@@ -146,10 +150,42 @@ export type TraceOptions = {
   tags?: string[];
   target?: string;
   evalFuncNames?: string[];
+  evalFuncs?: any[];
   accessOutputOfFunc?: (arg0: any) => string;
 };
 
 export type UpdateLog = {
   trace_id: string;
   field_name_to_value_map: { [key: string]: any };
+};
+
+export type CreateExperimentRequest = {
+  name: string;
+};
+
+export type ExperimentSchema = CreateExperimentRequest & {
+  uuid: string;
+  created_at: string;
+};
+
+export type EvaluationScoreSchema = NamedEvaluationScore & {
+  id?: number;
+};
+
+export type TraceStatsSchema = {
+  trace_id: string;
+  latency?: number;
+  input_tokens?: number;
+  output_tokens?: number;
+  total_tokens?: number;
+  cost?: number;
+  scores?: EvaluationScoreSchema[];
+};
+
+export type ExperimentStatsSchema = {
+  parent_trace_stats: TraceStatsSchema[];
+};
+
+export type DataItem = {
+  [key: string]: any;
 };

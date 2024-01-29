@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
-import { LLMInputs, Role } from '../types';
+import { LLMInputs, Role, TraceLog } from '../types';
 import { pareaLogger } from '../parea_logger';
-import { traceContext, traceData, traceInsert } from './trace_utils';
+import { asyncLocalStorage, traceInsert } from './trace_utils';
 import { genTraceId, toDateTimeString } from '../helpers';
 
 function wrapMethod(method: Function) {
@@ -13,9 +13,12 @@ function wrapMethod(method: Function) {
     let response: any = null;
     let endTimestamp: Date | null;
 
-    traceData[traceId] = {
+    const parentStore = asyncLocalStorage.getStore();
+    const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined;
+
+    const traceLog: TraceLog = {
       trace_id: traceId,
-      parent_trace_id: traceId,
+      parent_trace_id: parentTraceId || traceId,
       trace_name: 'llm-openai',
       start_timestamp: toDateTimeString(startTimestamp),
       configuration: {
@@ -28,50 +31,51 @@ function wrapMethod(method: Function) {
       } as LLMInputs,
       children: [],
       status: status,
-      experiment_uuid: null,
+      experiment_uuid: process.env.PAREA_OS_ENV_EXPERIMENT_UUID || null,
     };
 
-    traceContext.push(traceId);
-
-    if (traceContext.length > 1) {
-      const parentTraceId = traceContext[traceContext.length - 2];
-      traceData[traceId].parent_trace_id = parentTraceId;
-      traceData[parentTraceId].children.push(traceId);
-    }
-
-    try {
-      response = await method.apply(this, args);
-      traceInsert(traceId, {
-        output: getOutput(response),
-        input_tokens: response.usage.prompt_tokens,
-        output_tokens: response.usage.completion_tokens,
-        total_tokens: response.usage.total_tokens,
-        cost: getTotalCost(args[0].model, response.usage.prompt_tokens, response.usage.completion_tokens),
-      });
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        error = err.message;
-      } else {
-        error = 'An unknown error occurred';
+    return asyncLocalStorage.run(new Map([[traceId, { traceLog, threadIdsRunningEvals: [] }]]), async () => {
+      if (parentStore && parentTraceId) {
+        const parentTraceLog = parentStore.get(parentTraceId);
+        if (parentTraceLog) {
+          parentTraceLog.traceLog.children.push(traceId);
+          parentStore.set(parentTraceId, parentTraceLog);
+        }
       }
-      status = 'error';
-      traceInsert(traceId, { error, status });
-    } finally {
-      endTimestamp = new Date();
-      traceInsert(traceId, {
-        end_timestamp: toDateTimeString(endTimestamp),
-        latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
-        status: status,
-      });
-      await pareaLogger.recordLog(traceData[traceId]); // log the trace data
-      traceContext.pop();
-    }
 
-    if (error) {
-      throw new Error(error);
-    }
+      try {
+        response = await method.apply(this, args);
+        traceInsert(traceId, {
+          output: getOutput(response),
+          input_tokens: response.usage.prompt_tokens,
+          output_tokens: response.usage.completion_tokens,
+          total_tokens: response.usage.total_tokens,
+          cost: getTotalCost(args[0].model, response.usage.prompt_tokens, response.usage.completion_tokens),
+        });
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          error = err.message;
+        } else {
+          error = 'An unknown error occurred';
+        }
+        status = 'error';
+        traceInsert(traceId, { error, status });
+      } finally {
+        endTimestamp = new Date();
+        traceInsert(traceId, {
+          end_timestamp: toDateTimeString(endTimestamp),
+          latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
+          status: status,
+        });
+        await pareaLogger.recordLog(traceLog);
+      }
 
-    return response;
+      if (error) {
+        throw new Error(error);
+      }
+
+      return response;
+    });
   };
 }
 
