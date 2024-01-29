@@ -1,16 +1,27 @@
-import { Completion, CompletionResponse, FeedbackRequest, UseDeployedPrompt, UseDeployedPromptResponse } from './types';
+import {
+  Completion,
+  CompletionResponse,
+  CreateExperimentRequest,
+  DataItem,
+  ExperimentSchema,
+  ExperimentStatsSchema,
+  FeedbackRequest,
+  UseDeployedPrompt,
+  UseDeployedPromptResponse,
+} from './types';
 
 import { HTTPClient } from './api-client';
 import { pareaLogger } from './parea_logger';
 import { genTraceId } from './helpers';
-import { getCurrentTraceId, traceData } from './utils/trace_utils';
+import { asyncLocalStorage } from './utils/trace_utils';
+import { Experiment } from './experiment/experiment';
 
 const COMPLETION_ENDPOINT = '/completion';
 const DEPLOYED_PROMPT_ENDPOINT = '/deployed-prompt';
 const RECORD_FEEDBACK_ENDPOINT = '/feedback';
-// const EXPERIMENT_ENDPOINT = "/experiment"
-// const EXPERIMENT_STATS_ENDPOINT = "/experiment/{experiment_uuid}/stats"
-// const EXPERIMENT_FINISHED_ENDPOINT = "/experiment/{experiment_uuid}/finished"
+const EXPERIMENT_ENDPOINT = '/experiment';
+const EXPERIMENT_STATS_ENDPOINT = '/experiment/{experiment_uuid}/stats';
+const EXPERIMENT_FINISHED_ENDPOINT = '/experiment/{experiment_uuid}/finished';
 
 export class Parea {
   private apiKey: string;
@@ -24,15 +35,29 @@ export class Parea {
   }
 
   public async completion(data: Completion): Promise<CompletionResponse> {
-    const parentTraceId = getCurrentTraceId();
+    let experiment_uuid;
+    const parentStore = asyncLocalStorage.getStore();
+    const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined; // Assuming the last traceId is the parent
+
     const inference_id = genTraceId();
     data.inference_id = inference_id;
     data.parent_trace_id = parentTraceId || inference_id;
+
+    if (process.env.PAREA_OS_ENV_EXPERIMENT_UUID) {
+      experiment_uuid = process.env.PAREA_OS_ENV_EXPERIMENT_UUID;
+      data.experiment_uuid = experiment_uuid;
+    }
+
     const response = await this.client.request({ method: 'POST', endpoint: COMPLETION_ENDPOINT, data });
 
-    if (parentTraceId) {
-      traceData[parentTraceId].children.push(inference_id);
-      await pareaLogger.recordLog(traceData[parentTraceId]);
+    if (parentStore && parentTraceId) {
+      const parentTraceLog = parentStore.get(parentTraceId);
+      if (parentTraceLog) {
+        parentTraceLog.traceLog.children.push(inference_id);
+        parentTraceLog.traceLog.experiment_uuid = experiment_uuid;
+        parentStore.set(parentTraceId, parentTraceLog);
+        await pareaLogger.recordLog(parentTraceLog.traceLog);
+      }
     }
 
     return response.data;
@@ -46,5 +71,30 @@ export class Parea {
   public async recordFeedback(data: FeedbackRequest): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 2000)); // give logs time to update
     await this.client.request({ method: 'POST', endpoint: RECORD_FEEDBACK_ENDPOINT, data });
+  }
+
+  public async createExperiment(data: CreateExperimentRequest): Promise<ExperimentSchema> {
+    const response = await this.client.request({ method: 'POST', endpoint: EXPERIMENT_ENDPOINT, data });
+    return response.data;
+  }
+
+  public async getExperimentStats(experimentUUID: string): Promise<ExperimentStatsSchema> {
+    const response = await this.client.request({
+      method: 'GET',
+      endpoint: EXPERIMENT_STATS_ENDPOINT.replace('{experiment_uuid}', experimentUUID),
+    });
+    return response.data;
+  }
+
+  public async finishExperiment(experimentUUID: string): Promise<ExperimentStatsSchema> {
+    const response = await this.client.request({
+      method: 'POST',
+      endpoint: EXPERIMENT_FINISHED_ENDPOINT.replace('{experiment_uuid}', experimentUUID),
+    });
+    return response.data;
+  }
+
+  public experiment(name: string, data: Iterable<DataItem>, func: (dataItem: DataItem) => Promise<any>): Experiment {
+    return new Experiment(name, data, func, this);
   }
 }

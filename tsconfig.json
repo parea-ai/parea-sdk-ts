@@ -16,8 +16,9 @@
     "allowJs": true,
     "strict": true,
     "outDir": "dist",
-    "types": ["jest"],
-    "typeRoots": ["./node_modules/@types"]
+    "types": ["node","jest"],
+    "typeRoots": ["./node_modules/@types"],
+    "maxNodeModuleJsDepth": 5
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "coverage", "**/__tests__/*", "**/*.test.ts"],
