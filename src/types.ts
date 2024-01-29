@@ -182,10 +182,26 @@ export type TraceStatsSchema = {
   scores?: EvaluationScoreSchema[];
 };
 
-export type ExperimentStatsSchema = {
-  parent_trace_stats: TraceStatsSchema[];
-};
-
 export type DataItem = {
   [key: string]: any;
 };
+
+export class ExperimentStatsSchema {
+  parent_trace_stats: TraceStatsSchema[];
+
+  constructor(parent_trace_stats: TraceStatsSchema[]) {
+    this.parent_trace_stats = parent_trace_stats;
+  }
+
+  cumulativeAvgScore(): number {
+    const scores = this.parent_trace_stats.flatMap((traceStat) => traceStat.scores?.map((score) => score.score) || []);
+    return scores.length > 0 ? scores.reduce((acc, curr) => acc + curr, 0) / scores.length : 0.0;
+  }
+
+  avgScore(scoreName: string): number {
+    const scores = this.parent_trace_stats.flatMap(
+      (traceStat) => traceStat.scores?.filter((score) => score.name === scoreName).map((score) => score.score) || [],
+    );
+    return scores.length > 0 ? scores.reduce((acc, curr) => acc + curr, 0) / scores.length : 0.0;
+  }
+}
