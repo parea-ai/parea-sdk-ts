@@ -44,7 +44,7 @@ function calculateAvgStdForExperiment(experimentStats: ExperimentStatsSchema): {
   return result;
 }
 
-export async function experiment(
+async function experiment(
   name: string,
   data: Iterable<Record<string, any>>,
   func: (...args: any[]) => Promise<any>,
