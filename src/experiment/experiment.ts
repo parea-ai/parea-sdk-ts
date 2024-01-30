@@ -1,4 +1,4 @@
-import { DataItem, ExperimentStatsSchema, TraceStatsSchema } from '../types';
+import { ExperimentStatsSchema, TraceStatsSchema } from '../types';
 import { Parea } from '../client';
 import { asyncPool } from '../helpers';
 
@@ -46,8 +46,8 @@ function calculateAvgStdForExperiment(experimentStats: ExperimentStatsSchema): {
 
 async function experiment(
   name: string,
-  data: Iterable<Record<string, any>>,
-  func: (...args: any[]) => Promise<any>,
+  data: Iterable<any[]>,
+  func: (...dataItem: any[]) => Promise<any>,
   p: Parea,
   maxParallelCalls: number = 10,
 ): Promise<ExperimentStatsSchema> {
@@ -56,7 +56,7 @@ async function experiment(
   process.env.PAREA_OS_ENV_EXPERIMENT_UUID = experimentUUID;
 
   const tasksGenerator = asyncPool(maxParallelCalls, data, async (dataInput) => {
-    return func(dataInput);
+    return func(...dataInput);
   });
 
   for await (const _ of tasksGenerator) {
@@ -73,12 +73,12 @@ async function experiment(
 
 export class Experiment {
   name: string;
-  data: Iterable<DataItem>;
-  func: (dataItem: DataItem) => Promise<any>;
+  data: Iterable<any[]>;
+  func: (...dataItem: any[]) => Promise<any>;
   p: Parea;
   experimentStats?: ExperimentStatsSchema;
 
-  constructor(name: string, data: Iterable<DataItem>, func: (dataItem: DataItem) => Promise<any>, p: Parea) {
+  constructor(name: string, data: Iterable<any[]>, func: (...dataItem: any[]) => Promise<any>, p: Parea) {
     this.name = name;
     this.data = data;
     this.func = func;
@@ -86,6 +86,8 @@ export class Experiment {
   }
 
   async run(): Promise<void> {
-    this.experimentStats = await experiment(this.name, this.data, this.func, this.p);
+    this.experimentStats = new ExperimentStatsSchema(
+      (await experiment(this.name, this.data, this.func, this.p)).parent_trace_stats,
+    );
   }
 }

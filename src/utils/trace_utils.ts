@@ -186,6 +186,14 @@ function extractFunctionParams(func: Function, args: any[]): { [key: string]: an
 
   // Constructing an object of paramName: value
   return paramNames.reduce((acc, paramName, index) => {
-    return { ...acc, [paramName]: typeof args[index] === 'string' ? args[index] : JSON.stringify(args[index]) };
+    return {
+      ...acc,
+      [paramName]:
+        typeof args[index] === 'string'
+          ? args[index]
+          : Array.isArray(args[index])
+          ? args[index]
+          : JSON.stringify(args[index]),
+    };
   }, {});
 }
