@@ -4,7 +4,7 @@
   "description": "Client SDK library to connect to Parea AI.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/parea-ai/parea-sdk-js.git"
+    "url": "git+https://github.com/parea-ai/parea-sdk-ts.git"
   },
   "keywords": [
     "LLM",
@@ -13,10 +13,10 @@
     "Parea"
   ],
   "author": "Parea AI",
-  "homepage": "https://github.com/parea-ai/parea-sdk-js#readme",
+  "homepage": "https://github.com/parea-ai/parea-sdk-ts#readme",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/parea-ai/parea-sdk-js/issues"
+    "url": "https://github.com/parea-ai/parea-sdk-ts/issues"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

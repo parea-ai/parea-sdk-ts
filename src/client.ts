@@ -14,6 +14,7 @@ import { HTTPClient } from './api-client';
 import { pareaLogger } from './parea_logger';
 import { genTraceId } from './helpers';
 import { asyncLocalStorage } from './utils/trace_utils';
+import { pareaProject } from './project';
 import { Experiment } from './experiment/experiment';
 
 const COMPLETION_ENDPOINT = '/completion';
@@ -27,11 +28,13 @@ export class Parea {
   private apiKey: string;
   private client: HTTPClient;
 
-  constructor(apiKey: string = '') {
+  constructor(apiKey: string = '', projectName: string = 'default') {
     this.apiKey = apiKey;
     this.client = HTTPClient.getInstance();
     this.client.setApiKey(this.apiKey);
     pareaLogger.setClient(this.client);
+    pareaProject.setProjectName(projectName);
+    pareaProject.setClient(this.client);
   }
 
   public async completion(data: Completion): Promise<CompletionResponse> {
@@ -48,7 +51,14 @@ export class Parea {
       data.experiment_uuid = experiment_uuid;
     }
 
-    const response = await this.client.request({ method: 'POST', endpoint: COMPLETION_ENDPOINT, data });
+    const response = await this.client.request({
+      method: 'POST',
+      endpoint: COMPLETION_ENDPOINT,
+      data: {
+        project_uuid: await pareaProject.getProjectUUID(),
+        ...data,
+      },
+    });
 
     if (parentStore && parentTraceId) {
       const parentTraceLog = parentStore.get(parentTraceId);
@@ -74,7 +84,14 @@ export class Parea {
   }
 
   public async createExperiment(data: CreateExperimentRequest): Promise<ExperimentSchema> {
-    const response = await this.client.request({ method: 'POST', endpoint: EXPERIMENT_ENDPOINT, data });
+    const response = await this.client.request({
+      method: 'POST',
+      endpoint: EXPERIMENT_ENDPOINT,
+      data: {
+        ...data,
+        project_uuid: await pareaProject.getProjectUUID(),
+      },
+    });
     return response.data;
   }
 

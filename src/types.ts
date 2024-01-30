@@ -205,3 +205,12 @@ export class ExperimentStatsSchema {
     return scores.length > 0 ? scores.reduce((acc, curr) => acc + curr, 0) / scores.length : 0.0;
   }
 }
+
+export interface CreateGetProjectSchema {
+  name: string;
+}
+
+export type ProjectSchema = CreateGetProjectSchema & {
+  uuid: string;
+  createdAt: string;
+};

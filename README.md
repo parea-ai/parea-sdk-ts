@@ -1,8 +1,8 @@
-# parea-sdk-js
+# parea-sdk-ts
 
 <div align="center">
 
-[![License](https://img.shields.io/github/license/parea-ai/parea-sdk-js)](https://github.com/parea-ai/parea-sdk-js/blob/master/LICENSE)
+[![License](https://img.shields.io/github/license/parea-ai/parea-sdk-ts)](https://github.com/parea-ai/parea-sdk-ts/blob/master/LICENSE)
 
 Parea typescript sdk
 
@@ -13,6 +13,8 @@ Parea typescript sdk
 ```bash
 npm install parea-ai
 ```
+
+[TypeScript SDK Docs](https://docs.parea.ai/api-reference/sdk/typescript)
 
 ## Getting Started
 
@@ -74,7 +76,7 @@ main().then((result) => console.log(result));
 
 ## 🛡 License
 
-[![License](https://img.shields.io/github/license/parea-ai/parea-sdk-js)](https://github.com/parea-ai/parea-sdk-js/blob/master/LICENSE)
+[![License](https://img.shields.io/github/license/parea-ai/parea-sdk-ts)](https://github.com/parea-ai/parea-sdk-ts/blob/master/LICENSE)
 
 This project is licensed under the terms of the `Apache Software License 2.0` license.
 See [LICENSE](https://github.com/parea-ai/parea-sdk/blob/master/LICENSE) for more details.
@@ -82,12 +84,12 @@ See [LICENSE](https://github.com/parea-ai/parea-sdk/blob/master/LICENSE) for mor
 ## 📃 Citation
 
 ```bibtex
-@misc{parea-sdk-js,
+@misc{parea-sdk-ts,
   author = {parea-ai},
   title = {Parea typescript sdk},
   year = {2023},
   publisher = {GitHub},
   journal = {GitHub repository},
-  howpublished = {\url{https://github.com/parea-ai/parea-sdk-js}}
+  howpublished = {\url{https://github.com/parea-ai/parea-sdk-ts}}
 }
 ```
