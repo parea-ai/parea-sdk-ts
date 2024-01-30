@@ -14,6 +14,8 @@ Parea typescript sdk
 npm install parea-ai
 ```
 
+[TypeScript SDK Docs](https://docs.parea.ai/api-reference/sdk/typescript)
+
 ## Getting Started
 
 ```typescript
