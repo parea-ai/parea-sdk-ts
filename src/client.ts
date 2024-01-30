@@ -84,7 +84,14 @@ export class Parea {
   }
 
   public async createExperiment(data: CreateExperimentRequest): Promise<ExperimentSchema> {
-    const response = await this.client.request({ method: 'POST', endpoint: EXPERIMENT_ENDPOINT, data });
+    const response = await this.client.request({
+      method: 'POST',
+      endpoint: EXPERIMENT_ENDPOINT,
+      data: {
+        ...data,
+        project_uuid: await pareaProject.getProjectUUID(),
+      },
+    });
     return response.data;
   }
 
