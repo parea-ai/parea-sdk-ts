@@ -7,7 +7,9 @@ export { Parea } from './client';
 
 export { pareaLogger } from './parea_logger';
 
-export { genTraceId, toDateTimeString } from './helpers';
+export { genTraceId, toDateTimeString, asyncPool } from './helpers';
+
+export { Experiment } from './experiment/experiment';
 
 export {
   Role,
@@ -21,6 +23,16 @@ export {
   UseDeployedPromptResponse,
   FeedbackRequest,
   TraceLogInputs,
+  Log,
   TraceLog,
   TraceLogTreeSchema,
+  NamedEvaluationScore,
+  TraceOptions,
+  UpdateLog,
+  CreateExperimentRequest,
+  ExperimentSchema,
+  EvaluationScoreSchema,
+  TraceStatsSchema,
+  ExperimentStatsSchema,
+  DataItem,
 } from './types';

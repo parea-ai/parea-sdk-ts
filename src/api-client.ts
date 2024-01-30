@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
+import axios, { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
 import axiosRetry from 'axios-retry';
 
 interface RequestConfig {
@@ -28,21 +28,6 @@ export class HTTPClient {
     this.client.interceptors.response.use(this.responseInterceptor, this.errorInterceptor);
   }
 
-  private requestInterceptor(config: any) {
-    // TBD: Add any request modifications here
-    return config;
-  }
-
-  private responseInterceptor(response: AxiosResponse) {
-    // TBD: Add any response modifications here
-    return response;
-  }
-
-  private errorInterceptor(error: AxiosError) {
-    // TBD: Add any error modifications here
-    return Promise.reject(error);
-  }
-
   public static getInstance(): HTTPClient {
     if (!HTTPClient.instance) {
       HTTPClient.instance = new HTTPClient();
@@ -68,5 +53,17 @@ export class HTTPClient {
       console.error(`Request to ${config.endpoint} failed with error ${error}`);
       throw error;
     }
+  }
+
+  private requestInterceptor(config: any) {
+    return config;
+  }
+
+  private responseInterceptor(response: AxiosResponse) {
+    return response;
+  }
+
+  private errorInterceptor(error: AxiosError) {
+    return Promise.reject(error);
   }
 }

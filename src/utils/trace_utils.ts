@@ -1,12 +1,25 @@
-import { TraceLog, TraceOptions } from '../types';
+import { NamedEvaluationScore, TraceLog, TraceOptions } from '../types';
 import { pareaLogger } from '../parea_logger';
 import { genTraceId, toDateTimeString } from '../helpers';
+import { AsyncLocalStorage } from 'node:async_hooks';
 
-export const traceData: { [key: string]: TraceLog } = {};
-export const traceContext: string[] = [];
+export type ContextObject = {
+  traceLog: TraceLog;
+  threadIdsRunningEvals: string[];
+};
+
+export const asyncLocalStorage = new AsyncLocalStorage<Map<string, ContextObject>>();
 
 export const getCurrentTraceId = (): string | undefined => {
-  return traceContext[traceContext.length - 1] || undefined;
+  const store = asyncLocalStorage.getStore();
+
+  if (!store) {
+    return undefined;
+  }
+
+  const traceIds = Array.from(store.keys());
+
+  return traceIds[traceIds.length - 1];
 };
 
 const merge = (old: any, newValue: any) => {
@@ -20,14 +33,26 @@ const merge = (old: any, newValue: any) => {
 };
 
 export const traceInsert = (traceId: string, data: { [key: string]: any }) => {
-  const currentTraceData = traceData[traceId];
+  const store = asyncLocalStorage.getStore();
+  if (!store) {
+    console.warn('No active store found for traceInsert.');
+    return;
+  }
+
+  const currentTraceData = store.get(traceId);
+  if (!currentTraceData) {
+    console.warn(`No trace data found for traceId ${traceId}.`);
+    return;
+  }
 
   for (const key in data) {
     const newValue = data[key];
-    const existingValue = currentTraceData[key as keyof TraceLog];
+    const existingValue = currentTraceData.traceLog[key as keyof TraceLog];
     // @ts-ignore
-    currentTraceData[key] = existingValue ? merge(existingValue, newValue) : newValue;
+    currentTraceData.traceLog[key] = existingValue ? merge(existingValue, newValue) : newValue;
   }
+
+  store.set(traceId, currentTraceData);
 };
 
 export const trace = (funcName: string, func: (...args: any[]) => any, options?: TraceOptions) => {
@@ -35,10 +60,13 @@ export const trace = (funcName: string, func: (...args: any[]) => any, options?:
     const traceId = genTraceId();
     const startTimestamp = new Date();
 
-    traceData[traceId] = {
+    const parentStore = asyncLocalStorage.getStore();
+    const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined;
+
+    const traceLog: TraceLog = {
       trace_name: funcName,
       trace_id: traceId,
-      parent_trace_id: traceId,
+      parent_trace_id: parentTraceId || traceId,
       start_timestamp: toDateTimeString(startTimestamp),
       inputs: extractFunctionParams(func, args),
       metadata: options?.metadata,
@@ -47,44 +75,101 @@ export const trace = (funcName: string, func: (...args: any[]) => any, options?:
       end_user_identifier: options?.endUserIdentifier,
       children: [],
       status: 'success',
-      experiment_uuid: null,
+      experiment_uuid: process.env.PAREA_OS_ENV_EXPERIMENT_UUID || null,
     };
 
-    traceContext.push(traceId);
-
-    if (traceContext.length > 1) {
-      const parentTraceId = traceContext[traceContext.length - 2];
-      traceData[traceId].parent_trace_id = parentTraceId;
-      traceData[parentTraceId].children.push(traceId);
-    }
-
-    try {
-      const result = await func(...args);
-      const output = typeof result === 'string' ? result : JSON.stringify(result);
-      let outputForEvalMetrics = output;
-      if (options?.accessOutputOfFunc) {
-        outputForEvalMetrics = options?.accessOutputOfFunc(result);
+    return asyncLocalStorage.run(new Map([[traceId, { traceLog, threadIdsRunningEvals: [] }]]), async () => {
+      if (parentStore && parentTraceId) {
+        const parentTraceLog = parentStore.get(parentTraceId);
+        if (parentTraceLog) {
+          parentTraceLog.traceLog.children.push(traceId);
+          parentStore.set(parentTraceId, parentTraceLog);
+        }
       }
-      traceInsert(traceId, {
-        output,
-        evaluation_metric_names: options?.evalFuncNames,
-        output_for_eval_metrics: outputForEvalMetrics,
-      });
-      return result;
-    } catch (error: any) {
-      console.error(`Error occurred in function ${func.name}, ${error}`);
-      traceInsert(traceId, { error: error.toString(), status: 'error' });
-      throw error;
-    } finally {
-      const endTimestamp = new Date();
-      traceInsert(traceId, {
-        end_timestamp: toDateTimeString(endTimestamp),
-        latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
-      });
-      await pareaLogger.recordLog(traceData[traceId]); // log the trace data
-      traceContext.pop();
-    }
+
+      try {
+        const result = await func(...args);
+        const output = typeof result === 'string' ? result : JSON.stringify(result);
+        let outputForEvalMetrics = output;
+        if (options?.accessOutputOfFunc) {
+          outputForEvalMetrics = options?.accessOutputOfFunc(result);
+        }
+        traceInsert(traceId, {
+          output,
+          evaluation_metric_names: options?.evalFuncNames,
+          output_for_eval_metrics: outputForEvalMetrics,
+        });
+        return result;
+      } catch (error: any) {
+        console.error(`Error occurred in function ${func.name}, ${error}`);
+        traceInsert(traceId, { error: error.toString(), status: 'error' });
+        throw error;
+      } finally {
+        const endTimestamp = new Date();
+        traceInsert(traceId, {
+          end_timestamp: toDateTimeString(endTimestamp),
+          latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
+        });
+        await pareaLogger.recordLog(traceLog);
+        await handleRunningEvals(traceLog, traceId, options);
+      }
+    });
   };
+};
+
+export const handleRunningEvals = async (
+  traceLog: TraceLog,
+  traceId: string,
+  options: TraceOptions | undefined,
+): Promise<void> => {
+  const store = asyncLocalStorage.getStore();
+  if (!store) {
+    console.warn('No active store found for handleRunningEvals.');
+    return;
+  }
+
+  const currentTraceData = store.get(traceId);
+  if (!currentTraceData) {
+    console.warn(`No trace data found for traceId ${traceId}.`);
+    return;
+  }
+
+  if (options?.evalFuncs && traceLog.status === 'success') {
+    currentTraceData.threadIdsRunningEvals.push(traceId);
+    let outputForEvalMetrics: string | undefined;
+
+    if (options?.accessOutputOfFunc) {
+      try {
+        const output = traceLog?.output ? JSON.parse(traceLog.output) : {};
+        const modifiedOutput = options.accessOutputOfFunc(output);
+        outputForEvalMetrics = JSON.stringify(modifiedOutput);
+      } catch (e) {
+        console.error(`Error accessing output of func with output: ${traceLog.output}. Error: ${e}`, e);
+        return;
+      }
+    } else {
+      outputForEvalMetrics = traceLog.output;
+    }
+
+    traceLog.output = outputForEvalMetrics;
+    const scores: NamedEvaluationScore[] = [];
+
+    options?.evalFuncs.forEach((func) => {
+      try {
+        const score = func(traceLog);
+        scores.push({ name: func.name, score });
+      } catch (e) {
+        console.error(`Error occurred calling evaluation function '${func.name}', ${e}`, e);
+      }
+    });
+
+    await pareaLogger.updateLog({ trace_id: traceId, field_name_to_value_map: { scores: scores } });
+    const index = currentTraceData.threadIdsRunningEvals.indexOf(traceId);
+    if (index > -1) {
+      currentTraceData.threadIdsRunningEvals.splice(index, 1);
+      store.set(traceId, currentTraceData);
+    }
+  }
 };
 
 function extractFunctionParams(func: Function, args: any[]): { [key: string]: any } {
