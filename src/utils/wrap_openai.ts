@@ -15,10 +15,12 @@ function wrapMethod(method: Function) {
 
     const parentStore = asyncLocalStorage.getStore();
     const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined;
+    const rootTraceId = parentStore ? Array.from(parentStore.values())[0].rootTraceId : traceId;
 
     const traceLog: TraceLog = {
       trace_id: traceId,
       parent_trace_id: parentTraceId || traceId,
+      root_trace_id: rootTraceId,
       trace_name: 'llm-openai',
       start_timestamp: toDateTimeString(startTimestamp),
       configuration: {
@@ -34,48 +36,51 @@ function wrapMethod(method: Function) {
       experiment_uuid: process.env.PAREA_OS_ENV_EXPERIMENT_UUID || null,
     };
 
-    return asyncLocalStorage.run(new Map([[traceId, { traceLog, threadIdsRunningEvals: [] }]]), async () => {
-      if (parentStore && parentTraceId) {
-        const parentTraceLog = parentStore.get(parentTraceId);
-        if (parentTraceLog) {
-          parentTraceLog.traceLog.children.push(traceId);
-          parentStore.set(parentTraceId, parentTraceLog);
+    return asyncLocalStorage.run(
+      new Map([[traceId, { traceLog, threadIdsRunningEvals: [], rootTraceId }]]),
+      async () => {
+        if (parentStore && parentTraceId) {
+          const parentTraceLog = parentStore.get(parentTraceId);
+          if (parentTraceLog) {
+            parentTraceLog.traceLog.children.push(traceId);
+            parentStore.set(parentTraceId, parentTraceLog);
+          }
         }
-      }
 
-      try {
-        response = await method.apply(this, args);
-        traceInsert(traceId, {
-          output: getOutput(response),
-          input_tokens: response.usage.prompt_tokens,
-          output_tokens: response.usage.completion_tokens,
-          total_tokens: response.usage.total_tokens,
-          cost: getTotalCost(args[0].model, response.usage.prompt_tokens, response.usage.completion_tokens),
-        });
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          error = err.message;
-        } else {
-          error = 'An unknown error occurred';
+        try {
+          response = await method.apply(this, args);
+          traceInsert(traceId, {
+            output: getOutput(response),
+            input_tokens: response.usage.prompt_tokens,
+            output_tokens: response.usage.completion_tokens,
+            total_tokens: response.usage.total_tokens,
+            cost: getTotalCost(args[0].model, response.usage.prompt_tokens, response.usage.completion_tokens),
+          });
+        } catch (err: unknown) {
+          if (err instanceof Error) {
+            error = err.message;
+          } else {
+            error = 'An unknown error occurred';
+          }
+          status = 'error';
+          traceInsert(traceId, { error, status });
+        } finally {
+          endTimestamp = new Date();
+          traceInsert(traceId, {
+            end_timestamp: toDateTimeString(endTimestamp),
+            latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
+            status: status,
+          });
+          await pareaLogger.recordLog(traceLog);
         }
-        status = 'error';
-        traceInsert(traceId, { error, status });
-      } finally {
-        endTimestamp = new Date();
-        traceInsert(traceId, {
-          end_timestamp: toDateTimeString(endTimestamp),
-          latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
-          status: status,
-        });
-        await pareaLogger.recordLog(traceLog);
-      }
 
-      if (error) {
-        throw new Error(error);
-      }
+        if (error) {
+          throw new Error(error);
+        }
 
-      return response;
-    });
+        return response;
+      },
+    );
   };
 }
 
