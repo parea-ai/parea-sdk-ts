@@ -32,6 +32,7 @@ export type LLMInputs = {
 export type Completion = {
   inference_id?: string;
   parent_trace_id?: string;
+  root_trace_id?: string;
   trace_name?: string;
   llm_inputs?: { [key: string]: any };
   llm_configuration?: LLMInputs;
@@ -121,6 +122,7 @@ export type Log = {
 export type TraceLog = Log & {
   trace_id: string;
   parent_trace_id?: string;
+  root_trace_id?: string;
   start_timestamp: string;
   organization_id?: string;
   error?: string;

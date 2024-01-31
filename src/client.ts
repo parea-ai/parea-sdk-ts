@@ -45,6 +45,7 @@ export class Parea {
     const inference_id = genTraceId();
     data.inference_id = inference_id;
     data.parent_trace_id = parentTraceId || inference_id;
+    data.root_trace_id = parentStore ? Array.from(parentStore.values())[0].rootTraceId : data.parent_trace_id;
 
     if (process.env.PAREA_OS_ENV_EXPERIMENT_UUID) {
       experiment_uuid = process.env.PAREA_OS_ENV_EXPERIMENT_UUID;

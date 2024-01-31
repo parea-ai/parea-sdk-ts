@@ -6,6 +6,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 export type ContextObject = {
   traceLog: TraceLog;
   threadIdsRunningEvals: string[];
+  rootTraceId: string;
 };
 
 export const asyncLocalStorage = new AsyncLocalStorage<Map<string, ContextObject>>();
@@ -62,11 +63,13 @@ export const trace = (funcName: string, func: (...args: any[]) => any, options?:
 
     const parentStore = asyncLocalStorage.getStore();
     const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined;
+    const rootTraceId = parentStore ? Array.from(parentStore.values())[0].rootTraceId : traceId;
 
     const traceLog: TraceLog = {
       trace_name: funcName,
       trace_id: traceId,
       parent_trace_id: parentTraceId || traceId,
+      root_trace_id: rootTraceId,
       start_timestamp: toDateTimeString(startTimestamp),
       inputs: extractFunctionParams(func, args),
       metadata: options?.metadata,
@@ -78,42 +81,45 @@ export const trace = (funcName: string, func: (...args: any[]) => any, options?:
       experiment_uuid: process.env.PAREA_OS_ENV_EXPERIMENT_UUID || null,
     };
 
-    return asyncLocalStorage.run(new Map([[traceId, { traceLog, threadIdsRunningEvals: [] }]]), async () => {
-      if (parentStore && parentTraceId) {
-        const parentTraceLog = parentStore.get(parentTraceId);
-        if (parentTraceLog) {
-          parentTraceLog.traceLog.children.push(traceId);
-          parentStore.set(parentTraceId, parentTraceLog);
+    return asyncLocalStorage.run(
+      new Map([[traceId, { traceLog, threadIdsRunningEvals: [], rootTraceId }]]),
+      async () => {
+        if (parentStore && parentTraceId) {
+          const parentTraceLog = parentStore.get(parentTraceId);
+          if (parentTraceLog) {
+            parentTraceLog.traceLog.children.push(traceId);
+            parentStore.set(parentTraceId, parentTraceLog);
+          }
         }
-      }
 
-      try {
-        const result = await func(...args);
-        const output = typeof result === 'string' ? result : JSON.stringify(result);
-        let outputForEvalMetrics = output;
-        if (options?.accessOutputOfFunc) {
-          outputForEvalMetrics = options?.accessOutputOfFunc(result);
+        try {
+          const result = await func(...args);
+          const output = typeof result === 'string' ? result : JSON.stringify(result);
+          let outputForEvalMetrics = output;
+          if (options?.accessOutputOfFunc) {
+            outputForEvalMetrics = options?.accessOutputOfFunc(result);
+          }
+          traceInsert(traceId, {
+            output,
+            evaluation_metric_names: options?.evalFuncNames,
+            output_for_eval_metrics: outputForEvalMetrics,
+          });
+          return result;
+        } catch (error: any) {
+          console.error(`Error occurred in function ${func.name}, ${error}`);
+          traceInsert(traceId, { error: error.toString(), status: 'error' });
+          throw error;
+        } finally {
+          const endTimestamp = new Date();
+          traceInsert(traceId, {
+            end_timestamp: toDateTimeString(endTimestamp),
+            latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
+          });
+          await pareaLogger.recordLog(traceLog);
+          await handleRunningEvals(traceLog, traceId, options);
         }
-        traceInsert(traceId, {
-          output,
-          evaluation_metric_names: options?.evalFuncNames,
-          output_for_eval_metrics: outputForEvalMetrics,
-        });
-        return result;
-      } catch (error: any) {
-        console.error(`Error occurred in function ${func.name}, ${error}`);
-        traceInsert(traceId, { error: error.toString(), status: 'error' });
-        throw error;
-      } finally {
-        const endTimestamp = new Date();
-        traceInsert(traceId, {
-          end_timestamp: toDateTimeString(endTimestamp),
-          latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
-        });
-        await pareaLogger.recordLog(traceLog);
-        await handleRunningEvals(traceLog, traceId, options);
-      }
-    });
+      },
+    );
   };
 };
 
