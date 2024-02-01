@@ -128,6 +128,19 @@ async function main3() {
   return result;
 }
 
+async function main4() {
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4-1106-preview',
+    messages: [
+      { role: 'system', content: 'You are a helpful assistant talking in JSON.' },
+      { role: 'user', content: 'What are you?' },
+    ],
+    response_format: { type: 'json_object' },
+  });
+  return response.choices[0].message.content ?? '';
+}
+
 main().then((result) => console.log(result));
 main2().then((result) => console.log(result));
 main3().then((result) => console.log(result));
+main4().then((r) => console.log(r));
