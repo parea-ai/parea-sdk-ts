@@ -75,10 +75,14 @@ function wrapMethod(method: Function, idxArgs: number = 0, io: any) {
             status: status,
           });
           if (io) {
-            await io.logger.info(`'traceLog in finally: ${traceLog}`);
+            await io.logger.info(`'traceLog in finally: ${JSON.stringify(traceLog)}`);
             await io.logger.info(`pareaLogger in finally: ${pareaLogger}`);
           }
-          await pareaLogger.recordLog(traceLog);
+          const response = await pareaLogger.recordLog(traceLog);
+          if (io) {
+            await io.logger.info(`response in finally: ${response}`);
+            await io.logger.info(`response in finally: ${JSON.stringify(response)}`);
+          }
         }
 
         if (error) {
