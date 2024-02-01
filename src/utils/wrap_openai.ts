@@ -4,7 +4,7 @@ import { pareaLogger } from '../parea_logger';
 import { asyncLocalStorage, traceInsert } from './trace_utils';
 import { genTraceId, toDateTimeString } from '../helpers';
 
-function wrapMethod(method: Function) {
+function wrapMethod(method: Function, idxArgs: number = 0) {
   return async function (this: any, ...args: any[]) {
     const traceId = genTraceId();
     const startTimestamp = new Date();
@@ -24,9 +24,9 @@ function wrapMethod(method: Function) {
       trace_name: 'llm-openai',
       start_timestamp: toDateTimeString(startTimestamp),
       configuration: {
-        model: args[0].model,
+        model: args[idxArgs].model,
         provider: 'openai',
-        messages: args[0].messages.map((message: any) => ({
+        messages: args[idxArgs].messages.map((message: any) => ({
           role: Role[message.role as keyof typeof Role],
           content: message.content,
         })),
@@ -54,7 +54,7 @@ function wrapMethod(method: Function) {
             input_tokens: response.usage.prompt_tokens,
             output_tokens: response.usage.completion_tokens,
             total_tokens: response.usage.total_tokens,
-            cost: getTotalCost(args[0].model, response.usage.prompt_tokens, response.usage.completion_tokens),
+            cost: getTotalCost(args[idxArgs].model, response.usage.prompt_tokens, response.usage.completion_tokens),
           });
         } catch (err: unknown) {
           if (err instanceof Error) {
@@ -86,7 +86,11 @@ function wrapMethod(method: Function) {
 
 export function patchOpenAI(openai: OpenAI) {
   // @ts-ignore
-  openai.chat.completions.create = wrapMethod(openai.chat.completions.create, 'openai.chat.completions.create');
+  openai.chat.completions.create = wrapMethod(openai.chat.completions.create);
+}
+
+export function traceOpenAITriggerDev(ioOpenAIChatCompletionsCreate: Function): Function {
+  return wrapMethod(ioOpenAIChatCompletionsCreate, 1);
 }
 
 const MODEL_COST_MAPPING: { [key: string]: number } = {
