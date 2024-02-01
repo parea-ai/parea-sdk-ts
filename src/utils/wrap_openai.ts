@@ -4,7 +4,7 @@ import { pareaLogger } from '../parea_logger';
 import { asyncLocalStorage, traceInsert } from './trace_utils';
 import { genTraceId, toDateTimeString } from '../helpers';
 
-function wrapMethod(method: Function, idxArgs: number = 0, io: any) {
+function wrapMethod(method: Function, idxArgs: number = 0) {
   return async function (this: any, ...args: any[]) {
     const traceId = genTraceId();
     const startTimestamp = new Date();
@@ -49,9 +49,6 @@ function wrapMethod(method: Function, idxArgs: number = 0, io: any) {
 
         try {
           response = await method.apply(this, args);
-          if (io) {
-            await io.logger.info(`response in try: ${response}`);
-          }
           traceInsert(traceId, {
             output: getOutput(response),
             input_tokens: response.usage.prompt_tokens,
@@ -74,15 +71,7 @@ function wrapMethod(method: Function, idxArgs: number = 0, io: any) {
             latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
             status: status,
           });
-          if (io) {
-            await io.logger.info(`'traceLog in finally: ${JSON.stringify(traceLog)}`);
-            await io.logger.info(`pareaLogger in finally: ${pareaLogger}`);
-          }
-          const response = await pareaLogger.recordLog(traceLog);
-          if (io) {
-            await io.logger.info(`response in finally: ${response}`);
-            await io.logger.info(`response in finally: ${JSON.stringify(response)}`);
-          }
+          await pareaLogger.recordLog(traceLog);
         }
 
         if (error) {
@@ -95,8 +84,8 @@ function wrapMethod(method: Function, idxArgs: number = 0, io: any) {
   };
 }
 
-export function traceOpenAITriggerDev(ioOpenAIChatCompletionsCreate: Function, io: any): Function {
-  return wrapMethod(ioOpenAIChatCompletionsCreate, 1, io);
+export function traceOpenAITriggerDev(ioOpenAIChatCompletionsCreate: Function): Function {
+  return wrapMethod(ioOpenAIChatCompletionsCreate, 1);
 }
 
 export function patchOpenAI(openai: OpenAI) {
