@@ -49,6 +49,7 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
 
         try {
           response = await method.apply(this, args);
+          console.log('response in try', response);
           traceInsert(traceId, {
             output: getOutput(response),
             input_tokens: response.usage.prompt_tokens,
@@ -71,6 +72,8 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
             latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
             status: status,
           });
+          console.log('traceLog in finally', traceLog);
+          console.log('pareaLogger in finally', pareaLogger);
           await pareaLogger.recordLog(traceLog);
         }
 
