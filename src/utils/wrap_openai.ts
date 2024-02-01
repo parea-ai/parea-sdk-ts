@@ -84,13 +84,13 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
   };
 }
 
+export function traceOpenAITriggerDev(ioOpenAIChatCompletionsCreate: Function): Function {
+  return wrapMethod(ioOpenAIChatCompletionsCreate, 1);
+}
+
 export function patchOpenAI(openai: OpenAI) {
   // @ts-ignore
   openai.chat.completions.create = wrapMethod(openai.chat.completions.create);
-}
-
-export function traceOpenAITriggerDev(ioOpenAIChatCompletionsCreate: Function): Function {
-  return wrapMethod(ioOpenAIChatCompletionsCreate, 1);
 }
 
 const MODEL_COST_MAPPING: { [key: string]: number } = {
