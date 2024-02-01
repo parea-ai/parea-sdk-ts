@@ -1,5 +1,5 @@
 export { trace, getCurrentTraceId, traceInsert } from './utils/trace_utils';
-export { patchOpenAI } from './utils/wrap_openai';
+export { patchOpenAI, traceOpenAITriggerDev } from './utils/wrap_openai';
 
 export { HTTPClient } from './api-client';
 
