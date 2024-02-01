@@ -4,7 +4,7 @@ import { pareaLogger } from '../parea_logger';
 import { asyncLocalStorage, traceInsert } from './trace_utils';
 import { genTraceId, toDateTimeString } from '../helpers';
 
-function wrapMethod(method: Function, idxArgs: number = 0) {
+function wrapMethod(method: Function, idxArgs: number = 0, io: any) {
   return async function (this: any, ...args: any[]) {
     const traceId = genTraceId();
     const startTimestamp = new Date();
@@ -49,8 +49,8 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
 
         try {
           response = await method.apply(this, args);
-          if (idxArgs > 0) {
-            await args[0].logger.info(`response in try: ${response}`);
+          if (io) {
+            await io.logger.info(`response in try: ${response}`);
           }
           traceInsert(traceId, {
             output: getOutput(response),
@@ -74,9 +74,9 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
             latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
             status: status,
           });
-          if (idxArgs > 0) {
-            await args[0].logger.info(`'traceLog in finally: ${traceLog}`);
-            await args[0].logger.info(`pareaLogger in finally: ${pareaLogger}`);
+          if (io) {
+            await io.logger.info(`'traceLog in finally: ${traceLog}`);
+            await io.logger.info(`pareaLogger in finally: ${pareaLogger}`);
           }
           await pareaLogger.recordLog(traceLog);
         }
@@ -91,8 +91,8 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
   };
 }
 
-export function traceOpenAITriggerDev(ioOpenAIChatCompletionsCreate: Function): Function {
-  return wrapMethod(ioOpenAIChatCompletionsCreate, 1);
+export function traceOpenAITriggerDev(ioOpenAIChatCompletionsCreate: Function, io: any): Function {
+  return wrapMethod(ioOpenAIChatCompletionsCreate, 1, io);
 }
 
 export function patchOpenAI(openai: OpenAI) {
