@@ -12,12 +12,17 @@ export type Message = {
   role: Role | string;
 };
 
+export type ResponseFormat = {
+  type: 'text' | 'json_object';
+};
+
 export type ModelParams = {
   temp?: number;
   top_p?: number;
   frequency_penalty?: number;
   presence_penalty?: number;
   max_length?: number;
+  response_format?: ResponseFormat | null;
 };
 
 export type LLMInputs = {
