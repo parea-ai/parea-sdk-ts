@@ -17,20 +17,38 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
     const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined;
     const rootTraceId = parentStore ? Array.from(parentStore.values())[0].rootTraceId : traceId;
 
+    const kwargs = args[idxArgs];
+    const functions = kwargs.functions || kwargs.tools?.map((tool: any) => tool.function) || [];
+    const functionCallDefault = functions.length > 0 ? 'auto' : null;
+
+    const modelParams = {
+      temp: kwargs.temperature || 1.0,
+      max_length: kwargs.max_tokens,
+      top_p: kwargs.top_p || 1.0,
+      frequency_penalty: kwargs.frequency_penalty || 0.0,
+      presence_penalty: kwargs.presence_penalty || 0.0,
+      response_format: kwargs.response_format,
+    };
+
+    const configuration: LLMInputs = {
+      model: kwargs.model,
+      provider: 'openai',
+      messages: kwargs.messages?.map((message: any) => ({
+        role: Role[message.role as keyof typeof Role],
+        content: message.content,
+      })),
+      functions: functions,
+      function_call: kwargs.function_call || kwargs.tool_choice || functionCallDefault,
+      model_params: modelParams,
+    };
+
     const traceLog: TraceLog = {
       trace_id: traceId,
       parent_trace_id: parentTraceId || traceId,
       root_trace_id: rootTraceId,
       trace_name: 'llm-openai',
       start_timestamp: toDateTimeString(startTimestamp),
-      configuration: {
-        model: args[idxArgs].model,
-        provider: 'openai',
-        messages: args[idxArgs].messages.map((message: any) => ({
-          role: Role[message.role as keyof typeof Role],
-          content: message.content,
-        })),
-      } as LLMInputs,
+      configuration: configuration,
       children: [],
       status: status,
       experiment_uuid: process.env.PAREA_OS_ENV_EXPERIMENT_UUID || null,
