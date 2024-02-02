@@ -1,19 +1,6 @@
-import { LangchainBaseRun, TraceIntegrations } from '../../types';
+import { LangchainRun, LangChainTracerFields, TraceIntegrations } from '../../types';
 import { pareaLogger, PareaLogger } from '../../parea_logger';
 import { BaseTracer } from '@langchain/core/tracers/base';
-import { BaseCallbackHandlerInput } from '@langchain/core/callbacks/base';
-
-export interface Run extends LangchainBaseRun {
-  id: string;
-  child_runs: this[];
-  child_execution_order: number;
-}
-
-export interface LangChainTracerFields extends BaseCallbackHandlerInput {
-  exampleId?: string;
-  projectName?: string;
-  client?: PareaLogger;
-}
 
 export class PareaAILangchainTracer extends BaseTracer implements LangChainTracerFields {
   name = 'parea_ai_langchain_tracer';
@@ -39,7 +26,7 @@ export class PareaAILangchainTracer extends BaseTracer implements LangChainTrace
     return this.parentTraceId;
   }
 
-  protected async persistRun(_run: Run): Promise<void> {
+  protected async persistRun(_run: LangchainRun): Promise<void> {
     this.parentTraceId = _run.id;
     await this.client.recordVendorLog(_run, TraceIntegrations.LANGCHAIN);
   }

@@ -1,3 +1,6 @@
+import { BaseCallbackHandlerInput } from '@langchain/core/callbacks/base';
+import { PareaLogger } from './parea_logger';
+
 export enum Role {
   user = 'user',
   assistant = 'assistant',
@@ -276,4 +279,16 @@ export interface LangchainRunCreate extends LangchainBaseRun {
 
 export enum TraceIntegrations {
   LANGCHAIN = 'langchain',
+}
+
+export interface LangchainRun extends LangchainBaseRun {
+  id: string;
+  child_runs: this[];
+  child_execution_order: number;
+}
+
+export interface LangChainTracerFields extends BaseCallbackHandlerInput {
+  exampleId?: string;
+  projectName?: string;
+  client?: PareaLogger;
 }
