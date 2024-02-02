@@ -1,12 +1,12 @@
-import { TraceLog, UpdateLog } from './types.js';
+import { LangchainRunCreate, TraceIntegrations, TraceLog, UpdateLog } from './types.js';
 import { AxiosResponse } from 'axios';
 import { HTTPClient } from './api-client';
 import { pareaProject } from './project';
 
 const LOG_ENDPOINT = '/trace_log';
-// const VENDOR_LOG_ENDPOINT = '/trace_log/{vendor}';
+const VENDOR_LOG_ENDPOINT = '/trace_log/{vendor}';
 
-class PareaLogger {
+export class PareaLogger {
   private client: HTTPClient;
 
   constructor() {
@@ -21,6 +21,14 @@ class PareaLogger {
     return await this.client.request({
       method: 'POST',
       endpoint: LOG_ENDPOINT,
+      data: { ...data, project_uuid: await pareaProject.getProjectUUID() },
+    });
+  }
+
+  public async recordVendorLog(data: LangchainRunCreate, vendor: TraceIntegrations): Promise<AxiosResponse<any>> {
+    return await this.client.request({
+      method: 'POST',
+      endpoint: VENDOR_LOG_ENDPOINT.replace('{vendor}', vendor),
       data: { ...data, project_uuid: await pareaProject.getProjectUUID() },
     });
   }
