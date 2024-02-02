@@ -53,7 +53,7 @@ const p = new Parea('PAREA_API_KEY');
 
 async function callOpenAI(
   messages: any[],
-  model: string = 'gpt-3.5-turbo-0613',
+  model: string = 'gpt-3.5-turbo-0125',
   temperature: number = 0.0,
 ): Promise<string> {
   const response = await openai.chat.completions.create({ model, messages, temperature });
