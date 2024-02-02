@@ -111,61 +111,96 @@ export function patchOpenAI(openai: OpenAI) {
   openai.chat.completions.create = wrapMethod(openai.chat.completions.create);
 }
 
-const MODEL_COST_MAPPING: { [key: string]: number } = {
-  'gpt-4': 0.03,
-  'gpt-4-0314': 0.03,
-  'gpt-4-0613': 0.03,
-  'gpt-4-completion': 0.06,
-  'gpt-4-0314-completion': 0.06,
-  'gpt-4-0613-completion': 0.06,
-  'gpt-4-32k': 0.06,
-  'gpt-4-32k-0314': 0.06,
-  'gpt-4-32k-0613': 0.06,
-  'gpt-4-32k-completion': 0.12,
-  'gpt-4-32k-0314-completion': 0.12,
-  'gpt-4-32k-0613-completion': 0.12,
-  'gpt-3.5-turbo': 0.0015,
-  'gpt-3.5-turbo-0301': 0.0015,
-  'gpt-3.5-turbo-0613': 0.0015,
-  'gpt-3.5-turbo-1106': 0.001,
-  'gpt-3.5-turbo-16k': 0.003,
-  'gpt-3.5-turbo-16k-0613': 0.003,
-  'gpt-3.5-turbo-completion': 0.002,
-  'gpt-3.5-turbo-0301-completion': 0.002,
-  'gpt-3.5-turbo-0613-completion': 0.004,
-  'gpt-3.5-turbo-1106-completion': 0.002,
-  'gpt-3.5-turbo-16k-completion': 0.004,
-  'gpt-3.5-turbo-16k-0613-completion': 0.004,
-  'gpt-4-vision-preview': 0.03,
-  'gpt-4-vision-preview-completion': 0.06,
-  'gpt-4-1106-preview': 0.01,
-  'gpt-4-1106-preview-completion': 0.03,
+const MODEL_COST_MAPPING: { [key: string]: { [key: string]: number } } = {
+  'gpt-3.5-turbo-0301': {
+    prompt: 1.5,
+    completion: 4.0,
+  },
+  'gpt-3.5-turbo-0613': {
+    prompt: 1.5,
+    completion: 4.0,
+  },
+  'gpt-3.5-turbo-16k': {
+    prompt: 3.0,
+    completion: 4.0,
+  },
+  'gpt-3.5-turbo-16k-0301': {
+    prompt: 3.0,
+    completion: 4.0,
+  },
+  'gpt-3.5-turbo-16k-0613': {
+    prompt: 3.0,
+    completion: 4.0,
+  },
+  'gpt-3.5-turbo-1106': {
+    prompt: 1.0,
+    completion: 2.0,
+  },
+  'gpt-3.5-turbo-0125': {
+    prompt: 0.5,
+    completion: 2.0,
+  },
+  'gpt-3.5-turbo': {
+    prompt: 0.5,
+    completion: 2.0,
+  },
+  'gpt-3.5-turbo-instruct': {
+    prompt: 1.5,
+    completion: 4.0,
+  },
+  'gpt-4': {
+    prompt: 30.0,
+    completion: 60.0,
+  },
+  'gpt-4-0314': {
+    prompt: 30.0,
+    completion: 60.0,
+  },
+  'gpt-4-0613': {
+    prompt: 30.0,
+    completion: 60.0,
+  },
+  'gpt-4-32k': {
+    prompt: 60.0,
+    completion: 120.0,
+  },
+  'gpt-4-32k-0314': {
+    prompt: 60.0,
+    completion: 120.0,
+  },
+  'gpt-4-32k-0613': {
+    prompt: 60.0,
+    completion: 120.0,
+  },
+  'gpt-4-vision-preview': {
+    prompt: 30.0,
+    completion: 60.0,
+  },
+  'gpt-4-turbo-preview': {
+    prompt: 10.0,
+    completion: 30.0,
+  },
+  'gpt-4-1106-preview': {
+    prompt: 10.0,
+    completion: 30.0,
+  },
+  'gpt-4-0125-preview': {
+    prompt: 10.0,
+    completion: 30.0,
+  },
 };
 
-function getModelCost(modelName: string, isCompletion: boolean = false): number {
-  modelName = modelName.toLowerCase();
-
-  if (modelName.startsWith('gpt-4') && isCompletion) {
-    modelName += '-completion';
-  }
-
-  const cost = MODEL_COST_MAPPING[modelName];
-  if (cost === undefined) {
+function getTotalCost(modelName: string, promptTokens: number, completionTokens: number): number {
+  if (!Object.keys(MODEL_COST_MAPPING).includes(modelName)) {
     throw new Error(
       `Unknown model: ${modelName}. Please provide a valid OpenAI model name. Known models are: ${Object.keys(
         MODEL_COST_MAPPING,
       ).join(', ')}`,
     );
   }
-
-  return cost;
-}
-
-function getTotalCost(modelName: string, promptTokens: number, completionTokens: number): number {
-  const modelRate = getModelCost(modelName);
-  const modelCompletionRate = getModelCost(modelName, true);
-  const completionCost = modelCompletionRate * (completionTokens / 1000);
-  const promptCost = modelRate * (promptTokens / 1000);
+  const modelCost = MODEL_COST_MAPPING[modelName];
+  const promptCost = modelCost.prompt * (promptTokens / 1000);
+  const completionCost = modelCost.completion * (completionTokens / 1000);
   return promptCost + completionCost;
 }
 
