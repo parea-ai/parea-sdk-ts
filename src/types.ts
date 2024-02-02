@@ -244,11 +244,11 @@ export interface LangchainBaseRun {
   /** Defines the sequence in which the run was executed. */
   execution_order?: number;
   /** The epoch time at which the run started, if available. */
-  start_time?: number;
+  start_time?: number | string;
   /** Specifies the type of run (tool, chain, llm, etc.). */
   run_type: string;
   /** The epoch time at which the run ended, if applicable. */
-  end_time?: number;
+  end_time?: number | string;
   /** Any additional metadata or settings for the run. */
   extra?: KVMap;
   /** Error message, captured if the run faces any issues. */
