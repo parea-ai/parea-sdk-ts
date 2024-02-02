@@ -106,7 +106,7 @@ async function get(id: string) {
 
 async function callOpenAI(
   messages: any[],
-  model: string = 'gpt-3.5-turbo-0613',
+  model: string = 'gpt-3.5-turbo-0125',
   temperature: number = 0.0,
 ): Promise<ChatCompletionMessage> {
   const response = await openai.chat.completions.create({

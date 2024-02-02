@@ -18,7 +18,7 @@ patchOpenAI(openai);
 
 async function callOpenAI(
   messages: any[],
-  model: string = 'gpt-3.5-turbo-0613',
+  model: string = 'gpt-3.5-turbo-0125',
   temperature: number = 0.0,
 ): Promise<string> {
   const response = await openai.chat.completions.create({ model, messages, temperature });
@@ -130,7 +130,7 @@ async function main3() {
 
 async function main4() {
   const response = await openai.chat.completions.create({
-    model: 'gpt-4-1106-preview',
+    model: 'gpt-4-0125-preview',
     messages: [
       { role: 'system', content: 'You are a helpful assistant talking in JSON.' },
       { role: 'user', content: 'What are you?' },
