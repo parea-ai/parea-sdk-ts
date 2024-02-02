@@ -123,5 +123,22 @@ async function main2() {
   return result;
 }
 
+async function main3() {
+  const completion: Completion = {
+    llm_configuration: {
+      model: 'gpt-4-1106-preview',
+      provider: 'openai',
+      model_params: { temp: 0.0, response_format: { type: 'json_object' } },
+      messages: [
+        { role: 'system', content: 'You are a helpful assistant talking in JSON.' },
+        { role: 'user', content: 'What are you?' },
+      ],
+    },
+    metadata: { source: 'parea-js-sdk' },
+  };
+  return await p.completion(completion);
+}
+
 main().then((result) => console.log(result));
 main2().then((result) => console.log(result));
+main3().then((result) => console.log(result));
