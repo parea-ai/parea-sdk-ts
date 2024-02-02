@@ -11,7 +11,7 @@ interface RequestConfig {
 
 export class HTTPClient {
   private static instance: HTTPClient;
-  private baseURL: string = 'https://parea-ai-backend-us-9ac16cdbc7a7b006.onporter.run/api/parea/v1';
+  private baseURL: string = 'http://127.0.0.1:8000/api/parea/v1'; //'https://parea-ai-backend-us-9ac16cdbc7a7b006.onporter.run/api/parea/v1';
   private apiKey: string | null = null;
   private client: AxiosInstance;
 

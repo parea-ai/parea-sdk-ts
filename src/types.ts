@@ -221,3 +221,59 @@ export type ProjectSchema = CreateGetProjectSchema & {
   uuid: string;
   createdAt: string;
 };
+
+export type KVMap = Record<string, any>;
+
+export interface LangchainRunUpdate {
+  end_time?: number;
+  extra?: KVMap;
+  error?: string;
+  inputs?: KVMap;
+  outputs?: KVMap;
+  parent_run_id?: string;
+  reference_example_id?: string;
+  events?: KVMap[];
+  session_id?: string;
+}
+
+export interface LangchainBaseRun {
+  /** Optionally, a unique identifier for the run. */
+  id?: string;
+  /** A human-readable name for the run. */
+  name: string;
+  /** Defines the sequence in which the run was executed. */
+  execution_order?: number;
+  /** The epoch time at which the run started, if available. */
+  start_time?: number;
+  /** Specifies the type of run (tool, chain, llm, etc.). */
+  run_type: string;
+  /** The epoch time at which the run ended, if applicable. */
+  end_time?: number;
+  /** Any additional metadata or settings for the run. */
+  extra?: KVMap;
+  /** Error message, captured if the run faces any issues. */
+  error?: string;
+  /** Serialized state of the run for potential future use. */
+  serialized?: object;
+  /** Events like 'start', 'end' linked to the run. */
+  events?: KVMap[];
+  /** Inputs that were used to initiate the run. */
+  inputs: KVMap;
+  /** Outputs produced by the run, if any. */
+  outputs?: KVMap;
+  /** ID of an example that might be related to this run. */
+  reference_example_id?: string;
+  /** ID of a parent run, if this run is part of a larger operation. */
+  parent_run_id?: string;
+  /** Tags for further categorizing or annotating the run. */
+  tags?: string[];
+}
+
+export interface LangchainRunCreate extends LangchainBaseRun {
+  child_runs?: this[];
+  session_name?: string;
+}
+
+export enum TraceIntegrations {
+  LANGCHAIN = 'langchain',
+}
