@@ -79,6 +79,7 @@ export const trace = (funcName: string, func: (...args: any[]) => any, options?:
       children: [],
       status: 'success',
       experiment_uuid: process.env.PAREA_OS_ENV_EXPERIMENT_UUID || null,
+      apply_eval_frac: options?.applyEvalFrac,
     };
 
     return asyncLocalStorage.run(
@@ -140,7 +141,8 @@ export const handleRunningEvals = async (
     return;
   }
 
-  if (options?.evalFuncs && traceLog.status === 'success') {
+  const applyEval = !options?.applyEvalFrac || Math.random() < options.applyEvalFrac;
+  if (options?.evalFuncs && traceLog.status === 'success' && applyEval) {
     currentTraceData.threadIdsRunningEvals.push(traceId);
     let outputForEvalMetrics: string | undefined;
 

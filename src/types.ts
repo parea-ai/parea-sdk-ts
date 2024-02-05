@@ -137,6 +137,7 @@ export type TraceLog = Log & {
   status?: string;
   deployment_id?: string;
   output_for_eval_metrics?: string;
+  apply_eval_frac?: number;
   cache_hit?: boolean;
   evaluation_metric_names?: string[];
   scores?: NamedEvaluationScore[];
@@ -162,6 +163,7 @@ export type TraceOptions = {
   evalFuncNames?: string[];
   evalFuncs?: any[];
   accessOutputOfFunc?: (arg0: any) => string;
+  applyEvalFrac?: number;
 };
 
 export type UpdateLog = {
