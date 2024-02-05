@@ -99,6 +99,7 @@ const NestedChain = trace(
   {
     evalFuncNames: ['Is equal'], // this a deployed evaluation function
     accessOutputOfFunc: (arg0: any) => arg0[0],
+    applyEvalFrac: 0.5,
   },
 );
 
