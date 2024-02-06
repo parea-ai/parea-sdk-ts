@@ -72,7 +72,6 @@ export type CompletionResponse = {
   start_timestamp: string;
   end_timestamp: string;
   error?: string;
-  trace_id?: string;
 };
 
 export type UseDeployedPrompt = {
@@ -89,7 +88,7 @@ export type Prompt = {
 export type UseDeployedPromptResponse = {
   deployment_id: string;
   name?: string;
-  functions?: { [key: string]: any };
+  functions?: string[];
   function_call?: string;
   prompt?: Prompt;
   model?: string;
