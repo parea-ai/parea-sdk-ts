@@ -6,6 +6,7 @@ import {
   ExperimentSchema,
   ExperimentStatsSchema,
   FeedbackRequest,
+  TestCaseCollection,
   UseDeployedPrompt,
   UseDeployedPromptResponse,
 } from './types';
@@ -23,6 +24,7 @@ const RECORD_FEEDBACK_ENDPOINT = '/feedback';
 const EXPERIMENT_ENDPOINT = '/experiment';
 const EXPERIMENT_STATS_ENDPOINT = '/experiment/{experiment_uuid}/stats';
 const EXPERIMENT_FINISHED_ENDPOINT = '/experiment/{experiment_uuid}/finished';
+const GET_COLLECTION_ENDPOINT = '/collection/{test_collection_name}';
 
 export class Parea {
   private apiKey: string;
@@ -112,11 +114,22 @@ export class Parea {
     return response.data;
   }
 
+  public async getCollection(testCollectionName: string): Promise<TestCaseCollection> {
+    const response = await this.client.request({
+      method: 'GET',
+      endpoint: GET_COLLECTION_ENDPOINT.replace('{test_collection_name}', testCollectionName),
+    });
+    return response.data;
+  }
+
   public experiment(
-    data: Iterable<DataItem>,
+    data: string | Iterable<DataItem>,
     func: (...dataItem: any[]) => Promise<any>,
     name: string = '',
   ): Experiment {
+    if (typeof data === 'string') {
+      return new Experiment(data, func, name, this);
+    }
     const convertedData: Iterable<any[]> = Array.from(data).map((item) => Object.values(item));
     return new Experiment(convertedData, func, name, this);
   }
