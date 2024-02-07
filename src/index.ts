@@ -46,4 +46,6 @@ export {
   TraceIntegrations,
   LangchainRun,
   LangChainTracerFields,
+  TestCase,
+  TestCaseCollection,
 } from './types';

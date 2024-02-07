@@ -1,7 +1,7 @@
-import { ExperimentStatsSchema, TraceStatsSchema } from '../types';
+import { ExperimentStatsSchema, TestCaseCollection, TraceStatsSchema } from '../types';
 import { Parea } from '../client';
 import { asyncPool } from '../helpers';
-import { genRandomName } from './genRandomName';
+import { genRandomName } from './utils';
 
 function calculateAvgAsString(values: number[] | undefined): string {
   if (!values || values.length === 0) {
@@ -47,11 +47,26 @@ function calculateAvgStdForExperiment(experimentStats: ExperimentStatsSchema): {
 
 async function experiment(
   name: string,
-  data: Iterable<any[]>,
+  data: string | Iterable<any[]>,
   func: (...dataItem: any[]) => Promise<any>,
   p: Parea,
   maxParallelCalls: number = 10,
 ): Promise<ExperimentStatsSchema> {
+  if (typeof data === 'string') {
+    console.log(`Fetching test collection: ${data}`);
+    const response = await p.getCollection(data);
+    const testCollection = new TestCaseCollection(
+      response.id,
+      response.name,
+      response.created_at,
+      response.last_updated_at,
+      response.column_names,
+      response.test_cases,
+    );
+    console.log(`Fetched ${testCollection.numTestCases()} test cases from collection: ${data} \n`);
+    data = testCollection.getAllTestCaseInputs();
+  }
+
   const experimentSchema = await p.createExperiment({ name });
   const experimentUUID = experimentSchema.uuid;
   process.env.PAREA_OS_ENV_EXPERIMENT_UUID = experimentUUID;
@@ -67,26 +82,27 @@ async function experiment(
 
   const experimentStats: ExperimentStatsSchema = await p.finishExperiment(experimentUUID);
   const statNameToAvgStd = calculateAvgStdForExperiment(experimentStats);
-  console.log(`Experiment stats:\n${JSON.stringify(statNameToAvgStd, null, 2)}\n\n`);
+  console.log(`Experiment ${name} stats:\n${JSON.stringify(statNameToAvgStd, null, 2)}\n\n`);
   console.log(`View experiment & its traces at: https://app.parea.ai/experiments/${experimentUUID}\n`);
   return experimentStats;
 }
 
 export class Experiment {
   name: string;
-  data: Iterable<any[]>;
+  data: string | Iterable<any[]>;
   func: (...dataItem: any[]) => Promise<any>;
   p: Parea;
   experimentStats?: ExperimentStatsSchema;
 
-  constructor(data: Iterable<any[]>, func: (...dataItem: any[]) => Promise<any>, name: string, p: Parea) {
-    this.name = name || genRandomName();
+  constructor(data: string | Iterable<any[]>, func: (...dataItem: any[]) => Promise<any>, name: string, p: Parea) {
+    this.name = name;
     this.data = data;
     this.func = func;
     this.p = p;
   }
 
-  async run(): Promise<void> {
+  async run(name: string | undefined = undefined): Promise<void> {
+    this.name = name || genRandomName();
     this.experimentStats = new ExperimentStatsSchema(
       (await experiment(this.name, this.data, this.func, this.p)).parent_trace_stats,
     );

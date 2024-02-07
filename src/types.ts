@@ -228,7 +228,7 @@ export type ProjectSchema = CreateGetProjectSchema & {
 
 export type KVMap = Record<string, any>;
 
-export interface LangchainRunUpdate {
+export type LangchainRunUpdate = {
   end_time?: number;
   extra?: KVMap;
   error?: string;
@@ -238,9 +238,9 @@ export interface LangchainRunUpdate {
   reference_example_id?: string;
   events?: KVMap[];
   session_id?: string;
-}
+};
 
-export interface LangchainBaseRun {
+export type LangchainBaseRun = {
   /** Optionally, a unique identifier for the run. */
   id?: string;
   /** A human-readable name for the run. */
@@ -271,7 +271,7 @@ export interface LangchainBaseRun {
   parent_run_id?: string;
   /** Tags for further categorizing or annotating the run. */
   tags?: string[];
-}
+};
 
 export interface LangchainRunCreate extends LangchainBaseRun {
   child_runs?: this[];
@@ -288,8 +288,60 @@ export interface LangchainRun extends LangchainBaseRun {
   child_execution_order: number;
 }
 
-export interface LangChainTracerFields extends BaseCallbackHandlerInput {
+export type LangChainTracerFields = BaseCallbackHandlerInput & {
   exampleId?: string;
   projectName?: string;
   client?: PareaLogger;
+};
+
+export type TestCase = {
+  id: number;
+  test_case_collection_id: number;
+  inputs: { [key: string]: string };
+  target?: string;
+  tags?: string[];
+};
+
+export class TestCaseCollection {
+  id: number;
+  name: string;
+  created_at: string;
+  last_updated_at: string;
+  column_names: string[];
+  test_cases: { [key: number]: TestCase };
+
+  constructor(
+    id: number,
+    name: string,
+    created_at: string,
+    last_updated_at: string,
+    column_names: string[],
+    test_cases: { [key: number]: TestCase },
+  ) {
+    this.id = id;
+    this.name = name;
+    this.created_at = created_at;
+    this.last_updated_at = last_updated_at;
+    this.column_names = column_names;
+    this.test_cases = test_cases;
+  }
+
+  getAllTestCaseInputs(): Iterable<any[]> {
+    return Object.values(this.test_cases).map((test_case) => Object.values(test_case.inputs));
+  }
+
+  numTestCases(): number {
+    return Object.keys(this.test_cases).length;
+  }
+
+  getAllTestCaseTargets(): Iterable<string[]> {
+    return Object.values(this.test_cases).map((test_case) => [test_case.target || '']);
+  }
+
+  getAllTestInputsAndTargets(): Iterable<any[]> {
+    return Object.values(this.test_cases).map((test_case) => [
+      ...Object.values(test_case.inputs),
+      test_case.target || '',
+    ]);
+  }
 }
