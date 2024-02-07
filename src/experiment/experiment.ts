@@ -1,6 +1,7 @@
 import { ExperimentStatsSchema, TraceStatsSchema } from '../types';
 import { Parea } from '../client';
 import { asyncPool } from '../helpers';
+import { genRandomName } from './genRandomName';
 
 function calculateAvgAsString(values: number[] | undefined): string {
   if (!values || values.length === 0) {
@@ -78,8 +79,8 @@ export class Experiment {
   p: Parea;
   experimentStats?: ExperimentStatsSchema;
 
-  constructor(name: string, data: Iterable<any[]>, func: (...dataItem: any[]) => Promise<any>, p: Parea) {
-    this.name = name;
+  constructor(data: Iterable<any[]>, func: (...dataItem: any[]) => Promise<any>, name: string, p: Parea) {
+    this.name = name || genRandomName();
     this.data = data;
     this.func = func;
     this.p = p;

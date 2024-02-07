@@ -112,8 +112,12 @@ export class Parea {
     return response.data;
   }
 
-  public experiment(name: string, data: Iterable<DataItem>, func: (...dataItem: any[]) => Promise<any>): Experiment {
+  public experiment(
+    data: Iterable<DataItem>,
+    func: (...dataItem: any[]) => Promise<any>,
+    name: string = '',
+  ): Experiment {
     const convertedData: Iterable<any[]> = Array.from(data).map((item) => Object.values(item));
-    return new Experiment(name, convertedData, func, this);
+    return new Experiment(convertedData, func, name, this);
   }
 }
