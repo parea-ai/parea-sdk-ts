@@ -49,3 +49,5 @@ export {
   TestCase,
   TestCaseCollection,
 } from './types';
+
+export { levenshtein } from './evals/general/levenshtein';
