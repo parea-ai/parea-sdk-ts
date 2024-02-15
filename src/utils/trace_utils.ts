@@ -64,6 +64,11 @@ export const trace = (funcName: string, func: (...args: any[]) => any, options?:
     const parentStore = asyncLocalStorage.getStore();
     const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined;
     const rootTraceId = parentStore ? Array.from(parentStore.values())[0].rootTraceId : traceId;
+    let target;
+    const numParams = extractFunctionParamNames(func).length;
+    if (args?.length > numParams) {
+      target = args.pop();
+    }
 
     const traceLog: TraceLog = {
       trace_name: funcName,
@@ -74,7 +79,7 @@ export const trace = (funcName: string, func: (...args: any[]) => any, options?:
       inputs: extractFunctionParams(func, args),
       metadata: options?.metadata,
       tags: options?.tags,
-      target: options?.target,
+      target: target,
       end_user_identifier: options?.endUserIdentifier,
       children: [],
       status: 'success',
@@ -180,17 +185,21 @@ export const handleRunningEvals = async (
   }
 };
 
-function extractFunctionParams(func: Function, args: any[]): { [key: string]: any } {
+function extractFunctionParamNames(func: Function): string[] {
   const functionString = func.toString();
   const match = functionString.match(/\(([^)]*)\)/);
-  if (!match) return {}; // handle case of no match (shouldn't happen if function is valid)
+  if (!match) return []; // handle case of no match (shouldn't happen if function is valid)
 
   const paramNamesRaw = match[1]; // get the raw parameters string
-  const paramNames = paramNamesRaw.split(',').map((param) => {
+  return paramNamesRaw.split(',').map((param) => {
     // use regex to match the parameter name, it should be the first word before space or colon
     const match = param.trim().match(/(\w+)/);
     return match ? match[0] : ''; // return the matched parameter name, or empty string if no match
   });
+}
+
+function extractFunctionParams(func: Function, args: any[]): { [key: string]: any } {
+  const paramNames = extractFunctionParamNames(func);
 
   // Constructing an object of paramName: value
   return paramNames.reduce((acc, paramName, index) => {

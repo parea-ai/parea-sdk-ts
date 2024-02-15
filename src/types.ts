@@ -158,7 +158,6 @@ export type TraceOptions = {
   metadata?: any;
   endUserIdentifier?: string;
   tags?: string[];
-  target?: string;
   evalFuncNames?: string[];
   evalFuncs?: any[];
   accessOutputOfFunc?: (arg0: any) => string;
@@ -338,10 +337,10 @@ export class TestCaseCollection {
     return Object.values(this.test_cases).map((test_case) => [test_case.target || '']);
   }
 
-  getAllTestInputsAndTargets(): Iterable<any[]> {
-    return Object.values(this.test_cases).map((test_case) => [
-      ...Object.values(test_case.inputs),
-      test_case.target || '',
-    ]);
+  getAllTestInputsAndTargets(): Iterable<DataItem> {
+    return Object.values(this.test_cases).map((test_case) => ({
+      ...test_case.inputs,
+      target: test_case.target || '',
+    }));
   }
 }

@@ -130,7 +130,6 @@ export class Parea {
     if (typeof data === 'string') {
       return new Experiment(data, func, name, this);
     }
-    const convertedData: Iterable<any[]> = Array.from(data).map((item) => Object.values(item));
-    return new Experiment(convertedData, func, name, this);
+    return new Experiment(data, func, name, this);
   }
 }

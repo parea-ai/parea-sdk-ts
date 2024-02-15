@@ -1,4 +1,4 @@
-import { ExperimentStatsSchema, TestCaseCollection, TraceStatsSchema } from '../types';
+import { DataItem, ExperimentStatsSchema, TestCaseCollection, TraceStatsSchema } from '../types';
 import { Parea } from '../client';
 import { asyncPool } from '../helpers';
 import { genRandomName } from './utils';
@@ -47,7 +47,7 @@ function calculateAvgStdForExperiment(experimentStats: ExperimentStatsSchema): {
 
 async function experiment(
   name: string,
-  data: string | Iterable<any[]>,
+  data: string | Iterable<DataItem>,
   func: (...dataItem: any[]) => Promise<any>,
   p: Parea,
   maxParallelCalls: number = 10,
@@ -64,15 +64,17 @@ async function experiment(
       response.test_cases,
     );
     console.log(`Fetched ${testCollection.numTestCases()} test cases from collection: ${data} \n`);
-    data = testCollection.getAllTestCaseInputs();
+    data = testCollection.getAllTestInputsAndTargets();
   }
 
   const experimentSchema = await p.createExperiment({ name });
   const experimentUUID = experimentSchema.uuid;
   process.env.PAREA_OS_ENV_EXPERIMENT_UUID = experimentUUID;
 
-  const tasksGenerator = asyncPool(maxParallelCalls, data, async (dataInput) => {
-    return func(...dataInput);
+  const tasksGenerator = asyncPool(maxParallelCalls, data, async (sample) => {
+    const { target, ...dataInput } = sample;
+    const dataSamples = Object.values(dataInput);
+    return func(...dataSamples, target);
   });
 
   for await (const _ of tasksGenerator) {
@@ -89,12 +91,12 @@ async function experiment(
 
 export class Experiment {
   name: string;
-  data: string | Iterable<any[]>;
+  data: string | Iterable<DataItem>;
   func: (...dataItem: any[]) => Promise<any>;
   p: Parea;
   experimentStats?: ExperimentStatsSchema;
 
-  constructor(data: string | Iterable<any[]>, func: (...dataItem: any[]) => Promise<any>, name: string, p: Parea) {
+  constructor(data: string | Iterable<DataItem>, func: (...dataItem: any[]) => Promise<any>, name: string, p: Parea) {
     this.name = name;
     this.data = data;
     this.func = func;
