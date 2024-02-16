@@ -125,12 +125,11 @@ export class Parea {
   public experiment(
     data: string | Iterable<DataItem>,
     func: (...dataItem: any[]) => Promise<any>,
-    name: string = '',
     metadata?: { [key: string]: string },
   ): Experiment {
     if (typeof data === 'string') {
-      return new Experiment(data, func, name, this, metadata);
+      return new Experiment(data, func, '', this, metadata);
     }
-    return new Experiment(data, func, name, this, metadata);
+    return new Experiment(data, func, '', this, metadata);
   }
 }

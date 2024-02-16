@@ -50,7 +50,6 @@ export async function main() {
   const e = p.experiment(
     [{ n: '10' }], // Data to run the experiment on (list of dicts)
     generateRandomNumber, // Function to run (callable)
-    // 'random-numbers', // optional name of the experiment (str); must be unique in project; only alphanumeric, hypens, and underscores allowed
   );
   return await e.run();
 }
