@@ -50,6 +50,7 @@ async function experiment(
   data: string | Iterable<DataItem>,
   func: (...dataItem: any[]) => Promise<any>,
   p: Parea,
+  metadata?: { [key: string]: string } | undefined,
   maxParallelCalls: number = 10,
 ): Promise<ExperimentStatsSchema> {
   if (typeof data === 'string') {
@@ -67,7 +68,7 @@ async function experiment(
     data = testCollection.getAllTestInputsAndTargets();
   }
 
-  const experimentSchema = await p.createExperiment({ name });
+  const experimentSchema = await p.createExperiment({ name, metadata });
   const experimentUUID = experimentSchema.uuid;
   process.env.PAREA_OS_ENV_EXPERIMENT_UUID = experimentUUID;
 
@@ -95,18 +96,36 @@ export class Experiment {
   func: (...dataItem: any[]) => Promise<any>;
   p: Parea;
   experimentStats?: ExperimentStatsSchema;
+  metadata?: { [key: string]: string };
 
-  constructor(data: string | Iterable<DataItem>, func: (...dataItem: any[]) => Promise<any>, name: string, p: Parea) {
+  constructor(
+    data: string | Iterable<DataItem>,
+    func: (...dataItem: any[]) => Promise<any>,
+    name: string,
+    p: Parea,
+    metadata?: { [key: string]: string },
+  ) {
     this.name = name;
     this.data = data;
     this.func = func;
     this.p = p;
+    this.metadata = metadata;
+    if (typeof data === 'string') {
+      if (!this.metadata) {
+        this.metadata = {};
+      } else if (this.metadata.Dataset) {
+        console.warn(
+          'Metadata key "Dataset" is reserved for the dataset name. Overwriting it with the provided dataset name.',
+        );
+      }
+      this.metadata = { ...this.metadata, Dataset: data };
+    }
   }
 
   async run(name: string | undefined = undefined): Promise<void> {
     this.name = name || genRandomName();
     this.experimentStats = new ExperimentStatsSchema(
-      (await experiment(this.name, this.data, this.func, this.p)).parent_trace_stats,
+      (await experiment(this.name, this.data, this.func, this.p, this.metadata)).parent_trace_stats,
     );
   }
 }
