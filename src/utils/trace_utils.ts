@@ -170,7 +170,9 @@ export const handleRunningEvals = async (
     options?.evalFuncs.forEach((func) => {
       try {
         const score = func(traceLog);
-        scores.push({ name: func.name, score });
+        if (score !== undefined && score !== null) {
+          scores.push({ name: func.name, score });
+        }
       } catch (e) {
         console.error(`Error occurred calling evaluation function '${func.name}', ${e}`, e);
       }
