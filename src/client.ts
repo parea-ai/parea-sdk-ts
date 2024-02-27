@@ -3,9 +3,11 @@ import {
   CompletionResponse,
   CreateExperimentRequest,
   DataItem,
+  ExperimentOptions,
   ExperimentSchema,
   ExperimentStatsSchema,
   FeedbackRequest,
+  FinishExperimentRequestSchema,
   TestCaseCollection,
   UseDeployedPrompt,
   UseDeployedPromptResponse,
@@ -109,10 +111,14 @@ export class Parea {
     return response.data;
   }
 
-  public async finishExperiment(experimentUUID: string): Promise<ExperimentStatsSchema> {
+  public async finishExperiment(
+    experimentUUID: string,
+    fin_req: FinishExperimentRequestSchema,
+  ): Promise<ExperimentStatsSchema> {
     const response = await this.client.request({
       method: 'POST',
       endpoint: EXPERIMENT_FINISHED_ENDPOINT.replace('{experiment_uuid}', experimentUUID),
+      data: fin_req,
     });
     return response.data;
   }
@@ -128,11 +134,11 @@ export class Parea {
   public experiment(
     data: string | Iterable<DataItem>,
     func: (...dataItem: any[]) => Promise<any>,
-    metadata?: { [key: string]: string },
+    options?: ExperimentOptions,
   ): Experiment {
     if (typeof data === 'string') {
-      return new Experiment(data, func, '', this, metadata);
+      return new Experiment(data, func, '', this, options?.metadata, options?.datasetLevelEvalFuncs);
     }
-    return new Experiment(data, func, '', this, metadata);
+    return new Experiment(data, func, '', this, options?.metadata, options?.datasetLevelEvalFuncs);
   }
 }

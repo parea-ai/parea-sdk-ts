@@ -1,4 +1,4 @@
-import { NamedEvaluationScore, TraceLog, TraceOptions } from '../types';
+import { EvaluationResult, TraceLog, TraceOptions } from '../types';
 import { pareaLogger } from '../parea_logger';
 import { genTraceId, toDateTimeString } from '../helpers';
 import { AsyncLocalStorage } from 'node:async_hooks';
@@ -171,7 +171,7 @@ export const handleRunningEvals = async (
     }
 
     traceLog.output = outputForEvalMetrics;
-    const scores: NamedEvaluationScore[] = [];
+    const scores: EvaluationResult[] = [];
 
     options?.evalFuncs.forEach((func) => {
       try {

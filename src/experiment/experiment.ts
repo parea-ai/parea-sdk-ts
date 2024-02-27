@@ -1,7 +1,15 @@
-import { DataItem, ExperimentStatsSchema, TestCaseCollection, TraceStatsSchema } from '../types';
+import {
+  DataItem,
+  EvaluatedLog,
+  ExperimentStatsSchema,
+  EvaluationResult,
+  TestCaseCollection,
+  TraceStatsSchema,
+} from '../types';
 import { Parea } from '../client';
 import { asyncPool } from '../helpers';
 import { genRandomName } from './utils';
+import { rootTraces } from '../utils/trace_utils';
 
 function calculateAvgAsString(values: number[] | undefined): string {
   if (!values || values.length === 0) {
@@ -51,6 +59,7 @@ async function experiment(
   func: (...dataItem: any[]) => Promise<any>,
   p: Parea,
   metadata?: { [key: string]: string } | undefined,
+  datasetLevelEvalFuncs?: ((logs: EvaluatedLog[]) => Promise<number | null | undefined>)[],
   maxParallelCalls: number = 10,
 ): Promise<ExperimentStatsSchema> {
   if (typeof data === 'string') {
@@ -83,8 +92,29 @@ async function experiment(
     void _;
   }
 
-  const experimentStats: ExperimentStatsSchema = await p.finishExperiment(experimentUUID);
+  const datasetLevelEvalPromises: Promise<EvaluationResult | null>[] =
+    datasetLevelEvalFuncs?.map(async (func): Promise<EvaluationResult | null> => {
+      try {
+        const score = await func(Array.from(rootTraces.values()));
+        if (score !== undefined && score !== null) {
+          return { name: func.name, score };
+        }
+      } catch (e) {
+        console.error(`Error occurred calling '${func.name}', ${e}`, e);
+      }
+      return null;
+    }) || [];
+  const datasetLevelEvaluationResults = (await Promise.all(datasetLevelEvalPromises)).filter(
+    (x): x is EvaluationResult => x !== null,
+  );
+
+  const experimentStats: ExperimentStatsSchema = await p.finishExperiment(experimentUUID, {
+    dataset_level_stats: datasetLevelEvaluationResults,
+  });
   const statNameToAvgStd = calculateAvgStdForExperiment(experimentStats);
+  datasetLevelEvaluationResults.forEach((result) => {
+    statNameToAvgStd[result.name] = result.score.toFixed(2);
+  });
   console.log(`Experiment ${name} stats:\n${JSON.stringify(statNameToAvgStd, null, 2)}\n\n`);
   console.log(`View experiment & its traces at: https://app.parea.ai/experiments/${experimentUUID}\n`);
   return experimentStats;
@@ -97,6 +127,7 @@ export class Experiment {
   p: Parea;
   experimentStats?: ExperimentStatsSchema;
   metadata?: { [key: string]: string };
+  datasetLevelEvalFuncs?: ((logs: EvaluatedLog[]) => Promise<number | null | undefined>)[];
 
   constructor(
     data: string | Iterable<DataItem>,
@@ -104,12 +135,14 @@ export class Experiment {
     name: string,
     p: Parea,
     metadata?: { [key: string]: string },
+    datasetLevelEvalFuncs?: ((logs: EvaluatedLog[]) => Promise<number | null | undefined>)[],
   ) {
     this.name = name;
     this.data = data;
     this.func = func;
     this.p = p;
     this.metadata = metadata;
+    this.datasetLevelEvalFuncs = datasetLevelEvalFuncs;
     if (typeof data === 'string') {
       if (!this.metadata) {
         this.metadata = {};
@@ -125,7 +158,9 @@ export class Experiment {
   async run(name: string | undefined = undefined): Promise<void> {
     this.name = name || genRandomName();
     this.experimentStats = new ExperimentStatsSchema(
-      (await experiment(this.name, this.data, this.func, this.p, this.metadata)).parent_trace_stats,
+      (
+        await experiment(this.name, this.data, this.func, this.p, this.metadata, this.datasetLevelEvalFuncs)
+      ).parent_trace_stats,
     );
   }
 }
