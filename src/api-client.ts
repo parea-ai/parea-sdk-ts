@@ -11,7 +11,7 @@ interface RequestConfig {
 
 export class HTTPClient {
   private static instance: HTTPClient;
-  private baseURL: string = 'https://parea-ai-backend-us-9ac16cdbc7a7b006.onporter.run/api/parea/v1';
+  private baseURL: string;
   private apiKey: string | null = null;
   private client: AxiosInstance;
 
@@ -37,6 +37,11 @@ export class HTTPClient {
 
   public setApiKey(apiKey: string): void {
     this.apiKey = apiKey;
+  }
+
+  public setBaseURL(baseURL: string): void {
+    this.baseURL = baseURL;
+    this.client.defaults.baseURL = baseURL;
   }
 
   public async request(config: RequestConfig): Promise<AxiosResponse<any>> {

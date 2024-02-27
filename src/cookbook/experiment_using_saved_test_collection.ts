@@ -5,7 +5,7 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
-const p = new Parea(process.env.DEV_API_KEY);
+const p = new Parea(process.env.PAREA_API_KEY);
 
 function evalFunc(log: Log): number {
   if (log.inputs?.['x']?.toLowerCase() === 'python') {

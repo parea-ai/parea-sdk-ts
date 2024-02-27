@@ -6,7 +6,7 @@ import { getCurrentTraceId, trace } from '../utils/trace_utils';
 
 dotenv.config();
 
-const p = new Parea(process.env.DEV_API_KEY);
+const p = new Parea(process.env.PAREA_API_KEY);
 
 // If you want to log the inputs to the LLM call you can optionally add a trace wrappeer
 const callLLM = trace(

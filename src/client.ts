@@ -34,6 +34,9 @@ export class Parea {
     this.apiKey = apiKey;
     this.client = HTTPClient.getInstance();
     this.client.setApiKey(this.apiKey);
+    this.client.setBaseURL(
+      process.env.PAREA_BASE_URL || 'https://parea-ai-backend-us-9ac16cdbc7a7b006.onporter.run/api/parea/v1',
+    );
     pareaLogger.setClient(this.client);
     pareaProject.setProjectName(projectName);
     pareaProject.setClient(this.client);

@@ -13,7 +13,7 @@ const openai = new OpenAI({
 });
 
 // needed for tracing
-new Parea(process.env.DEV_API_KEY);
+new Parea(process.env.PAREA_API_KEY);
 
 // Patch OpenAI to add trace logs
 patchOpenAI(openai);

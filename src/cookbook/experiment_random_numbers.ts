@@ -5,7 +5,7 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
-const p = new Parea(process.env.DEV_API_KEY);
+const p = new Parea(process.env.PAREA_API_KEY);
 
 function isBetween1AndN(log: Log): number {
   // Evaluates if the number is between 1 and n
