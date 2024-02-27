@@ -109,7 +109,7 @@ export type TraceLogInputs = {
   [key: string]: string;
 };
 
-export type NamedEvaluationScore = {
+export type EvaluationResult = {
   name: string;
   score: number;
 };
@@ -126,7 +126,11 @@ export type Log = {
   cost?: number;
 };
 
-export type TraceLog = Log & {
+export type EvaluatedLog = Log & {
+  scores?: EvaluationResult[];
+};
+
+export type TraceLog = EvaluatedLog & {
   trace_id: string;
   parent_trace_id?: string;
   root_trace_id?: string;
@@ -139,7 +143,6 @@ export type TraceLog = Log & {
   apply_eval_frac?: number;
   cache_hit?: boolean;
   evaluation_metric_names?: string[];
-  scores?: NamedEvaluationScore[];
   feedback_score?: number;
   trace_name?: string;
   children: string[];
@@ -179,7 +182,7 @@ export type ExperimentSchema = CreateExperimentRequest & {
   created_at: string;
 };
 
-export type EvaluationScoreSchema = NamedEvaluationScore & {
+export type EvaluationScoreSchema = EvaluationResult & {
   id?: number;
 };
 
@@ -345,3 +348,12 @@ export class TestCaseCollection {
     }));
   }
 }
+
+export type FinishExperimentRequestSchema = {
+  dataset_level_stats?: EvaluationResult[];
+};
+
+export type ExperimentOptions = {
+  metadata?: { [key: string]: string };
+  datasetLevelEvalFuncs?: any[];
+};

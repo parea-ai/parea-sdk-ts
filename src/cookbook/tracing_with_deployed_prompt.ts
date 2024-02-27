@@ -6,7 +6,7 @@ import { trace } from '../utils/trace_utils';
 
 dotenv.config();
 
-const p = new Parea(process.env.DEV_API_KEY);
+const p = new Parea(process.env.PAREA_API_KEY);
 
 const deployedArgumentGenerator = async (query: string, additionalDescription: string = ''): Promise<string> => {
   const completion: Completion = {

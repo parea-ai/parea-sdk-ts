@@ -7,7 +7,7 @@ import { LLMChain } from 'langchain/chains';
 
 dotenv.config();
 
-new Parea(process.env.DEV_API_KEY);
+new Parea(process.env.PAREA_API_KEY);
 const handler = new PareaAILangchainTracer();
 export const run = async () => {
   const llm = new OpenAI({ temperature: 0 });

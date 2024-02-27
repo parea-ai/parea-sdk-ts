@@ -28,7 +28,7 @@ export {
   Log,
   TraceLog,
   TraceLogTreeSchema,
-  NamedEvaluationScore,
+  EvaluationResult,
   TraceOptions,
   UpdateLog,
   CreateExperimentRequest,
