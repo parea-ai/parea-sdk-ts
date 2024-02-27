@@ -10,6 +10,7 @@ export type ContextObject = {
 };
 
 export const asyncLocalStorage = new AsyncLocalStorage<Map<string, ContextObject>>();
+export const rootTraces = new Map<string, TraceLog>();
 
 export const getCurrentTraceId = (): string | undefined => {
   const store = asyncLocalStorage.getStore();
@@ -63,7 +64,8 @@ export const trace = (funcName: string, func: (...args: any[]) => any, options?:
 
     const parentStore = asyncLocalStorage.getStore();
     const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined;
-    const rootTraceId = parentStore ? Array.from(parentStore.values())[0].rootTraceId : traceId;
+    const isRootTrace = !parentTraceId; // It's a root trace if there is no parent.
+    const rootTraceId = isRootTrace ? traceId : parentStore ? Array.from(parentStore.values())[0].rootTraceId : traceId;
     let target;
     const numParams = extractFunctionParamNames(func).length;
     if (args?.length > numParams) {
@@ -123,6 +125,10 @@ export const trace = (funcName: string, func: (...args: any[]) => any, options?:
           });
           await pareaLogger.recordLog(traceLog);
           await handleRunningEvals(traceLog, traceId, options);
+          if (isRootTrace) {
+            const finalTraceLog = asyncLocalStorage.getStore()?.get(rootTraceId)?.traceLog || traceLog;
+            rootTraces.set(rootTraceId, finalTraceLog);
+          }
         }
       },
     );
@@ -179,6 +185,7 @@ export const handleRunningEvals = async (
     });
 
     await pareaLogger.updateLog({ trace_id: traceId, field_name_to_value_map: { scores: scores } });
+    currentTraceData.traceLog.scores = scores;
     const index = currentTraceData.threadIdsRunningEvals.indexOf(traceId);
     if (index > -1) {
       currentTraceData.threadIdsRunningEvals.splice(index, 1);
