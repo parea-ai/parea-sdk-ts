@@ -60,7 +60,7 @@ async function experiment(
   p: Parea,
   metadata?: { [key: string]: string } | undefined,
   datasetLevelEvalFuncs?: ((logs: EvaluatedLog[]) => Promise<number | null | undefined>)[],
-  maxParallelCalls: number = 10,
+  nWorkers: number = 10,
 ): Promise<ExperimentStatsSchema> {
   if (typeof data === 'string') {
     console.log(`Fetching test collection: ${data}`);
@@ -81,7 +81,7 @@ async function experiment(
   const experimentUUID = experimentSchema.uuid;
   process.env.PAREA_OS_ENV_EXPERIMENT_UUID = experimentUUID;
 
-  const tasksGenerator = asyncPool(maxParallelCalls, data, async (sample) => {
+  const tasksGenerator = asyncPool(nWorkers, data, async (sample) => {
     const { target, ...dataInput } = sample;
     const dataSamples = Object.values(dataInput);
     return func(...dataSamples, target);
@@ -128,6 +128,7 @@ export class Experiment {
   experimentStats?: ExperimentStatsSchema;
   metadata?: { [key: string]: string };
   datasetLevelEvalFuncs?: ((logs: EvaluatedLog[]) => Promise<number | null | undefined>)[];
+  nWorkers: number = 10;
 
   constructor(
     data: string | Iterable<DataItem>,
@@ -136,6 +137,7 @@ export class Experiment {
     p: Parea,
     metadata?: { [key: string]: string },
     datasetLevelEvalFuncs?: ((logs: EvaluatedLog[]) => Promise<number | null | undefined>)[],
+    nWorkers: number = 10,
   ) {
     this.name = name;
     this.data = data;
@@ -143,6 +145,7 @@ export class Experiment {
     this.p = p;
     this.metadata = metadata;
     this.datasetLevelEvalFuncs = datasetLevelEvalFuncs;
+    this.nWorkers = nWorkers;
     if (typeof data === 'string') {
       if (!this.metadata) {
         this.metadata = {};
@@ -159,7 +162,15 @@ export class Experiment {
     this.name = name || genRandomName();
     this.experimentStats = new ExperimentStatsSchema(
       (
-        await experiment(this.name, this.data, this.func, this.p, this.metadata, this.datasetLevelEvalFuncs)
+        await experiment(
+          this.name,
+          this.data,
+          this.func,
+          this.p,
+          this.metadata,
+          this.datasetLevelEvalFuncs,
+          this.nWorkers,
+        )
       ).parent_trace_stats,
     );
   }
