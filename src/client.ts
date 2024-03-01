@@ -137,8 +137,8 @@ export class Parea {
     options?: ExperimentOptions,
   ): Experiment {
     if (typeof data === 'string') {
-      return new Experiment(data, func, '', this, options?.metadata, options?.datasetLevelEvalFuncs);
+      return new Experiment(data, func, '', this, options?.metadata, options?.datasetLevelEvalFuncs, options?.nWorkers);
     }
-    return new Experiment(data, func, '', this, options?.metadata, options?.datasetLevelEvalFuncs);
+    return new Experiment(data, func, '', this, options?.metadata, options?.datasetLevelEvalFuncs, options?.nWorkers);
   }
 }
