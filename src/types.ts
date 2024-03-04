@@ -358,3 +358,19 @@ export type ExperimentOptions = {
   datasetLevelEvalFuncs?: any[];
   nWorkers?: number;
 };
+
+export type CreateTestCase = {
+  inputs: Record<string, string>;
+  target?: string;
+  tags: string[];
+};
+
+export type CreateTestCases = {
+  id?: number;
+  name?: string;
+  test_cases: CreateTestCase[];
+};
+
+export type CreateTestCaseCollection = CreateTestCases & {
+  column_names: string[];
+};
