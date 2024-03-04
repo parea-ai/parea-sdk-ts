@@ -12,7 +12,10 @@ import { CreateTestCase, CreateTestCaseCollection } from '../types';
  * @param name - A unique name for the test collection. If not provided a random name will be generated.
  * @returns CreateTestCaseCollection
  */
-export function createTestCollection(data: Record<string, any>[], name?: string): CreateTestCaseCollection {
+export async function createTestCollection(
+  data: Record<string, any>[],
+  name?: string,
+): Promise<CreateTestCaseCollection> {
   if (!name) {
     name = genRandomName();
   }
@@ -20,7 +23,7 @@ export function createTestCollection(data: Record<string, any>[], name?: string)
   const columnNames = Array.from(
     new Set(data.flatMap((row) => Object.keys(row).filter((key) => key !== 'target' && key !== 'tags'))),
   );
-  const testCases = createTestCases(data);
+  const testCases = await createTestCases(data);
 
   return {
     name,
@@ -39,7 +42,7 @@ export function createTestCollection(data: Record<string, any>[], name?: string)
  *   If tags are present they must be a list of json_serializable values.
  * @returns CreateTestCase[]
  */
-export function createTestCases(data: Record<string, any>[]): CreateTestCase[] {
+export async function createTestCases(data: Record<string, any>[]): Promise<CreateTestCase[]> {
   const testCases: CreateTestCase[] = [];
 
   data.forEach((row) => {

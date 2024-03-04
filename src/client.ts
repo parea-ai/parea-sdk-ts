@@ -136,7 +136,7 @@ export class Parea {
   }
 
   public async createTestCollection(data: Record<string, any>[], name?: string | undefined): Promise<void> {
-    const request: CreateTestCaseCollection = createTestCollection(data, name);
+    const request: CreateTestCaseCollection = await createTestCollection(data, name);
     await this.client.request({
       method: 'POST',
       endpoint: CREATE_COLLECTION_ENDPOINT,
@@ -152,7 +152,7 @@ export class Parea {
     const request = {
       id: datasetId,
       name,
-      test_cases: createTestCases(data),
+      test_cases: await createTestCases(data),
     };
     await this.client.request({
       method: 'POST',
