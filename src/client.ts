@@ -2,6 +2,7 @@ import {
   Completion,
   CompletionResponse,
   CreateExperimentRequest,
+  CreateTestCaseCollection,
   DataItem,
   ExperimentOptions,
   ExperimentSchema,
@@ -19,6 +20,7 @@ import { genTraceId } from './helpers';
 import { asyncLocalStorage } from './utils/trace_utils';
 import { pareaProject } from './project';
 import { Experiment } from './experiment/experiment';
+import { createTestCases, createTestCollection } from './experiment/datasets';
 
 const COMPLETION_ENDPOINT = '/completion';
 const DEPLOYED_PROMPT_ENDPOINT = '/deployed-prompt';
@@ -26,7 +28,9 @@ const RECORD_FEEDBACK_ENDPOINT = '/feedback';
 const EXPERIMENT_ENDPOINT = '/experiment';
 const EXPERIMENT_STATS_ENDPOINT = '/experiment/{experiment_uuid}/stats';
 const EXPERIMENT_FINISHED_ENDPOINT = '/experiment/{experiment_uuid}/finished';
-const GET_COLLECTION_ENDPOINT = '/collection/{test_collection_name}';
+const GET_COLLECTION_ENDPOINT = '/collection/{test_collection_identifier}';
+const CREATE_COLLECTION_ENDPOINT = '/collection';
+const ADD_TEST_CASES_ENDPOINT = '/testcases';
 
 export class Parea {
   private apiKey: string;
@@ -123,12 +127,38 @@ export class Parea {
     return response.data;
   }
 
-  public async getCollection(testCollectionName: string): Promise<TestCaseCollection> {
+  public async getCollection(testCollectionIdentifier: string | number): Promise<TestCaseCollection> {
     const response = await this.client.request({
       method: 'GET',
-      endpoint: GET_COLLECTION_ENDPOINT.replace('{test_collection_name}', testCollectionName),
+      endpoint: GET_COLLECTION_ENDPOINT.replace('{test_collection_identifier}', String(testCollectionIdentifier)),
     });
     return response.data;
+  }
+
+  public async createTestCollection(data: Record<string, any>[], name?: string | undefined): Promise<void> {
+    const request: CreateTestCaseCollection = createTestCollection(data, name);
+    await this.client.request({
+      method: 'POST',
+      endpoint: CREATE_COLLECTION_ENDPOINT,
+      data: request,
+    });
+  }
+
+  public async addTestCases(
+    data: Record<string, any>[],
+    name?: string | undefined,
+    datasetId?: number | undefined,
+  ): Promise<void> {
+    const request = {
+      id: datasetId,
+      name,
+      test_cases: createTestCases(data),
+    };
+    await this.client.request({
+      method: 'POST',
+      endpoint: ADD_TEST_CASES_ENDPOINT,
+      data: request,
+    });
   }
 
   public experiment(

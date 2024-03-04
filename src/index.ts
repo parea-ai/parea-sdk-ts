@@ -48,6 +48,9 @@ export {
   LangChainTracerFields,
   TestCase,
   TestCaseCollection,
+  CreateTestCases,
+  CreateTestCase,
+  CreateTestCaseCollection,
 } from './types';
 
 export { levenshtein } from './evals/general/levenshtein';
