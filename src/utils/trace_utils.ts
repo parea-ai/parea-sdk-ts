@@ -200,11 +200,14 @@ function extractFunctionParamNames(func: Function): string[] {
   if (!match) return []; // handle case of no match (shouldn't happen if function is valid)
 
   const paramNamesRaw = match[1]; // get the raw parameters string
-  return paramNamesRaw.split(',').map((param) => {
-    // use regex to match the parameter name, it should be the first word before space or colon
-    const match = param.trim().match(/(\w+)/);
-    return match ? match[0] : ''; // return the matched parameter name, or empty string if no match
-  });
+  return paramNamesRaw
+    .split(',')
+    .map((param) => {
+      // use regex to match the parameter name, it should be the first word before space or colon
+      const match = param.trim().match(/(\w+)/);
+      return match ? match[0] : ''; // return the matched parameter name, or empty string if no match
+    })
+    .filter((param) => param !== '');
 }
 
 function extractFunctionParams(func: Function, args: any[]): { [key: string]: any } {
