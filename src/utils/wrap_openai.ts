@@ -67,13 +67,16 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
 
         try {
           response = await method.apply(this, args);
-          traceInsert(traceId, {
-            output: getOutput(response),
-            input_tokens: response.usage.prompt_tokens,
-            output_tokens: response.usage.completion_tokens,
-            total_tokens: response.usage.total_tokens,
-            cost: getTotalCost(args[idxArgs].model, response.usage.prompt_tokens, response.usage.completion_tokens),
-          });
+          traceInsert(
+            {
+              output: getOutput(response),
+              input_tokens: response.usage.prompt_tokens,
+              output_tokens: response.usage.completion_tokens,
+              total_tokens: response.usage.total_tokens,
+              cost: getTotalCost(args[idxArgs].model, response.usage.prompt_tokens, response.usage.completion_tokens),
+            },
+            traceId,
+          );
         } catch (err: unknown) {
           if (err instanceof Error) {
             error = err.message;
@@ -81,14 +84,17 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
             error = 'An unknown error occurred';
           }
           status = 'error';
-          traceInsert(traceId, { error, status });
+          traceInsert({ error, status }, traceId);
         } finally {
           endTimestamp = new Date();
-          traceInsert(traceId, {
-            end_timestamp: toDateTimeString(endTimestamp),
-            latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
-            status: status,
-          });
+          traceInsert(
+            {
+              end_timestamp: toDateTimeString(endTimestamp),
+              latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
+              status: status,
+            },
+            traceId,
+          );
           await pareaLogger.recordLog(traceLog);
         }
 

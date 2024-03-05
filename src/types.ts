@@ -165,6 +165,7 @@ export type TraceOptions = {
   evalFuncs?: any[];
   accessOutputOfFunc?: (arg0: any) => string;
   applyEvalFrac?: number;
+  deploymentId?: string;
 };
 
 export type UpdateLog = {
