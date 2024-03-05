@@ -34,14 +34,32 @@ const merge = (old: any, newValue: any) => {
   return newValue;
 };
 
-export const traceInsert = (traceId: string, data: { [key: string]: any }) => {
+/**
+ * Insert data into the trace log for the current or specified trace id. Data should be a dictionary with keys that correspond to the fields of the TraceLog model.
+ *
+ * @param data = list of key-value pairs where keys represent input names.
+ *   Each item in the list represent a test case row.
+ *   Target and Tags are reserved keys. There can only be one target and tags key per dict item.
+ *   If target is present it will represent the target/expected response for the inputs.
+ *   If tags are present they must be a list of json_serializable values.
+ * @param data - Keys can be one of: trace_name, end_user_identifier, metadata, tags, deployment_id
+ * @param traceId - The trace id to insert the data into. If not provided, the current trace id will be used.
+ * @returns void
+ */
+export const traceInsert = (data: { [key: string]: any }, traceId?: string) => {
   const store = asyncLocalStorage.getStore();
   if (!store) {
     console.warn('No active store found for traceInsert.');
     return;
   }
 
-  const currentTraceData = store.get(traceId);
+  let currentTraceData;
+  if (!traceId) {
+    traceId = getCurrentTraceId() as string;
+    currentTraceData = store.get(traceId);
+  } else {
+    currentTraceData = store.get(traceId);
+  }
   if (!currentTraceData) {
     console.warn(`No trace data found for traceId ${traceId}.`);
     return;
@@ -87,6 +105,7 @@ export const trace = (funcName: string, func: (...args: any[]) => any, options?:
       status: 'success',
       experiment_uuid: process.env.PAREA_OS_ENV_EXPERIMENT_UUID || null,
       apply_eval_frac: options?.applyEvalFrac,
+      deployment_id: options?.deploymentId,
     };
 
     return asyncLocalStorage.run(
@@ -107,22 +126,28 @@ export const trace = (funcName: string, func: (...args: any[]) => any, options?:
           if (options?.accessOutputOfFunc) {
             outputForEvalMetrics = options?.accessOutputOfFunc(result);
           }
-          traceInsert(traceId, {
-            output,
-            evaluation_metric_names: options?.evalFuncNames,
-            output_for_eval_metrics: outputForEvalMetrics,
-          });
+          traceInsert(
+            {
+              output,
+              evaluation_metric_names: options?.evalFuncNames,
+              output_for_eval_metrics: outputForEvalMetrics,
+            },
+            traceId,
+          );
           return result;
         } catch (error: any) {
           console.error(`Error occurred in function ${func.name}, ${error}`);
-          traceInsert(traceId, { error: error.toString(), status: 'error' });
+          traceInsert({ error: error.toString(), status: 'error' }, traceId);
           throw error;
         } finally {
           const endTimestamp = new Date();
-          traceInsert(traceId, {
-            end_timestamp: toDateTimeString(endTimestamp),
-            latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
-          });
+          traceInsert(
+            {
+              end_timestamp: toDateTimeString(endTimestamp),
+              latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
+            },
+            traceId,
+          );
           await pareaLogger.recordLog(traceLog);
           await handleRunningEvals(traceLog, traceId, options);
           if (isRootTrace) {
