@@ -27,6 +27,7 @@ export {
   TraceLogInputs,
   Log,
   TraceLog,
+  TraceLogImage,
   TraceLogTreeSchema,
   EvaluationResult,
   TraceOptions,

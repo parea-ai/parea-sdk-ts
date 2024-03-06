@@ -55,6 +55,7 @@ export type Completion = {
   log_omit_outputs?: boolean;
   log_omit?: boolean;
   experiment_uuid?: string | null;
+  project_uuid?: string;
 };
 
 export type CompletionResponse = {
@@ -130,6 +131,11 @@ export type EvaluatedLog = Log & {
   scores?: EvaluationResult[];
 };
 
+export type TraceLogImage = {
+  url: string;
+  caption?: string;
+};
+
 export type TraceLog = EvaluatedLog & {
   trace_id: string;
   parent_trace_id?: string;
@@ -151,6 +157,7 @@ export type TraceLog = EvaluatedLog & {
   metadata?: { [key: string]: any };
   tags?: string[];
   experiment_uuid?: string | null;
+  images?: TraceLogImage[];
 };
 
 export type TraceLogTreeSchema = TraceLog & {
