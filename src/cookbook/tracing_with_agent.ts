@@ -9,10 +9,10 @@ dotenv.config();
 const p = new Parea(process.env.PAREA_API_KEY);
 
 const LLM_OPTIONS = [
-  ['gpt-3.5-turbo', 'openai'],
-  ['gpt-4', 'openai'],
-  ['claude-instant-1', 'anthropic'],
-  ['claude-2', 'anthropic'],
+  ['gpt-3.5-turbo-0125', 'openai'],
+  ['gpt-4-0125-preview', 'openai'],
+  ['claude-3-sonnet-20240229', 'anthropic'],
+  ['claude-2.1', 'anthropic'],
 ];
 const LIMIT = 1;
 

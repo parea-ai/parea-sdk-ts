@@ -16,7 +16,7 @@ import {
 
 import { HTTPClient } from './api-client';
 import { pareaLogger } from './parea_logger';
-import { genTraceId } from './helpers';
+import { genTraceId, serializeMetadataValues } from './helpers';
 import { asyncLocalStorage } from './utils/trace_utils';
 import { pareaProject } from './project';
 import { Experiment } from './experiment/experiment';
@@ -49,38 +49,13 @@ export class Parea {
   }
 
   public async completion(data: Completion): Promise<CompletionResponse> {
-    let experiment_uuid;
-    const parentStore = asyncLocalStorage.getStore();
-    const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined; // Assuming the last traceId is the parent
-
-    const inference_id = genTraceId();
-    data.inference_id = inference_id;
-    data.parent_trace_id = parentTraceId || inference_id;
-    data.root_trace_id = parentStore ? Array.from(parentStore.values())[0].rootTraceId : data.parent_trace_id;
-
-    if (process.env.PAREA_OS_ENV_EXPERIMENT_UUID) {
-      experiment_uuid = process.env.PAREA_OS_ENV_EXPERIMENT_UUID;
-      data.experiment_uuid = experiment_uuid;
-    }
+    const requestData = await this.updateDataAndTrace(data);
 
     const response = await this.client.request({
       method: 'POST',
       endpoint: COMPLETION_ENDPOINT,
-      data: {
-        project_uuid: await pareaProject.getProjectUUID(),
-        ...data,
-      },
+      data: requestData,
     });
-
-    if (parentStore && parentTraceId) {
-      const parentTraceLog = parentStore.get(parentTraceId);
-      if (parentTraceLog) {
-        parentTraceLog.traceLog.children.push(inference_id);
-        parentTraceLog.traceLog.experiment_uuid = experiment_uuid;
-        parentStore.set(parentTraceId, parentTraceLog);
-        await pareaLogger.recordLog(parentTraceLog.traceLog);
-      }
-    }
 
     return response.data;
   }
@@ -170,5 +145,42 @@ export class Parea {
       return new Experiment(data, func, '', this, options?.metadata, options?.datasetLevelEvalFuncs, options?.nWorkers);
     }
     return new Experiment(data, func, '', this, options?.metadata, options?.datasetLevelEvalFuncs, options?.nWorkers);
+  }
+
+  private async updateDataAndTrace(data: Completion): Promise<Completion> {
+    // @ts-ignore
+    data = serializeMetadataValues(data);
+
+    let experiment_uuid;
+    const inference_id = genTraceId();
+    data.inference_id = inference_id;
+    data.project_uuid = await pareaProject.getProjectUUID();
+
+    try {
+      const parentStore = asyncLocalStorage.getStore();
+      const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined; // Assuming the last traceId is the parent
+
+      data.parent_trace_id = parentTraceId || inference_id;
+      data.root_trace_id = parentStore ? Array.from(parentStore.values())[0].rootTraceId : data.parent_trace_id;
+
+      if (process.env.PAREA_OS_ENV_EXPERIMENT_UUID) {
+        experiment_uuid = process.env.PAREA_OS_ENV_EXPERIMENT_UUID;
+        data.experiment_uuid = experiment_uuid;
+      }
+
+      if (parentStore && parentTraceId) {
+        const parentTraceLog = parentStore.get(parentTraceId);
+        if (parentTraceLog) {
+          parentTraceLog.traceLog.children.push(inference_id);
+          parentTraceLog.traceLog.experiment_uuid = experiment_uuid;
+          parentStore.set(parentTraceId, parentTraceLog);
+          await pareaLogger.recordLog(parentTraceLog.traceLog);
+        }
+      }
+    } catch (e) {
+      console.debug(`Error updating trace ids for completion. Trace log will be absent: ${e}`);
+    }
+
+    return data;
   }
 }

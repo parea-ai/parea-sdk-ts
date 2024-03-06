@@ -36,13 +36,9 @@ const merge = (old: any, newValue: any) => {
 
 /**
  * Insert data into the trace log for the current or specified trace id. Data should be a dictionary with keys that correspond to the fields of the TraceLog model.
+ * If the field already has an existing value that is extensible (dict, set, list, etc.), the new value will be merged with the existing value.
  *
- * @param data = list of key-value pairs where keys represent input names.
- *   Each item in the list represent a test case row.
- *   Target and Tags are reserved keys. There can only be one target and tags key per dict item.
- *   If target is present it will represent the target/expected response for the inputs.
- *   If tags are present they must be a list of json_serializable values.
- * @param data - Keys can be one of: trace_name, end_user_identifier, metadata, tags, deployment_id
+ * @param data - Keys can be one of: trace_name, end_user_identifier, metadata, tags, deployment_id, images
  * @param traceId - The trace id to insert the data into. If not provided, the current trace id will be used.
  * @returns void
  */

@@ -2,6 +2,7 @@ import { LangchainRunCreate, TraceIntegrations, TraceLog, UpdateLog } from './ty
 import { AxiosResponse } from 'axios';
 import { HTTPClient } from './api-client';
 import { pareaProject } from './project';
+import { serializeMetadataValues, serializeMetadataValuesUpdate } from './helpers';
 
 const LOG_ENDPOINT = '/trace_log';
 const VENDOR_LOG_ENDPOINT = '/trace_log/{vendor}';
@@ -18,10 +19,11 @@ export class PareaLogger {
   }
 
   public async recordLog(data: TraceLog): Promise<AxiosResponse<any>> {
+    const log = { ...data, project_uuid: await pareaProject.getProjectUUID() };
     return await this.client.request({
       method: 'POST',
       endpoint: LOG_ENDPOINT,
-      data: { ...data, project_uuid: await pareaProject.getProjectUUID() },
+      data: serializeMetadataValues(log),
     });
   }
 
@@ -34,7 +36,11 @@ export class PareaLogger {
   }
 
   public async updateLog(data: UpdateLog): Promise<AxiosResponse<any>> {
-    return await this.client.request({ method: 'PUT', endpoint: LOG_ENDPOINT, data });
+    return await this.client.request({
+      method: 'PUT',
+      endpoint: LOG_ENDPOINT,
+      data: serializeMetadataValuesUpdate(data),
+    });
   }
 }
 

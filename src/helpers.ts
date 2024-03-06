@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import { Completion, Log, TraceLog, UpdateLog } from './types';
 
 export function genTraceId(): string {
   // Generate a unique trace id for each chain of requests
@@ -47,6 +48,41 @@ export async function* asyncPool<T, R>(
   while (executing.size > 0) {
     yield await consume();
   }
+}
+
+export type LogData = Completion & TraceLog & Log;
+
+export function serializeMetadataValues(logData: LogData): LogData {
+  if (logData?.metadata) {
+    logData.metadata = serializeValues(logData?.metadata);
+  }
+
+  // Support openai vision content format
+  if (logData?.configuration) {
+    logData?.configuration?.messages?.forEach((message) => {
+      // noinspection SuspiciousTypeOfGuard
+      if (typeof message.content !== 'string') {
+        message.content = JSON.stringify(message.content);
+      }
+    });
+  }
+
+  return logData;
+}
+
+export function serializeValues(metadata: { [key: string]: any }): { [key: string]: string } {
+  const serialized: { [key: string]: string } = {};
+  for (const [key, value] of Object.entries(metadata)) {
+    serialized[key] = JSON.stringify(value);
+  }
+  return serialized;
+}
+
+export function serializeMetadataValuesUpdate(logData: UpdateLog): UpdateLog {
+  if (logData?.field_name_to_value_map?.metadata) {
+    logData.field_name_to_value_map.metadata = serializeValues(logData.field_name_to_value_map.metadata);
+  }
+  return logData;
 }
 
 export const NOUNS: string[] = [
