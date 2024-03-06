@@ -73,7 +73,7 @@ export function serializeMetadataValues(logData: LogData): LogData {
 export function serializeValues(metadata: { [key: string]: any }): { [key: string]: string } {
   const serialized: { [key: string]: string } = {};
   for (const [key, value] of Object.entries(metadata)) {
-    serialized[key] = JSON.stringify(value);
+    serialized[key] = typeof value === 'string' ? value : JSON.stringify(value);
   }
   return serialized;
 }
