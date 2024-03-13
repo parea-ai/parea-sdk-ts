@@ -194,16 +194,16 @@ export const handleRunningEvals = async (
     traceLog.output = outputForEvalMetrics;
     const scores: EvaluationResult[] = [];
 
-    options?.evalFuncs.forEach((func) => {
+    for (const func of options?.evalFuncs) {
       try {
-        const score = func(traceLog);
+        const score = await func(traceLog);
         if (score !== undefined && score !== null) {
           scores.push({ name: func.name, score });
         }
       } catch (e) {
         console.error(`Error occurred calling evaluation function '${func.name}', ${e}`, e);
       }
-    });
+    }
 
     await pareaLogger.updateLog({ trace_id: traceId, field_name_to_value_map: { scores: scores } });
     currentTraceData.traceLog.scores = scores;
