@@ -75,6 +75,19 @@ async function llmJudgeEval(log: Log): Promise<number> {
 }
 
 const _ragTemplate = async (deployment_id: string, llm_inputs: Record<string, any>): Promise<string> => {
+  // The Deployed Prompt is:
+  // Use the following pieces of context to answer the question. Do not make up an answer if no context is provided to help answer it.
+  //
+  // Context:
+  // ---------
+  // {{context}}
+  //
+  // ---------
+  // Question: {{question}}
+  // ---------
+  //
+  // Answer:
+
   const deployedPrompt: UseDeployedPromptResponse = await getPrompt(deployment_id, llm_inputs);
   const response = await callOpenAI(
     deployedPrompt.prompt?.messages,
