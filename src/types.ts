@@ -173,6 +173,7 @@ export type TraceOptions = {
   accessOutputOfFunc?: (arg0: any) => string;
   applyEvalFrac?: number;
   deploymentId?: string;
+  target?: string;
 };
 
 export type UpdateLog = {
