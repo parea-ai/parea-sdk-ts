@@ -174,4 +174,11 @@ export class Experiment {
       ).parent_trace_stats,
     );
   }
+
+  get avgScores(): { [key: string]: number } {
+    if (!this.experimentStats) {
+      return {};
+    }
+    return this.experimentStats.avgScores;
+  }
 }
