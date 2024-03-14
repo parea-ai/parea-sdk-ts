@@ -216,6 +216,18 @@ export class ExperimentStatsSchema {
     this.parent_trace_stats = parent_trace_stats;
   }
 
+  get avgScores(): { [key: string]: number } {
+    const accumulators: { [key: string]: number } = {};
+    const counts: { [key: string]: number } = {};
+    for (const traceStat of this.parent_trace_stats) {
+      for (const score of traceStat.scores || []) {
+        accumulators[score.name] = (accumulators[score.name] || 0.0) + score.score;
+        counts[score.name] = (counts[score.name] || 0) + 1;
+      }
+    }
+    return Object.fromEntries(Object.entries(accumulators).map(([name, value]) => [name, value / counts[name]]));
+  }
+
   cumulativeAvgScore(): number {
     const scores = this.parent_trace_stats.flatMap((traceStat) => traceStat.scores?.map((score) => score.score) || []);
     return scores.length > 0 ? scores.reduce((acc, curr) => acc + curr, 0) / scores.length : 0.0;
