@@ -215,19 +215,46 @@ function getOutput(result: any): string {
   let completion: string = '';
   if (responseMessage.hasOwnProperty('function_call')) {
     completion = formatFunctionCall(responseMessage);
+  } else if (responseMessage.hasOwnProperty('tool_calls')) {
+    completion = formatToolCalls(responseMessage);
   } else {
     completion = responseMessage?.content?.trim() ?? '';
   }
   return completion;
 }
 
+function formatToolCalls(responseMessage: any): string {
+  const formattedToolCalls: any[] = [];
+  for (const toolCall of responseMessage['tool_calls']) {
+    if (toolCall['type'] === 'function') {
+      const functionName: string = toolCall['function']['name'];
+      const functionArgs: any = parseArgs(toolCall['function']['arguments']);
+      const toolCallId: string = toolCall['id'];
+      formattedToolCalls.push({
+        id: toolCallId,
+        type: toolCall['type'],
+        function: {
+          name: functionName,
+          arguments: functionArgs,
+        },
+      });
+    } else {
+      formattedToolCalls.push(toolCall);
+    }
+  }
+  return JSON.stringify(formattedToolCalls, null, 4);
+}
+
 function formatFunctionCall(responseMessage: any): string {
   const functionName = responseMessage['function_call']['name'];
-  let functionArgs: any;
-  if (responseMessage['function_call']['arguments'] instanceof Object) {
-    functionArgs = responseMessage['function_call']['arguments'];
-  } else {
-    functionArgs = JSON.parse(responseMessage['function_call']['arguments']);
-  }
+  const functionArgs: any = parseArgs(responseMessage['function_call']['arguments']);
   return `\`\`\`${JSON.stringify({ name: functionName, arguments: functionArgs }, null, 4)}\`\`\``;
+}
+
+function parseArgs(responseFunctionArgs: any): any {
+  if (responseFunctionArgs instanceof Object) {
+    return responseFunctionArgs;
+  } else {
+    return JSON.parse(responseFunctionArgs);
+  }
 }
