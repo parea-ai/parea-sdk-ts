@@ -11,8 +11,6 @@ export { genTraceId, toDateTimeString, asyncPool } from './helpers';
 
 export { Experiment } from './experiment/experiment';
 
-export { PareaAILangchainTracer } from './utils/traceIntegrations/langchain';
-
 export {
   Role,
   Message,
