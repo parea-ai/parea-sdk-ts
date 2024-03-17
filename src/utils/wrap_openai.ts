@@ -216,7 +216,7 @@ function getOutput(result: any): string {
   if (responseMessage.hasOwnProperty('function_call')) {
     completion = formatFunctionCall(responseMessage);
   } else {
-    completion = responseMessage?.content.trim() ?? '';
+    completion = responseMessage?.content?.trim() ?? '';
   }
   return completion;
 }
