@@ -205,9 +205,9 @@ function getTotalCost(modelName: string, promptTokens: number, completionTokens:
     );
   }
   const modelCost = MODEL_COST_MAPPING[modelName];
-  const promptCost = modelCost.prompt * (promptTokens / 1000);
-  const completionCost = modelCost.completion * (completionTokens / 1000);
-  return promptCost + completionCost;
+  const promptCost = promptTokens * modelCost.prompt;
+  const completionCost = completionTokens * modelCost.completion;
+  return (promptCost + completionCost) / 1000000;
 }
 
 function getOutput(result: any): string {
