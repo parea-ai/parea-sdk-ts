@@ -98,17 +98,17 @@ const runAgent = async (mainObjective: string, initialTask: string = '') => {
       break;
     }
   }
-  return [generatedTasks, traceId];
+  return { generatedTasks, traceId };
 };
 const TrunAgent = trace('TrunAgent', runAgent);
 
 async function main() {
-  const [result, traceId] = await TrunAgent('Become a machine learning expert.', 'Learn about tensors.');
+  const { generatedTasks, traceId } = await TrunAgent('Become a machine learning expert.', 'Learn about tensors.');
   await p.recordFeedback({
     trace_id: traceId,
     score: 0.642,
   });
-  return result;
+  return generatedTasks;
 }
 
 main().then((result) => console.log(result));
