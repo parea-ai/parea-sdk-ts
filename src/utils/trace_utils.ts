@@ -71,7 +71,9 @@ export const traceInsert = (data: { [key: string]: any }, traceId?: string) => {
   store.set(traceId, currentTraceData);
 };
 
-export const trace = (funcName: string, func: (...args: any[]) => any, options?: TraceOptions) => {
+type AsyncFunctionOrNot<T> = (...args: any[]) => Promise<T> | T;
+
+export const trace = <T>(funcName: string, func: AsyncFunctionOrNot<T>, options?: TraceOptions) => {
   return async (...args: any[]) => {
     const traceId = genTraceId();
     const startTimestamp = new Date();
