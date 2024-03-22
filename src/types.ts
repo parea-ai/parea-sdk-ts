@@ -8,6 +8,7 @@ export enum Role {
   example_user = 'example_user',
   example_assistant = 'example_assistant',
   function = 'function',
+  tool = 'tool',
 }
 
 export type Message = {

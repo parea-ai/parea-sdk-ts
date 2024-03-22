@@ -35,15 +35,25 @@ async function main() {
     },
   ];
 
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-3.5-turbo',
+    messages: messages,
+    tools: tools,
+  });
+  messages.push(completion.choices[0].message);
+  messages.push({
+    role: 'tool',
+    content: '5 Celcius',
+    tool_call_id: completion?.choices?.[0]?.message?.tool_calls?.[0].id,
+  });
+  messages.push({ role: 'user', content: "What's the weather like in Boston today?" });
   const response = await openai.chat.completions.create({
     model: 'gpt-3.5-turbo',
     messages: messages,
     tools: tools,
   });
 
-  console.log(response);
-  console.log('choice', response.choices[0].message);
-  console.log('tool_calls', response.choices[0].message.tool_calls);
+  console.log(response.choices[0].message.tool_calls);
 }
 
 main()
