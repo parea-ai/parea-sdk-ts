@@ -1,8 +1,27 @@
 import OpenAI from 'openai';
-import { LLMInputs, Role, TraceLog } from '../types';
+import { LLMInputs, Message, Role, TraceLog } from '../types';
 import { pareaLogger } from '../parea_logger';
 import { asyncLocalStorage, traceInsert } from './trace_utils';
 import { genTraceId, toDateTimeString } from '../helpers';
+
+function convertOAIMessage(m: any): Message {
+  if (m.role === 'assistant' && !!m.tool_calls) {
+    return {
+      role: Role.assistant,
+      content: formatToolCalls(m),
+    };
+  } else if (m.role === 'tool') {
+    return {
+      role: Role.tool,
+      content: JSON.stringify({ tool_call_id: m.tool_call_id, content: m.content }),
+    };
+  } else {
+    return {
+      role: Role[m.role as keyof typeof Role],
+      content: m.content,
+    };
+  }
+}
 
 function wrapMethod(method: Function, idxArgs: number = 0) {
   return async function (this: any, ...args: any[]) {
@@ -33,10 +52,7 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
     const configuration: LLMInputs = {
       model: kwargs.model,
       provider: 'openai',
-      messages: kwargs.messages?.map((message: any) => ({
-        role: Role[message.role as keyof typeof Role],
-        content: message.content,
-      })),
+      messages: kwargs.messages?.map((message: any) => convertOAIMessage(message)),
       functions: functions,
       function_call: kwargs.function_call || kwargs.tool_choice || functionCallDefault,
       model_params: modelParams,
