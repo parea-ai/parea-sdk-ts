@@ -42,6 +42,9 @@ const askVision = trace('askVision', async (image_url: string): Promise<string |
 
 const imageChain = trace('imageChain', async (query: string) => {
   const image_url = await imageMaker(query);
+  if (!image_url) {
+    return null;
+  }
   return await askVision(image_url);
 });
 
