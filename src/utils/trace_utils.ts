@@ -71,10 +71,14 @@ export const traceInsert = (data: { [key: string]: any }, traceId?: string) => {
   store.set(traceId, currentTraceData);
 };
 
-type AsyncFunctionOrNot<T> = (...args: any[]) => Promise<T> | T;
+type AsyncFunctionOrNot<TReturn, TArgs extends unknown[]> = (...args: TArgs) => Promise<TReturn> | TReturn;
 
-export const trace = <T>(funcName: string, func: AsyncFunctionOrNot<T>, options?: TraceOptions) => {
-  return async (...args: any[]) => {
+export const trace = <TReturn, TArgs extends unknown[]>(
+  funcName: string,
+  func: AsyncFunctionOrNot<TReturn, TArgs>,
+  options?: TraceOptions,
+) => {
+  return async (...args: TArgs) => {
     const traceId = genTraceId();
     const startTimestamp = new Date();
 
@@ -82,10 +86,10 @@ export const trace = <T>(funcName: string, func: AsyncFunctionOrNot<T>, options?
     const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined;
     const isRootTrace = !parentTraceId; // It's a root trace if there is no parent.
     const rootTraceId = isRootTrace ? traceId : parentStore ? Array.from(parentStore.values())[0].rootTraceId : traceId;
-    let target;
+    let target: string | undefined;
     const numParams = extractFunctionParamNames(func).length;
-    if (args?.length > numParams) {
-      target = args.pop();
+    if (args?.length > numParams && typeof args[args.length - 1] === 'string') {
+      target = args.pop() as string;
     }
 
     const traceLog: TraceLog = {
