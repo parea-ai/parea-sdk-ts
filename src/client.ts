@@ -136,15 +136,44 @@ export class Parea {
     });
   }
 
+  /**
+   * Instantiates an experiment on a dataset.
+   * @param data - If your dataset is defined locally it should be an iterable of k/v pairs matching the expected inputs of your function. To reference a dataset you have saved on Parea, use the dataset name as a string or the dataset id as an int.
+   * @param func - The function to run. This function should accept inputs that match the keys of the data field.
+   * @param options -
+   *  :nTrials: The number of times to run the experiment on the same data.
+   *  :metadata: Optional metadata to attach to the experiment.
+   *  :datasetLevelEvalFuncs: Optional list of functions to run on the dataset level. Each function should accept a list of EvaluatedLog objects and return a float or an EvaluationResult object
+   *  :nWorkers: The number of workers to use for running the experiment.
+   * @returns Experiment
+   */
   public experiment(
     data: string | Iterable<DataItem>,
     func: (...dataItem: any[]) => Promise<any>,
     options?: ExperimentOptions,
   ): Experiment {
     if (typeof data === 'string') {
-      return new Experiment(data, func, '', this, options?.metadata, options?.datasetLevelEvalFuncs, options?.nWorkers);
+      return new Experiment(
+        data,
+        func,
+        '',
+        this,
+        options?.nTrials,
+        options?.metadata,
+        options?.datasetLevelEvalFuncs,
+        options?.nWorkers,
+      );
     }
-    return new Experiment(data, func, '', this, options?.metadata, options?.datasetLevelEvalFuncs, options?.nWorkers);
+    return new Experiment(
+      data,
+      func,
+      '',
+      this,
+      options?.nTrials,
+      options?.metadata,
+      options?.datasetLevelEvalFuncs,
+      options?.nWorkers,
+    );
   }
 
   private async updateDataAndTrace(data: Completion): Promise<Completion> {

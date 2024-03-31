@@ -376,6 +376,7 @@ export type FinishExperimentRequestSchema = {
 };
 
 export type ExperimentOptions = {
+  nTrials: number;
   metadata?: { [key: string]: string };
   datasetLevelEvalFuncs?: any[];
   nWorkers?: number;
