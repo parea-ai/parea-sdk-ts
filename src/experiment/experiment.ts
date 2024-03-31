@@ -1,8 +1,8 @@
 import {
   DataItem,
   EvaluatedLog,
-  ExperimentStatsSchema,
   EvaluationResult,
+  ExperimentStatsSchema,
   TestCaseCollection,
   TraceStatsSchema,
 } from '../types';
@@ -53,11 +53,22 @@ function calculateAvgStdForExperiment(experimentStats: ExperimentStatsSchema): {
   return result;
 }
 
+function duplicateDicts(data: Iterable<DataItem>, n: number): Iterable<DataItem> {
+  const result: DataItem[] = [];
+  for (const item of data) {
+    for (let i = 0; i < n; i++) {
+      result.push({ ...item });
+    }
+  }
+  return result;
+}
+
 async function experiment(
   name: string,
   data: string | Iterable<DataItem>,
   func: (...dataItem: any[]) => Promise<any>,
   p: Parea,
+  nTrials: number = 1,
   metadata?: { [key: string]: string } | undefined,
   datasetLevelEvalFuncs?: ((logs: EvaluatedLog[]) => Promise<number | null | undefined>)[],
   nWorkers: number = 10,
@@ -75,6 +86,11 @@ async function experiment(
     );
     console.log(`Fetched ${testCollection.numTestCases()} test cases from collection: ${data} \n`);
     data = testCollection.getAllTestInputsAndTargets();
+  }
+
+  if (nTrials > 1) {
+    data = duplicateDicts(data, nTrials);
+    console.log(`Running ${nTrials} trials of the experiment \n`);
   }
 
   const experimentSchema = await p.createExperiment({ name, metadata });
@@ -126,6 +142,7 @@ export class Experiment {
   func: (...dataItem: any[]) => Promise<any>;
   p: Parea;
   experimentStats?: ExperimentStatsSchema;
+  nTrials: number = 1;
   metadata?: { [key: string]: string };
   datasetLevelEvalFuncs?: ((logs: EvaluatedLog[]) => Promise<number | null | undefined>)[];
   nWorkers: number = 10;
@@ -135,6 +152,7 @@ export class Experiment {
     func: (...dataItem: any[]) => Promise<any>,
     name: string,
     p: Parea,
+    nTrials: number = 1,
     metadata?: { [key: string]: string },
     datasetLevelEvalFuncs?: ((logs: EvaluatedLog[]) => Promise<number | null | undefined>)[],
     nWorkers: number = 10,
@@ -143,6 +161,7 @@ export class Experiment {
     this.data = data;
     this.func = func;
     this.p = p;
+    this.nTrials = nTrials;
     this.metadata = metadata;
     this.datasetLevelEvalFuncs = datasetLevelEvalFuncs;
     this.nWorkers = nWorkers;
@@ -158,6 +177,13 @@ export class Experiment {
     }
   }
 
+  get avgScores(): { [key: string]: number } {
+    if (!this.experimentStats) {
+      return {};
+    }
+    return this.experimentStats.avgScores;
+  }
+
   async run(name: string | undefined = undefined): Promise<void> {
     this.name = name || genRandomName();
     this.experimentStats = new ExperimentStatsSchema(
@@ -167,18 +193,12 @@ export class Experiment {
           this.data,
           this.func,
           this.p,
+          this.nTrials,
           this.metadata,
           this.datasetLevelEvalFuncs,
           this.nWorkers,
         )
       ).parent_trace_stats,
     );
-  }
-
-  get avgScores(): { [key: string]: number } {
-    if (!this.experimentStats) {
-      return {};
-    }
-    return this.experimentStats.avgScores;
   }
 }
