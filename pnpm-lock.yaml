@@ -17,6 +17,9 @@ dependencies:
   axios-retry:
     specifier: ^3.9.1
     version: 3.9.1
+  cli-progress:
+    specifier: ^3.12.0
+    version: 3.12.0
   dotenv:
     specifier: ^16.4.5
     version: 16.4.5
@@ -61,6 +64,9 @@ devDependencies:
   '@tsconfig/recommended':
     specifier: ^1.0.3
     version: 1.0.3
+  '@types/cli-progress':
+    specifier: ^3.11.5
+    version: 3.11.5
   '@types/jest':
     specifier: ^29.5.12
     version: 29.5.12
@@ -2574,6 +2580,12 @@ packages:
       '@babel/types': 7.24.0
     dev: true
 
+  /@types/cli-progress@3.11.5:
+    resolution: {integrity: sha512-D4PbNRbviKyppS5ivBGyFO29POlySLmA2HyUFE4p5QGazAMM3CwkKWcvTl8gvElSuxRh6FPKL8XmidX873ou4g==}
+    dependencies:
+      '@types/node': 20.11.28
+    dev: true
+
   /@types/conventional-commits-parser@5.0.0:
     resolution: {integrity: sha512-loB369iXNmAZglwWATL+WRe+CRMmmBPtpolYzIebFaX4YA3x+BEfLqhUAV9WanycKI3TG1IMr5bMJDajDKLlUQ==}
     requiresBuild: true
@@ -3289,6 +3301,13 @@ packages:
     dependencies:
       restore-cursor: 4.0.0
     dev: true
+
+  /cli-progress@3.12.0:
+    resolution: {integrity: sha512-tRkV3HJ1ASwm19THiiLIXLO7Im7wlTuKnvkYaTkyoAPefqjNg7W7DHKUlGRxy9vxDvbyCYQkQozvptuMkGCg8A==}
+    engines: {node: '>=4'}
+    dependencies:
+      string-width: 4.2.3
+    dev: false
 
   /cli-spinners@2.9.2:
     resolution: {integrity: sha512-ywqV+5MmyL4E7ybXgKys4DugZbX0FC6LnwrhjuykIjnK9k8OQacQ7axGKnjDXWNhns0xot3bZI5h55H8yo9cJg==}

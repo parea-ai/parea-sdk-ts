@@ -10,6 +10,7 @@ import { Parea } from '../client';
 import { asyncPool } from '../helpers';
 import { genRandomName } from './utils';
 import { rootTraces } from '../utils/trace_utils';
+import cliProgress from 'cli-progress';
 
 function calculateAvgAsString(values: number[] | undefined): string {
   if (!values || values.length === 0) {
@@ -99,16 +100,25 @@ async function experiment(
   const experimentUUID = experimentSchema.uuid;
   process.env.PAREA_OS_ENV_EXPERIMENT_UUID = experimentUUID;
 
+  let bar: cliProgress.SingleBar | undefined;
+  if (Array.isArray(data)) {
+    bar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+    bar.start(data.length, 0);
+  }
+
   const tasksGenerator = asyncPool(nWorkers, data, async (sample) => {
     const { target, ...dataInput } = sample;
     const dataSamples = Object.values(dataInput);
-    return func(...dataSamples, target);
+    const result = func(...dataSamples, target);
+    if (bar) bar.increment();
+    return result;
   });
 
   for await (const _ of tasksGenerator) {
     // Purposely ignore. Result not needed
     void _;
   }
+  if (bar) bar.stop();
 
   const datasetLevelEvalPromises: Promise<EvaluationResult[] | null>[] =
     datasetLevelEvalFuncs?.map(async (func): Promise<EvaluationResult[] | null> => {
