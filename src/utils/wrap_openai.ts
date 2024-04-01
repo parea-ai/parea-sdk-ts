@@ -26,15 +26,19 @@ function convertOAIMessage(m: any): Message {
 function wrapMethod(method: Function, idxArgs: number = 0) {
   return async function (this: any, ...args: any[]) {
     const traceId = genTraceId();
+    const parentStore = asyncLocalStorage.getStore();
+    const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined;
+    const rootTraceId = parentStore ? Array.from(parentStore.values())[0].rootTraceId : traceId;
+
+    if (parentStore && Array.from(parentStore.values())[0].isRunningEval) {
+      return await method.apply(this, args);
+    }
+
     const startTimestamp = new Date();
     let error: string | null = null;
     let status: string | undefined = 'success';
     let response: any = null;
     let endTimestamp: Date | null;
-
-    const parentStore = asyncLocalStorage.getStore();
-    const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined;
-    const rootTraceId = parentStore ? Array.from(parentStore.values())[0].rootTraceId : traceId;
 
     const kwargs = args[idxArgs];
     const functions = kwargs.functions || kwargs.tools?.map((tool: any) => tool.function) || [];
@@ -70,57 +74,54 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
       experiment_uuid: process.env.PAREA_OS_ENV_EXPERIMENT_UUID || null,
     };
 
-    return asyncLocalStorage.run(
-      new Map([[traceId, { traceLog, threadIdsRunningEvals: [], rootTraceId }]]),
-      async () => {
-        if (parentStore && parentTraceId) {
-          const parentTraceLog = parentStore.get(parentTraceId);
-          if (parentTraceLog) {
-            parentTraceLog.traceLog.children.push(traceId);
-            parentStore.set(parentTraceId, parentTraceLog);
-          }
+    return asyncLocalStorage.run(new Map([[traceId, { traceLog, isRunningEval: false, rootTraceId }]]), async () => {
+      if (parentStore && parentTraceId) {
+        const parentTraceLog = parentStore.get(parentTraceId);
+        if (parentTraceLog) {
+          parentTraceLog.traceLog.children.push(traceId);
+          parentStore.set(parentTraceId, parentTraceLog);
         }
+      }
 
-        try {
-          response = await method.apply(this, args);
-          traceInsert(
-            {
-              output: getOutput(response),
-              input_tokens: response.usage.prompt_tokens,
-              output_tokens: response.usage.completion_tokens,
-              total_tokens: response.usage.total_tokens,
-              cost: getTotalCost(args[idxArgs].model, response.usage.prompt_tokens, response.usage.completion_tokens),
-            },
-            traceId,
-          );
-        } catch (err: unknown) {
-          if (err instanceof Error) {
-            error = err.message;
-          } else {
-            error = 'An unknown error occurred';
-          }
-          status = 'error';
-          traceInsert({ error, status }, traceId);
-        } finally {
-          endTimestamp = new Date();
-          traceInsert(
-            {
-              end_timestamp: toDateTimeString(endTimestamp),
-              latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
-              status: status,
-            },
-            traceId,
-          );
-          await pareaLogger.recordLog(traceLog);
+      try {
+        response = await method.apply(this, args);
+        traceInsert(
+          {
+            output: getOutput(response),
+            input_tokens: response.usage.prompt_tokens,
+            output_tokens: response.usage.completion_tokens,
+            total_tokens: response.usage.total_tokens,
+            cost: getTotalCost(args[idxArgs].model, response.usage.prompt_tokens, response.usage.completion_tokens),
+          },
+          traceId,
+        );
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          error = err.message;
+        } else {
+          error = 'An unknown error occurred';
         }
+        status = 'error';
+        traceInsert({ error, status }, traceId);
+      } finally {
+        endTimestamp = new Date();
+        traceInsert(
+          {
+            end_timestamp: toDateTimeString(endTimestamp),
+            latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
+            status: status,
+          },
+          traceId,
+        );
+        await pareaLogger.recordLog(traceLog);
+      }
 
-        if (error) {
-          throw new Error(error);
-        }
+      if (error) {
+        throw new Error(error);
+      }
 
-        return response;
-      },
-    );
+      return response;
+    });
   };
 }
 

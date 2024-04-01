@@ -5,7 +5,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 
 export type ContextObject = {
   traceLog: TraceLog;
-  threadIdsRunningEvals: string[];
+  isRunningEval: boolean;
   rootTraceId: string;
 };
 
@@ -110,55 +110,52 @@ export const trace = <TReturn, TArgs extends unknown[]>(
       deployment_id: options?.deploymentId,
     };
 
-    return asyncLocalStorage.run(
-      new Map([[traceId, { traceLog, threadIdsRunningEvals: [], rootTraceId }]]),
-      async () => {
-        if (parentStore && parentTraceId) {
-          const parentTraceLog = parentStore.get(parentTraceId);
-          if (parentTraceLog) {
-            parentTraceLog.traceLog.children.push(traceId);
-            parentStore.set(parentTraceId, parentTraceLog);
-          }
+    return asyncLocalStorage.run(new Map([[traceId, { traceLog, isRunningEval: false, rootTraceId }]]), async () => {
+      if (parentStore && parentTraceId) {
+        const parentTraceLog = parentStore.get(parentTraceId);
+        if (parentTraceLog) {
+          parentTraceLog.traceLog.children.push(traceId);
+          parentStore.set(parentTraceId, parentTraceLog);
         }
+      }
 
-        try {
-          const result = await func(...args);
-          const output = typeof result === 'string' ? result : JSON.stringify(result);
-          let outputForEvalMetrics = output;
-          if (options?.accessOutputOfFunc) {
-            outputForEvalMetrics = options?.accessOutputOfFunc(result);
-          }
-          traceInsert(
-            {
-              output,
-              evaluation_metric_names: options?.evalFuncNames,
-              output_for_eval_metrics: outputForEvalMetrics,
-            },
-            traceId,
-          );
-          return result;
-        } catch (error: any) {
-          console.error(`Error occurred in function ${func.name}, ${error}`);
-          traceInsert({ error: error.toString(), status: 'error' }, traceId);
-          throw error;
-        } finally {
-          const endTimestamp = new Date();
-          traceInsert(
-            {
-              end_timestamp: toDateTimeString(endTimestamp),
-              latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
-            },
-            traceId,
-          );
-          await pareaLogger.recordLog(traceLog);
-          await handleRunningEvals(traceLog, traceId, options);
-          if (isRootTrace) {
-            const finalTraceLog = asyncLocalStorage.getStore()?.get(rootTraceId)?.traceLog || traceLog;
-            rootTraces.set(rootTraceId, finalTraceLog);
-          }
+      try {
+        const result = await func(...args);
+        const output = typeof result === 'string' ? result : JSON.stringify(result);
+        let outputForEvalMetrics = output;
+        if (options?.accessOutputOfFunc) {
+          outputForEvalMetrics = options?.accessOutputOfFunc(result);
         }
-      },
-    );
+        traceInsert(
+          {
+            output,
+            evaluation_metric_names: options?.evalFuncNames,
+            output_for_eval_metrics: outputForEvalMetrics,
+          },
+          traceId,
+        );
+        return result;
+      } catch (error: any) {
+        console.error(`Error occurred in function ${func.name}, ${error}`);
+        traceInsert({ error: error.toString(), status: 'error' }, traceId);
+        throw error;
+      } finally {
+        const endTimestamp = new Date();
+        traceInsert(
+          {
+            end_timestamp: toDateTimeString(endTimestamp),
+            latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
+          },
+          traceId,
+        );
+        await pareaLogger.recordLog(traceLog);
+        await handleRunningEvals(traceLog, traceId, options);
+        if (isRootTrace) {
+          const finalTraceLog = asyncLocalStorage.getStore()?.get(rootTraceId)?.traceLog || traceLog;
+          rootTraces.set(rootTraceId, finalTraceLog);
+        }
+      }
+    });
   };
 };
 
@@ -181,7 +178,8 @@ export const handleRunningEvals = async (
 
   const applyEval = !options?.applyEvalFrac || Math.random() < options.applyEvalFrac;
   if (options?.evalFuncs && traceLog.status === 'success' && applyEval) {
-    currentTraceData.threadIdsRunningEvals.push(traceId);
+    currentTraceData.isRunningEval = true;
+    store.set(traceId, currentTraceData);
     let outputForEvalMetrics: string | undefined;
 
     if (options?.accessOutputOfFunc) {
@@ -218,11 +216,8 @@ export const handleRunningEvals = async (
 
     await pareaLogger.updateLog({ trace_id: traceId, field_name_to_value_map: { scores: scores } });
     currentTraceData.traceLog.scores = scores;
-    const index = currentTraceData.threadIdsRunningEvals.indexOf(traceId);
-    if (index > -1) {
-      currentTraceData.threadIdsRunningEvals.splice(index, 1);
-      store.set(traceId, currentTraceData);
-    }
+    currentTraceData.isRunningEval = false;
+    store.set(traceId, currentTraceData);
   }
 };
 
