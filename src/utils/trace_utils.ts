@@ -199,12 +199,17 @@ export const handleRunningEvals = async (
 
     traceLog.output = outputForEvalMetrics;
     const scores: EvaluationResult[] = [];
-
     for (const func of options?.evalFuncs) {
       try {
         const score = await func(traceLog);
         if (score !== undefined && score !== null) {
-          scores.push({ name: func.name, score });
+          if (typeof score === 'number') {
+            scores.push({ name: func.name, score });
+          } else if (Array.isArray(score)) {
+            scores.push(...score);
+          } else {
+            scores.push(score);
+          }
         }
       } catch (e) {
         console.error(`Error occurred calling evaluation function '${func.name}', ${e}`, e);

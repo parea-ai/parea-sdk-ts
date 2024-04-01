@@ -114,6 +114,7 @@ export type TraceLogInputs = {
 export type EvaluationResult = {
   name: string;
   score: number;
+  reason?: string;
 };
 
 export type Log = {
