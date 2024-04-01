@@ -70,7 +70,9 @@ async function experiment(
   p: Parea,
   nTrials: number = 1,
   metadata?: { [key: string]: string } | undefined,
-  datasetLevelEvalFuncs?: ((logs: EvaluatedLog[]) => Promise<number | null | undefined>)[],
+  datasetLevelEvalFuncs?: ((
+    logs: EvaluatedLog[],
+  ) => Promise<number | null | undefined | EvaluationResult | EvaluationResult[]>)[],
   nWorkers: number = 10,
 ): Promise<ExperimentStatsSchema> {
   if (typeof data === 'string') {
@@ -108,21 +110,27 @@ async function experiment(
     void _;
   }
 
-  const datasetLevelEvalPromises: Promise<EvaluationResult | null>[] =
-    datasetLevelEvalFuncs?.map(async (func): Promise<EvaluationResult | null> => {
+  const datasetLevelEvalPromises: Promise<EvaluationResult[] | null>[] =
+    datasetLevelEvalFuncs?.map(async (func): Promise<EvaluationResult[] | null> => {
       try {
         const score = await func(Array.from(rootTraces.values()));
         if (score !== undefined && score !== null) {
-          return { name: func.name, score };
+          if (typeof score === 'number') {
+            return [{ name: func.name, score }];
+          } else if (Array.isArray(score)) {
+            return score;
+          } else {
+            return [score];
+          }
         }
       } catch (e) {
         console.error(`Error occurred calling '${func.name}', ${e}`, e);
       }
       return null;
     }) || [];
-  const datasetLevelEvaluationResults = (await Promise.all(datasetLevelEvalPromises)).filter(
-    (x): x is EvaluationResult => x !== null,
-  );
+  const datasetLevelEvaluationResults = (await Promise.all(datasetLevelEvalPromises))
+    .flat()
+    .filter((x): x is EvaluationResult => x !== null);
 
   const experimentStats: ExperimentStatsSchema = await p.finishExperiment(experimentUUID, {
     dataset_level_stats: datasetLevelEvaluationResults,
@@ -144,7 +152,9 @@ export class Experiment {
   experimentStats?: ExperimentStatsSchema;
   nTrials: number = 1;
   metadata?: { [key: string]: string };
-  datasetLevelEvalFuncs?: ((logs: EvaluatedLog[]) => Promise<number | null | undefined>)[];
+  datasetLevelEvalFuncs?: ((
+    logs: EvaluatedLog[],
+  ) => Promise<number | null | undefined | EvaluationResult | EvaluationResult[]>)[];
   nWorkers: number = 10;
 
   constructor(
