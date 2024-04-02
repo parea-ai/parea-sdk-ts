@@ -51,6 +51,7 @@ function balancedAccIsCorrect(logs: EvaluatedLog[]): number {
 
 export async function main() {
   const e = p.experiment(
+    'balanced-acc',
     [
       { name: 'Foo', target: '1' },
       { name: 'Bar', target: '0' },

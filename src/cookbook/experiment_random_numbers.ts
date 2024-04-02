@@ -48,6 +48,7 @@ const generateRandomNumber = trace(
 
 export async function main() {
   const e = p.experiment(
+    'Random-Numbers',
     [{ n: '10' }], // Data to run the experiment on (list of dicts)
     generateRandomNumber, // Function to run (callable)
   );

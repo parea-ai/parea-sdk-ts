@@ -31,6 +31,7 @@ const startsWithF = trace(
 
 export async function main() {
   const e = p.experiment(
+    'evals-with-reason',
     [
       { name: 'Foo', target: '1' },
       { name: 'Bar', target: '0' },
