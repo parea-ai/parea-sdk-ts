@@ -66,6 +66,7 @@ function duplicateDicts(data: Iterable<DataItem>, n: number): Iterable<DataItem>
 
 async function experiment(
   name: string,
+  runName: string,
   data: string | Iterable<DataItem>,
   func: (...dataItem: any[]) => Promise<any>,
   p: Parea,
@@ -96,7 +97,7 @@ async function experiment(
     console.log(`Running ${nTrials} trials of the experiment \n`);
   }
 
-  const experimentSchema = await p.createExperiment({ name, metadata });
+  const experimentSchema = await p.createExperiment({ name, run_name: runName, metadata });
   const experimentUUID = experimentSchema.uuid;
   process.env.PAREA_OS_ENV_EXPERIMENT_UUID = experimentUUID;
 
@@ -149,13 +150,14 @@ async function experiment(
   datasetLevelEvaluationResults.forEach((result) => {
     statNameToAvgStd[result.name] = result.score.toFixed(2);
   });
-  console.log(`Experiment ${name} stats:\n${JSON.stringify(statNameToAvgStd, null, 2)}\n\n`);
+  console.log(`Experiment ${name} Run ${runName} stats:\n${JSON.stringify(statNameToAvgStd, null, 2)}\n\n`);
   console.log(`View experiment & its traces at: https://app.parea.ai/experiments/${experimentUUID}\n`);
   return experimentStats;
 }
 
 export class Experiment {
   name: string;
+  runName: string;
   data: string | Iterable<DataItem>;
   func: (...dataItem: any[]) => Promise<any>;
   p: Parea;
@@ -168,9 +170,9 @@ export class Experiment {
   nWorkers: number = 10;
 
   constructor(
+    name: string,
     data: string | Iterable<DataItem>,
     func: (...dataItem: any[]) => Promise<any>,
-    name: string,
     p: Parea,
     nTrials: number = 1,
     metadata?: { [key: string]: string },
@@ -204,12 +206,13 @@ export class Experiment {
     return this.experimentStats.avgScores;
   }
 
-  async run(name: string | undefined = undefined): Promise<void> {
-    this.name = name || genRandomName();
+  async run(runName: string | undefined = undefined): Promise<void> {
+    this.runName = runName || genRandomName();
     this.experimentStats = new ExperimentStatsSchema(
       (
         await experiment(
           this.name,
+          this.runName,
           this.data,
           this.func,
           this.p,

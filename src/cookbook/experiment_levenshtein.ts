@@ -19,6 +19,7 @@ const greet = trace(
 
 export async function main() {
   const e = p.experiment(
+    'greeting',
     [
       { name: 'Foo', target: 'Hi Foo' },
       { name: 'Bar', target: 'Hello Bar' },

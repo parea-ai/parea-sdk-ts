@@ -138,6 +138,7 @@ export class Parea {
 
   /**
    * Instantiates an experiment on a dataset.
+   * @param name - The name of the experiment.
    * @param data - If your dataset is defined locally it should be an iterable of k/v pairs matching the expected inputs of your function. To reference a dataset you have saved on Parea, use the dataset name as a string or the dataset id as an int.
    * @param func - The function to run. This function should accept inputs that match the keys of the data field.
    * @param options -
@@ -148,15 +149,16 @@ export class Parea {
    * @returns Experiment
    */
   public experiment(
+    name: string,
     data: string | Iterable<DataItem>,
     func: (...dataItem: any[]) => Promise<any>,
     options?: ExperimentOptions,
   ): Experiment {
     if (typeof data === 'string') {
       return new Experiment(
+        name,
         data,
         func,
-        '',
         this,
         options?.nTrials,
         options?.metadata,
@@ -165,9 +167,9 @@ export class Parea {
       );
     }
     return new Experiment(
+      name,
       data,
       func,
-      '',
       this,
       options?.nTrials,
       options?.metadata,
