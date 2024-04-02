@@ -38,7 +38,7 @@ const helloWorld = trace(
 
 export async function main() {
   const e = p.experiment(
-    'Hello-World-Test',
+    'Hello World Evals',
     'Hello World Example', // this is the name of my Test Collection in Parea (TestHub page)
     helloWorld,
   );

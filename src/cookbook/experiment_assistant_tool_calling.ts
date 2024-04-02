@@ -80,7 +80,7 @@ const toolCall = trace(
 
 async function main() {
   const e = p.experiment(
-    'assistants-tool-calling',
+    'Assistants Tool Calling',
     [
       { userMessage: "What's the weather in San Francisco?", target: 'getCurrentWeather' },
       { userMessage: "What's the nickname of San Francisco?", target: 'getNickname' },
