@@ -97,7 +97,7 @@ async function experiment(
     console.log(`Running ${nTrials} trials of the experiment \n`);
   }
 
-  const experimentSchema = await p.createExperiment({ name, runName, metadata });
+  const experimentSchema = await p.createExperiment({ name, run_name: runName, metadata });
   const experimentUUID = experimentSchema.uuid;
   process.env.PAREA_OS_ENV_EXPERIMENT_UUID = experimentUUID;
 

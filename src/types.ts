@@ -185,7 +185,7 @@ export type UpdateLog = {
 
 export type CreateExperimentRequest = {
   name: string;
-  runName: string;
+  run_name: string;
   metadata?: { [key: string]: string };
 };
 
