@@ -120,6 +120,7 @@ async function main() {
 
 export async function runExperiment() {
   const e = p.experiment(
+    'RAG Template',
     [
       {
         context: CONTEXT,
