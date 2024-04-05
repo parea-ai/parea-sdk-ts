@@ -16,7 +16,7 @@ export class HTTPClient {
   private client: AxiosInstance;
   private mockMode: boolean = false;
   private defaultMockResponse: AxiosResponse<any> = {
-    data: { message: 'This is a default mock response' },
+    data: { message: 'mock' },
     status: 200,
     statusText: 'OK',
     config: {} as any,
