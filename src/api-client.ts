@@ -14,6 +14,14 @@ export class HTTPClient {
   private baseURL: string;
   private apiKey: string | null = null;
   private client: AxiosInstance;
+  private mockMode: boolean = false;
+  private defaultMockResponse: AxiosResponse<any> = {
+    data: { message: 'mock' },
+    status: 200,
+    statusText: 'OK',
+    config: {} as any,
+    headers: {},
+  };
 
   private constructor() {
     this.client = axios.create({
@@ -35,6 +43,17 @@ export class HTTPClient {
     return HTTPClient.instance;
   }
 
+  public setMockHandler(mockMessage: string): void {
+    this.defaultMockResponse = {
+      ...this.defaultMockResponse,
+      data: { message: mockMessage },
+    };
+  }
+
+  public enableMockMode(enable: boolean): void {
+    this.mockMode = enable;
+  }
+
   public setApiKey(apiKey: string): void {
     this.apiKey = apiKey;
   }
@@ -45,18 +64,22 @@ export class HTTPClient {
   }
 
   public async request(config: RequestConfig): Promise<AxiosResponse<any>> {
-    const headers = { 'x-api-key': this.apiKey || config.apiKey || '' };
-    try {
-      return await this.client.request({
-        method: config.method,
-        url: config.endpoint,
-        data: config.data,
-        params: config.params,
-        headers,
-      });
-    } catch (error) {
-      console.error(`Request to ${config.endpoint} failed with error ${error}`);
-      throw error;
+    if (this.mockMode) {
+      return Promise.resolve(this.defaultMockResponse);
+    } else {
+      const headers = { 'x-api-key': this.apiKey || config.apiKey || '' };
+      try {
+        return await this.client.request({
+          method: config.method,
+          url: config.endpoint,
+          data: config.data,
+          params: config.params,
+          headers,
+        });
+      } catch (error) {
+        console.error(`Request to ${config.endpoint} failed with error ${error}`);
+        throw error;
+      }
     }
   }
 
