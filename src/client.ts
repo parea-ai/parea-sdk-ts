@@ -43,9 +43,22 @@ export class Parea {
     this.client.setBaseURL(
       process.env.PAREA_BASE_URL || 'https://parea-ai-backend-us-9ac16cdbc7a7b006.onporter.run/api/parea/v1',
     );
+
+    if (process.env.PAREA_TEST_MODE === 'true') {
+      this.enableTestMode(true);
+    }
+
     pareaLogger.setClient(this.client);
     pareaProject.setProjectName(projectName);
     pareaProject.setClient(this.client);
+  }
+
+  public enableTestMode(enable: boolean): void {
+    this.client.enableMockMode(enable);
+  }
+
+  public setMockHandler(mockMessage: string): void {
+    this.client.setMockHandler(mockMessage);
   }
 
   public async completion(data: Completion): Promise<CompletionResponse> {
