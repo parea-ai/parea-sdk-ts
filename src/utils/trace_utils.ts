@@ -203,6 +203,8 @@ export const handleRunningEvals = async (
         if (score !== undefined && score !== null) {
           if (typeof score === 'number') {
             scores.push({ name: func.name, score });
+          } else if (typeof score === 'boolean') {
+            scores.push({ name: func.name, score: score ? 1 : 0 });
           } else if (Array.isArray(score)) {
             scores.push(...score);
           } else {
