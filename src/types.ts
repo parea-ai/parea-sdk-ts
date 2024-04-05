@@ -1,6 +1,3 @@
-import { BaseCallbackHandlerInput } from '@langchain/core/callbacks/base';
-import { PareaLogger } from './parea_logger';
-
 export enum Role {
   user = 'user',
   assistant = 'assistant',
@@ -253,6 +250,13 @@ export type ProjectSchema = CreateGetProjectSchema & {
   createdAt: string;
 };
 
+export type GetProjectResponse = {
+  name: string;
+  uuid: string;
+  created_at: string;
+  was_created: boolean;
+};
+
 export type KVMap = Record<string, any>;
 
 export type LangchainRunUpdate = {
@@ -314,12 +318,6 @@ export interface LangchainRun extends LangchainBaseRun {
   child_runs: this[];
   child_execution_order: number;
 }
-
-export type LangChainTracerFields = BaseCallbackHandlerInput & {
-  exampleId?: string;
-  projectName?: string;
-  client?: PareaLogger;
-};
 
 export type TestCase = {
   id: number;

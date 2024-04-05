@@ -1,15 +1,8 @@
-export { trace, getCurrentTraceId, traceInsert } from './utils/trace_utils';
-export { patchOpenAI, traceOpenAITriggerDev } from './utils/wrap_openai';
-
-export { HTTPClient } from './api-client';
-
 export { Parea } from './client';
 
-export { pareaLogger } from './parea_logger';
-
-export { genTraceId, toDateTimeString, asyncPool } from './helpers';
-
-export { Experiment } from './experiment/experiment';
+export { trace, getCurrentTraceId, traceInsert } from './utils/trace_utils';
+export { patchOpenAI, traceOpenAITriggerDev } from './utils/wrap_openai';
+export { genTraceId, toDateTimeString } from './helpers';
 
 export {
   Role,
@@ -44,7 +37,6 @@ export {
   LangchainRunCreate,
   TraceIntegrations,
   LangchainRun,
-  LangChainTracerFields,
   TestCase,
   TestCaseCollection,
   CreateTestCases,

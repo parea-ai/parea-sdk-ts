@@ -48,9 +48,9 @@ export class Parea {
       this.enableTestMode(true);
     }
 
-    pareaLogger.setClient(this.client);
     pareaProject.setProjectName(projectName);
     pareaProject.setClient(this.client);
+    pareaLogger.setClient(this.client);
   }
 
   public enableTestMode(enable: boolean): void {
@@ -167,18 +167,6 @@ export class Parea {
     func: (...dataItem: any[]) => Promise<any>,
     options?: ExperimentOptions,
   ): Experiment {
-    if (typeof data === 'string') {
-      return new Experiment(
-        name,
-        data,
-        func,
-        this,
-        options?.nTrials,
-        options?.metadata,
-        options?.datasetLevelEvalFuncs,
-        options?.nWorkers,
-      );
-    }
     return new Experiment(
       name,
       data,

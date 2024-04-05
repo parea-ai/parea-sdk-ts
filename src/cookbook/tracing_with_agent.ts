@@ -12,7 +12,7 @@ const LLM_OPTIONS = [
   ['gpt-3.5-turbo-0125', 'openai'],
   ['gpt-4-0125-preview', 'openai'],
   ['claude-3-sonnet-20240229', 'anthropic'],
-  ['claude-2.1', 'anthropic'],
+  ['claude-3-haiku-20240307', 'anthropic'],
 ];
 const LIMIT = 1;
 
