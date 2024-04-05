@@ -1,6 +1,13 @@
-import { LangchainRun, LangChainTracerFields, TraceIntegrations } from '../../types';
+import { LangchainRun, TraceIntegrations } from '../../types';
 import { pareaLogger, PareaLogger } from '../../parea_logger';
 import { BaseTracer } from '@langchain/core/tracers/base';
+import { BaseCallbackHandlerInput } from '@langchain/core/callbacks/base';
+
+export type LangChainTracerFields = BaseCallbackHandlerInput & {
+  exampleId?: string;
+  projectName?: string;
+  client?: PareaLogger;
+};
 
 export class PareaAILangchainTracer extends BaseTracer implements LangChainTracerFields {
   name = 'parea_ai_langchain_tracer';

@@ -1,16 +1,14 @@
 import { HTTPClient } from './api-client';
-import { ProjectSchema } from './types';
+import { GetProjectResponse, ProjectSchema } from './types';
 
 const PROJECT_ENDPOINT = '/project';
 
-class Project {
-  private client: HTTPClient;
+export class Project {
+  private client: HTTPClient | null = null;
   private projectName: string;
   private project: ProjectSchema;
 
-  constructor() {
-    this.client = HTTPClient.getInstance();
-  }
+  constructor() {}
 
   public setClient(client: HTTPClient): void {
     this.client = client;
@@ -20,14 +18,29 @@ class Project {
     this.projectName = projectName;
   }
 
-  private async getOrCreateProjectIfNecessary(): Promise<void> {
+  public async getProjectUUID(): Promise<string> {
+    if (!this.client) {
+      console.error('Parea Client not instantiated');
+      return '';
+    }
+    if (!this.project) {
+      return await this.getOrCreateProjectIfNecessary();
+    }
+    return this.project.uuid;
+  }
+
+  private async getOrCreateProjectIfNecessary(): Promise<string> {
+    if (!this.client) {
+      console.error('Parea Client not instantiated');
+      return '';
+    }
     const projectName = this.projectName;
     const response = await this.client.request({
       method: 'POST',
       endpoint: PROJECT_ENDPOINT,
       data: { name: projectName },
     });
-    const data = response.data;
+    const data: GetProjectResponse = response.data;
     if (data.was_created) {
       console.log(`Created project ${projectName} with UUID ${data.uuid}`);
     }
@@ -36,13 +49,7 @@ class Project {
       uuid: data.uuid,
       createdAt: data.created_at,
     };
-  }
-
-  public async getProjectUUID(): Promise<string> {
-    if (!this.project) {
-      await this.getOrCreateProjectIfNecessary();
-    }
-    return this.project.uuid;
+    return data.uuid;
   }
 }
 
