@@ -199,6 +199,10 @@ const MODEL_COST_MAPPING: { [key: string]: { [key: string]: number } } = {
     prompt: 30.0,
     completion: 60.0,
   },
+  'gpt-4-1106-vision-preview': {
+    prompt: 30.0,
+    completion: 60.0,
+  },
   'gpt-4-turbo-preview': {
     prompt: 10.0,
     completion: 30.0,
@@ -208,6 +212,14 @@ const MODEL_COST_MAPPING: { [key: string]: { [key: string]: number } } = {
     completion: 30.0,
   },
   'gpt-4-0125-preview': {
+    prompt: 10.0,
+    completion: 30.0,
+  },
+  'gpt-4-turbo': {
+    prompt: 10.0,
+    completion: 30.0,
+  },
+  'gpt-4-turbo-2024-04-09': {
     prompt: 10.0,
     completion: 30.0,
   },

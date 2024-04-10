@@ -16,11 +16,7 @@ const p = new Parea(process.env.PAREA_API_KEY);
 // Patch OpenAI to add trace logs
 patchOpenAI(openai);
 
-async function callOpenAI(
-  messages: any[],
-  model: string = 'gpt-3.5-turbo-0125',
-  temperature: number = 0.0,
-): Promise<string> {
+async function callOpenAI(messages: any[], model: string = 'gpt-4-turbo', temperature: number = 0.0): Promise<string> {
   const response = await openai.chat.completions.create({ model, messages, temperature });
   return response.choices[0].message.content ?? '';
 }
@@ -131,7 +127,7 @@ async function main3() {
 
 async function main4() {
   const response = await openai.chat.completions.create({
-    model: 'gpt-4-0125-preview',
+    model: 'gpt-4-turbo-2024-04-09',
     messages: [
       { role: 'system', content: 'You are a helpful assistant talking in JSON.' },
       { role: 'user', content: 'What are you?' },
