@@ -41,24 +41,24 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
     let endTimestamp: Date | null;
 
     const kwargs = args[idxArgs];
-    const functions = kwargs.functions || kwargs.tools?.map((tool: any) => tool.function) || [];
-    const functionCallDefault = functions.length > 0 ? 'auto' : null;
+    const functions = kwargs?.functions || kwargs?.tools?.map((tool: any) => tool?.function) || [];
+    const functionCallDefault = functions?.length > 0 ? 'auto' : null;
 
     const modelParams = {
-      temp: kwargs.temperature || 1.0,
-      max_length: kwargs.max_tokens,
-      top_p: kwargs.top_p || 1.0,
-      frequency_penalty: kwargs.frequency_penalty || 0.0,
-      presence_penalty: kwargs.presence_penalty || 0.0,
-      response_format: kwargs.response_format,
+      temp: kwargs?.temperature || 1.0,
+      max_length: kwargs?.max_tokens,
+      top_p: kwargs?.top_p || 1.0,
+      frequency_penalty: kwargs?.frequency_penalty || 0.0,
+      presence_penalty: kwargs?.presence_penalty || 0.0,
+      response_format: kwargs?.response_format,
     };
 
     const configuration: LLMInputs = {
-      model: kwargs.model,
+      model: kwargs?.model,
       provider: 'openai',
-      messages: kwargs.messages?.map((message: any) => convertOAIMessage(message)),
+      messages: kwargs?.messages?.map((message: any) => convertOAIMessage(message)),
       functions: functions,
-      function_call: kwargs.function_call || kwargs.tool_choice || functionCallDefault,
+      function_call: kwargs?.function_call || kwargs?.tool_choice || functionCallDefault,
       model_params: modelParams,
     };
 
@@ -113,7 +113,11 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
           },
           traceId,
         );
-        await pareaLogger.recordLog(traceLog);
+        try {
+          await pareaLogger.recordLog(traceLog);
+        } catch (e) {
+          console.error(`Error recording log for trace ${traceId}: ${e}`);
+        }
       }
 
       if (error) {
@@ -227,20 +231,20 @@ const MODEL_COST_MAPPING: { [key: string]: { [key: string]: number } } = {
 
 function getTotalCost(modelName: string, promptTokens: number, completionTokens: number): number {
   if (!Object.keys(MODEL_COST_MAPPING).includes(modelName)) {
-    throw new Error(
+    console.error(
       `Unknown model: ${modelName}. Please provide a valid OpenAI model name. Known models are: ${Object.keys(
         MODEL_COST_MAPPING,
       ).join(', ')}`,
     );
   }
-  const modelCost = MODEL_COST_MAPPING[modelName];
+  const modelCost = MODEL_COST_MAPPING[modelName] || { prompt: 0, completion: 0 };
   const promptCost = promptTokens * modelCost.prompt;
   const completionCost = completionTokens * modelCost.completion;
   return (promptCost + completionCost) / 1000000;
 }
 
 function getOutput(result: any): string {
-  const responseMessage = result.choices[0]?.message;
+  const responseMessage = result?.choices[0]?.message;
   let completion: string = '';
   if (responseMessage.hasOwnProperty('function_call')) {
     completion = formatFunctionCall(responseMessage);

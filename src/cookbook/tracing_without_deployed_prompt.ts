@@ -13,7 +13,7 @@ const callLLM = trace(
   'callLLM',
   async (
     data: { role: string; content: string }[],
-    model: string = 'gpt-3.5-turbo',
+    model: string = 'gpt-4-turbo',
     provider: string = 'openai',
     temperature: number = 0.0,
   ): Promise<CompletionResponse> => {
