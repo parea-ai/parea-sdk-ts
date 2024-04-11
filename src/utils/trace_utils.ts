@@ -87,7 +87,7 @@ export const trace = <TReturn, TArgs extends unknown[]>(
     const isRootTrace = !parentTraceId; // It's a root trace if there is no parent.
     const rootTraceId = isRootTrace ? traceId : parentStore ? Array.from(parentStore.values())[0].rootTraceId : traceId;
     let target: string | undefined;
-    const numParams = extractFunctionParamNames(func).length;
+    const numParams = extractFunctionParamNames(func)?.length || 0;
     if (args?.length > numParams && typeof args[args.length - 1] === 'string') {
       target = args.pop() as string;
     }
@@ -124,7 +124,11 @@ export const trace = <TReturn, TArgs extends unknown[]>(
         const output = typeof result === 'string' ? result : JSON.stringify(result);
         let outputForEvalMetrics = output;
         if (options?.accessOutputOfFunc) {
-          outputForEvalMetrics = options?.accessOutputOfFunc(result);
+          try {
+            outputForEvalMetrics = options?.accessOutputOfFunc(result);
+          } catch (e) {
+            console.error(`Error accessing output of func with output: ${output}. Error: ${e}`, e);
+          }
         }
         traceInsert(
           {
@@ -148,8 +152,12 @@ export const trace = <TReturn, TArgs extends unknown[]>(
           },
           traceId,
         );
-        await pareaLogger.recordLog(traceLog);
-        await handleRunningEvals(traceLog, traceId, options);
+        try {
+          await pareaLogger.recordLog(traceLog);
+          await handleRunningEvals(traceLog, traceId, options);
+        } catch (e) {
+          console.error(`Error occurred recording log for trace ${traceId}, ${e}`);
+        }
         if (isRootTrace) {
           const finalTraceLog = asyncLocalStorage.getStore()?.get(rootTraceId)?.traceLog || traceLog;
           rootTraces.set(rootTraceId, finalTraceLog);
@@ -216,7 +224,11 @@ export const handleRunningEvals = async (
       }
     }
 
-    await pareaLogger.updateLog({ trace_id: traceId, field_name_to_value_map: { scores: scores } });
+    try {
+      await pareaLogger.updateLog({ trace_id: traceId, field_name_to_value_map: { scores: scores } });
+    } catch (e) {
+      console.error(`Error occurred updating log for trace ${traceId}, ${e}`);
+    }
     currentTraceData.traceLog.scores = scores;
     currentTraceData.isRunningEval = false;
     store.set(traceId, currentTraceData);
@@ -224,19 +236,24 @@ export const handleRunningEvals = async (
 };
 
 function extractFunctionParamNames(func: Function): string[] {
-  const functionString = func.toString();
-  const match = functionString.match(/\(([^)]*)\)/);
-  if (!match) return []; // handle case of no match (shouldn't happen if function is valid)
+  try {
+    const functionString = func.toString();
+    const match = functionString.match(/\(([^)]*)\)/);
+    if (!match) return []; // handle case of no match (shouldn't happen if function is valid)
 
-  const paramNamesRaw = match[1]; // get the raw parameters string
-  return paramNamesRaw
-    .split(',')
-    .map((param) => {
-      // use regex to match the parameter name, it should be the first word before space or colon
-      const match = param.trim().match(/(\w+)/);
-      return match ? match[0] : ''; // return the matched parameter name, or empty string if no match
-    })
-    .filter((param) => param !== '');
+    const paramNamesRaw = match[1]; // get the raw parameters string
+    return paramNamesRaw
+      .split(',')
+      .map((param) => {
+        // use regex to match the parameter name, it should be the first word before space or colon
+        const match = param.trim().match(/(\w+)/);
+        return match ? match[0] : ''; // return the matched parameter name, or empty string if no match
+      })
+      .filter((param) => param !== '');
+  } catch (e) {
+    console.error(`Error extracting function param names: ${e}`);
+    return [];
+  }
 }
 
 function extractFunctionParams(func: Function, args: any[]): { [key: string]: any } {
