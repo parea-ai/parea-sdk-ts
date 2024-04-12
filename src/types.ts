@@ -153,6 +153,7 @@ export type TraceLog = EvaluatedLog & {
   children: string[];
   end_timestamp?: string;
   end_user_identifier?: string;
+  session_id?: string;
   metadata?: { [key: string]: any };
   tags?: string[];
   experiment_uuid?: string | null;
@@ -166,6 +167,7 @@ export type TraceLogTreeSchema = TraceLog & {
 export type TraceOptions = {
   metadata?: any;
   endUserIdentifier?: string;
+  sessionId?: string;
   tags?: string[];
   evalFuncNames?: string[];
   evalFuncs?: any[];

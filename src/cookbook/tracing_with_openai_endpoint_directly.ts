@@ -74,6 +74,7 @@ const TargumentChain = trace('argumentChain', argumentChain, {
     purpose: 'test',
   },
   endUserIdentifier: 'user_id',
+  sessionId: 'session_id',
 });
 
 const TRefinedArgument = trace(

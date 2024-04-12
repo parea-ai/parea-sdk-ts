@@ -38,7 +38,7 @@ const merge = (old: any, newValue: any) => {
  * Insert data into the trace log for the current or specified trace id. Data should be a dictionary with keys that correspond to the fields of the TraceLog model.
  * If the field already has an existing value that is extensible (dict, set, list, etc.), the new value will be merged with the existing value.
  *
- * @param data - Keys can be one of: trace_name, end_user_identifier, metadata, tags, deployment_id, images
+ * @param data - Keys can be one of: trace_name, end_user_identifier, metadata, tags, deployment_id, images, session_id
  * @param traceId - The trace id to insert the data into. If not provided, the current trace id will be used.
  * @returns void
  */
@@ -103,6 +103,7 @@ export const trace = <TReturn, TArgs extends unknown[]>(
       tags: options?.tags,
       target: target,
       end_user_identifier: options?.endUserIdentifier,
+      session_id: options?.sessionId,
       children: [],
       status: 'success',
       experiment_uuid: process.env.PAREA_OS_ENV_EXPERIMENT_UUID || null,
