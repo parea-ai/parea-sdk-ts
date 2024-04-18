@@ -30,7 +30,7 @@ export class HTTPClient {
     });
 
     // Apply retry mechanism with axios-retry
-    axiosRetry(this.client, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
+    axiosRetry(this.client, { retries: 8, retryDelay: (...arg) => axiosRetry.exponentialDelay(...arg, 500) });
 
     this.client.interceptors.request.use(this.requestInterceptor);
     this.client.interceptors.response.use(this.responseInterceptor, this.errorInterceptor);
