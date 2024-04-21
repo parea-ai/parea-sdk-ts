@@ -154,8 +154,11 @@ export const trace = <TReturn, TArgs extends unknown[]>(
           traceId,
         );
         try {
-          await pareaLogger.recordLog(traceLog);
-          await handleRunningEvals(traceLog, traceId, options);
+          if (options?.evalFuncs && traceLog.status === 'success') {
+            await handleRunningEvals(traceLog, traceId, options);
+          } else {
+            await pareaLogger.recordLog(traceLog);
+          }
         } catch (e) {
           console.error(`Error occurred recording log for trace ${traceId}, ${e}`);
         }
@@ -224,15 +227,17 @@ export const handleRunningEvals = async (
         console.error(`Error occurred calling evaluation function '${func.name}', ${e}`, e);
       }
     }
-
-    try {
-      await pareaLogger.updateLog({ trace_id: traceId, field_name_to_value_map: { scores: scores } });
-    } catch (e) {
-      console.error(`Error occurred updating log for trace ${traceId}, ${e}`);
-    }
+    traceLog.scores = scores;
     currentTraceData.traceLog.scores = scores;
     currentTraceData.isRunningEval = false;
     store.set(traceId, currentTraceData);
+
+    try {
+      await pareaLogger.recordLog(traceLog);
+      // await pareaLogger.updateLog({ trace_id: traceId, field_name_to_value_map: { scores: scores } });
+    } catch (e) {
+      console.error(`Error occurred updating log for trace ${traceId}, ${e}`);
+    }
   }
 };
 

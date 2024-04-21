@@ -66,7 +66,7 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
       trace_id: traceId,
       parent_trace_id: parentTraceId || traceId,
       root_trace_id: rootTraceId,
-      trace_name: 'llm-openai',
+      trace_name: 'LLM',
       start_timestamp: toDateTimeString(startTimestamp),
       configuration: configuration,
       children: [],
