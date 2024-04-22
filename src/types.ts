@@ -399,3 +399,10 @@ export type CreateTestCases = {
 export type CreateTestCaseCollection = CreateTestCases & {
   column_names: string[];
 };
+
+export type ListExperimentUUIDsFilters = {
+  project_name?: string;
+  metadata_filter?: KVMap;
+  experiment_name_filter?: string;
+  run_name_filter?: string;
+};

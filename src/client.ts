@@ -9,6 +9,7 @@ import {
   ExperimentStatsSchema,
   FeedbackRequest,
   FinishExperimentRequestSchema,
+  ListExperimentUUIDsFilters,
   TestCaseCollection,
   UseDeployedPrompt,
   UseDeployedPromptResponse,
@@ -31,6 +32,7 @@ const EXPERIMENT_FINISHED_ENDPOINT = '/experiment/{experiment_uuid}/finished';
 const GET_COLLECTION_ENDPOINT = '/collection/{test_collection_identifier}';
 const CREATE_COLLECTION_ENDPOINT = '/collection';
 const ADD_TEST_CASES_ENDPOINT = '/testcases';
+const LIST_EXP_UUIDS_ENDPOINT = '/experiments';
 
 export class Parea {
   private apiKey: string;
@@ -214,5 +216,14 @@ export class Parea {
     }
 
     return data;
+  }
+
+  public async listExperimentUUIDS(filters: ListExperimentUUIDsFilters = {}): Promise<string[]> {
+    const response = await this.client.request({
+      method: 'POST',
+      endpoint: LIST_EXP_UUIDS_ENDPOINT,
+      data: filters,
+    });
+    return response.data;
   }
 }
