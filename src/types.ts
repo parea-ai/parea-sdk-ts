@@ -135,6 +135,21 @@ export type TraceLogImage = {
   caption?: string;
 };
 
+export type TraceLogCommentSchema = {
+  comment: string;
+  user_id: string;
+  created_at: string;
+};
+
+export type TraceLogAnnotationSchema = {
+  created_at: string;
+  user_id: string;
+  score: number;
+  user_email_address?: string;
+  annotation_name?: string;
+  value?: string;
+};
+
 export type TraceLog = EvaluatedLog & {
   trace_id: string;
   parent_trace_id?: string;
@@ -158,6 +173,8 @@ export type TraceLog = EvaluatedLog & {
   tags?: string[];
   experiment_uuid?: string | null;
   images?: TraceLogImage[];
+  comments?: TraceLogCommentSchema[];
+  annotations?: { [key: string]: TraceLogAnnotationSchema };
 };
 
 export type TraceLogTreeSchema = TraceLog & {
@@ -405,4 +422,21 @@ export type ListExperimentUUIDsFilters = {
   metadata_filter?: KVMap;
   experiment_name_filter?: string;
   run_name_filter?: string;
+};
+
+export type TraceLogFilters = {
+  filter_field?: string;
+  filter_operator?:
+    | 'equals'
+    | 'not_equals'
+    | 'like'
+    | 'greater_than_or_equal'
+    | 'less_than_or_equal'
+    | 'greater_than'
+    | 'less_than'
+    | 'is_null'
+    | 'exists'
+    | 'in'
+    | null;
+  filter_value?: string;
 };
