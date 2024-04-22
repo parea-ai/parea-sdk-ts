@@ -7,6 +7,7 @@ import {
   ExperimentOptions,
   ExperimentSchema,
   ExperimentStatsSchema,
+  ExperimentWithStatsSchema,
   FeedbackRequest,
   FinishExperimentRequestSchema,
   ListExperimentUUIDsFilters,
@@ -34,7 +35,7 @@ const EXPERIMENT_FINISHED_ENDPOINT = '/experiment/{experiment_uuid}/finished';
 const GET_COLLECTION_ENDPOINT = '/collection/{test_collection_identifier}';
 const CREATE_COLLECTION_ENDPOINT = '/collection';
 const ADD_TEST_CASES_ENDPOINT = '/testcases';
-const LIST_EXP_UUIDS_ENDPOINT = '/experiments';
+const LIST_EXPERIMENTS_ENDPOINT = '/experiments';
 const GET_EXP_LOGS_ENDPOINT = '/experiment/{experiment_uuid}/trace_logs';
 
 export class Parea {
@@ -221,10 +222,10 @@ export class Parea {
     return data;
   }
 
-  public async listExperimentUUIDS(filters: ListExperimentUUIDsFilters = {}): Promise<string[]> {
+  public async listExperiments(filters: ListExperimentUUIDsFilters = {}): Promise<ExperimentWithStatsSchema[]> {
     const response = await this.client.request({
       method: 'POST',
-      endpoint: LIST_EXP_UUIDS_ENDPOINT,
+      endpoint: LIST_EXPERIMENTS_ENDPOINT,
       data: filters,
     });
     return response.data;

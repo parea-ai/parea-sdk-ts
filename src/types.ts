@@ -440,3 +440,29 @@ export type TraceLogFilters = {
     | null;
   filter_value?: string;
 };
+
+export type ExperimentPinnedStatistic = {
+  var1: string;
+  operation:
+    | 'mean'
+    | 'median'
+    | 'variance'
+    | 'standard_deviation'
+    | 'min'
+    | 'max'
+    | 'mse'
+    | 'mae'
+    | 'correlation'
+    | 'spearman_correlation'
+    | 'accuracy'
+    | 'custom';
+  value: number;
+  var2?: string;
+};
+
+export type ExperimentWithStatsSchema = ExperimentSchema & {
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  is_public: boolean;
+  num_samples: number | null;
+  pinned_stats: ExperimentPinnedStatistic[];
+};
