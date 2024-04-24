@@ -67,7 +67,10 @@ export class HTTPClient {
     if (this.mockMode) {
       return Promise.resolve(this.defaultMockResponse);
     } else {
-      const headers = { 'x-api-key': this.apiKey || config.apiKey || '' };
+      const headers = {
+        'x-api-key': this.apiKey || config.apiKey || '',
+        'x-sdk-language': 'typescript',
+      };
       try {
         return await this.client.request({
           method: config.method,
