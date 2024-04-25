@@ -185,6 +185,24 @@ export class Parea {
     );
   }
 
+  public async listExperiments(filters: ListExperimentUUIDsFilters = {}): Promise<ExperimentWithStatsSchema[]> {
+    const response = await this.client.request({
+      method: 'POST',
+      endpoint: LIST_EXPERIMENTS_ENDPOINT,
+      data: filters,
+    });
+    return response.data;
+  }
+
+  public async getExperimentLogs(experimentUUID: string, filter: TraceLogFilters = {}): Promise<TraceLogTreeSchema[]> {
+    const response = await this.client.request({
+      method: 'POST',
+      endpoint: GET_EXP_LOGS_ENDPOINT.replace('{experiment_uuid}', experimentUUID),
+      data: filter,
+    });
+    return response.data;
+  }
+
   private async updateDataAndTrace(data: Completion): Promise<Completion> {
     // @ts-ignore
     data = serializeMetadataValues(data);
@@ -212,7 +230,6 @@ export class Parea {
           parentTraceLog.traceLog.children.push(inference_id);
           parentTraceLog.traceLog.experiment_uuid = experiment_uuid;
           parentStore.set(parentTraceId, parentTraceLog);
-          await pareaLogger.recordLog(parentTraceLog.traceLog);
         }
       }
     } catch (e) {
@@ -220,23 +237,5 @@ export class Parea {
     }
 
     return data;
-  }
-
-  public async listExperiments(filters: ListExperimentUUIDsFilters = {}): Promise<ExperimentWithStatsSchema[]> {
-    const response = await this.client.request({
-      method: 'POST',
-      endpoint: LIST_EXPERIMENTS_ENDPOINT,
-      data: filters,
-    });
-    return response.data;
-  }
-
-  public async getExperimentLogs(experimentUUID: string, filter: TraceLogFilters = {}): Promise<TraceLogTreeSchema[]> {
-    const response = await this.client.request({
-      method: 'POST',
-      endpoint: GET_EXP_LOGS_ENDPOINT.replace('{experiment_uuid}', experimentUUID),
-      data: filter,
-    });
-    return response.data;
   }
 }
