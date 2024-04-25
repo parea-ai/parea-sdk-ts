@@ -234,7 +234,6 @@ export const handleRunningEvals = async (
 
     try {
       await pareaLogger.recordLog(traceLog);
-      // await pareaLogger.updateLog({ trace_id: traceId, field_name_to_value_map: { scores: scores } });
     } catch (e) {
       console.error(`Error occurred updating log for trace ${traceId}, ${e}`);
     }

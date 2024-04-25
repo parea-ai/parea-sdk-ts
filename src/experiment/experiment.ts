@@ -12,13 +12,14 @@ import { genRandomName } from './utils';
 import { rootTraces } from '../utils/trace_utils';
 import cliProgress from 'cli-progress';
 
-function calculateAvgAsString(values: number[] | undefined): string {
+function calculateAvgAsString(values: number[] | undefined, isCost: boolean = false): string {
+  const digits = isCost ? 5 : 2;
   if (!values || values.length === 0) {
     return 'N/A';
   }
   const filteredValues = values.filter((x) => x !== null);
   const avg = filteredValues.reduce((acc, curr) => acc + curr, 0) / filteredValues.length;
-  return avg.toFixed(2);
+  return avg.toFixed(digits);
 }
 
 function calculateAvgStdForExperiment(experimentStats: ExperimentStatsSchema): { [key: string]: string } {
@@ -44,7 +45,7 @@ function calculateAvgStdForExperiment(experimentStats: ExperimentStatsSchema): {
     input_tokens: calculateAvgAsString(inputTokensValues),
     output_tokens: calculateAvgAsString(outputTokensValues),
     total_tokens: calculateAvgAsString(totalTokensValues),
-    cost: calculateAvgAsString(costValues),
+    cost: calculateAvgAsString(costValues, true),
   };
 
   Object.keys(scoreNameToValues).forEach((scoreName) => {
