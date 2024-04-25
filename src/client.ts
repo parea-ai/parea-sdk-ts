@@ -7,9 +7,13 @@ import {
   ExperimentOptions,
   ExperimentSchema,
   ExperimentStatsSchema,
+  ExperimentWithStatsSchema,
   FeedbackRequest,
   FinishExperimentRequestSchema,
+  ListExperimentUUIDsFilters,
   TestCaseCollection,
+  TraceLogFilters,
+  TraceLogTreeSchema,
   UseDeployedPrompt,
   UseDeployedPromptResponse,
 } from './types';
@@ -31,6 +35,8 @@ const EXPERIMENT_FINISHED_ENDPOINT = '/experiment/{experiment_uuid}/finished';
 const GET_COLLECTION_ENDPOINT = '/collection/{test_collection_identifier}';
 const CREATE_COLLECTION_ENDPOINT = '/collection';
 const ADD_TEST_CASES_ENDPOINT = '/testcases';
+const LIST_EXPERIMENTS_ENDPOINT = '/experiments';
+const GET_EXP_LOGS_ENDPOINT = '/experiment/{experiment_uuid}/trace_logs';
 
 export class Parea {
   private apiKey: string;
@@ -214,5 +220,23 @@ export class Parea {
     }
 
     return data;
+  }
+
+  public async listExperiments(filters: ListExperimentUUIDsFilters = {}): Promise<ExperimentWithStatsSchema[]> {
+    const response = await this.client.request({
+      method: 'POST',
+      endpoint: LIST_EXPERIMENTS_ENDPOINT,
+      data: filters,
+    });
+    return response.data;
+  }
+
+  public async getExperimentLogs(experimentUUID: string, filter: TraceLogFilters = {}): Promise<TraceLogTreeSchema[]> {
+    const response = await this.client.request({
+      method: 'POST',
+      endpoint: GET_EXP_LOGS_ENDPOINT.replace('{experiment_uuid}', experimentUUID),
+      data: filter,
+    });
+    return response.data;
   }
 }

@@ -135,6 +135,21 @@ export type TraceLogImage = {
   caption?: string;
 };
 
+export type TraceLogCommentSchema = {
+  comment: string;
+  user_id: string;
+  created_at: string;
+};
+
+export type TraceLogAnnotationSchema = {
+  created_at: string;
+  user_id: string;
+  score: number;
+  user_email_address?: string;
+  annotation_name?: string;
+  value?: string;
+};
+
 export type TraceLog = EvaluatedLog & {
   trace_id: string;
   parent_trace_id?: string;
@@ -158,6 +173,8 @@ export type TraceLog = EvaluatedLog & {
   tags?: string[];
   experiment_uuid?: string | null;
   images?: TraceLogImage[];
+  comments?: TraceLogCommentSchema[];
+  annotations?: { [key: string]: TraceLogAnnotationSchema };
 };
 
 export type TraceLogTreeSchema = TraceLog & {
@@ -398,4 +415,54 @@ export type CreateTestCases = {
 
 export type CreateTestCaseCollection = CreateTestCases & {
   column_names: string[];
+};
+
+export type ListExperimentUUIDsFilters = {
+  project_name?: string;
+  metadata_filter?: KVMap;
+  experiment_name_filter?: string;
+  run_name_filter?: string;
+};
+
+export type TraceLogFilters = {
+  filter_field?: string;
+  filter_operator?:
+    | 'equals'
+    | 'not_equals'
+    | 'like'
+    | 'greater_than_or_equal'
+    | 'less_than_or_equal'
+    | 'greater_than'
+    | 'less_than'
+    | 'is_null'
+    | 'exists'
+    | 'in'
+    | null;
+  filter_value?: string;
+};
+
+export type ExperimentPinnedStatistic = {
+  var1: string;
+  operation:
+    | 'mean'
+    | 'median'
+    | 'variance'
+    | 'standard_deviation'
+    | 'min'
+    | 'max'
+    | 'mse'
+    | 'mae'
+    | 'correlation'
+    | 'spearman_correlation'
+    | 'accuracy'
+    | 'custom';
+  value: number;
+  var2?: string;
+};
+
+export type ExperimentWithStatsSchema = ExperimentSchema & {
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  is_public: boolean;
+  num_samples: number | null;
+  pinned_stats: ExperimentPinnedStatistic[];
 };
