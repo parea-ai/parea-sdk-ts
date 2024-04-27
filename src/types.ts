@@ -175,6 +175,8 @@ export type TraceLog = EvaluatedLog & {
   images?: TraceLogImage[];
   comments?: TraceLogCommentSchema[];
   annotations?: { [key: string]: TraceLogAnnotationSchema };
+  depth: number;
+  execution_order: number;
 };
 
 export type TraceLogTreeSchema = TraceLog & {

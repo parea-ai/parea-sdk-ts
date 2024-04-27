@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import { LLMInputs, Message, Role, TraceLog } from '../types';
 import { pareaLogger } from '../parea_logger';
-import { asyncLocalStorage, traceInsert } from './trace_utils';
+import { asyncLocalStorage, executionOrderCounters, traceInsert } from './trace_utils';
 import { genTraceId, toDateTimeString } from '../helpers';
 
 function convertOAIMessage(m: any): Message {
@@ -29,6 +29,15 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
     const parentStore = asyncLocalStorage.getStore();
     const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined;
     const rootTraceId = parentStore ? Array.from(parentStore.values())[0].rootTraceId : traceId;
+
+    const depth = parentStore ? Array.from(parentStore.values())[0].traceLog.depth + 1 : 0;
+
+    // Get the execution order counter for the current root trace
+    let executionOrder = executionOrderCounters.get(rootTraceId);
+    if (executionOrder === undefined) {
+      executionOrder = 0;
+    }
+    executionOrderCounters.set(rootTraceId, executionOrder + 1);
 
     if (parentStore && Array.from(parentStore.values())[0].isRunningEval) {
       return await method.apply(this, args);
@@ -72,6 +81,8 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
       children: [],
       status: status,
       experiment_uuid: process.env.PAREA_OS_ENV_EXPERIMENT_UUID || null,
+      depth,
+      execution_order: executionOrder,
     };
 
     return asyncLocalStorage.run(new Map([[traceId, { traceLog, isRunningEval: false, rootTraceId }]]), async () => {
