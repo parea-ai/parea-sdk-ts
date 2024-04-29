@@ -126,7 +126,14 @@ export class Parea {
       method: 'GET',
       endpoint: GET_COLLECTION_ENDPOINT.replace('{test_collection_identifier}', String(testCollectionIdentifier)),
     });
-    return response.data;
+    return new TestCaseCollection(
+      response.data.id,
+      response.data.name,
+      response.data.created_at,
+      response.data.last_updated_at,
+      response.data.column_names,
+      response.data.test_cases,
+    );
   }
 
   public async createTestCollection(data: Record<string, any>[], name?: string | undefined): Promise<void> {
