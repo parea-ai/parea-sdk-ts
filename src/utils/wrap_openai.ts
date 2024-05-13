@@ -227,6 +227,14 @@ const MODEL_COST_MAPPING: { [key: string]: { [key: string]: number } } = {
     prompt: 10.0,
     completion: 30.0,
   },
+  'gpt-4o-2024-05-13': {
+    prompt: 5.0,
+    completion: 15.0,
+  },
+  'gpt-4o': {
+    prompt: 5.0,
+    completion: 15.0,
+  },
 };
 
 function getTotalCost(modelName: string, promptTokens: number, completionTokens: number): number {
