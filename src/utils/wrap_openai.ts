@@ -48,11 +48,11 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
     const functionCallDefault = functions?.length > 0 ? 'auto' : null;
 
     const modelParams = {
-      temp: kwargs?.temperature || 1.0,
+      temp: kwargs?.temperature ?? 1.0,
       max_length: kwargs?.max_tokens,
-      top_p: kwargs?.top_p || 1.0,
-      frequency_penalty: kwargs?.frequency_penalty || 0.0,
-      presence_penalty: kwargs?.presence_penalty || 0.0,
+      top_p: kwargs?.top_p ?? 1.0,
+      frequency_penalty: kwargs?.frequency_penalty ?? 0.0,
+      presence_penalty: kwargs?.presence_penalty ?? 0.0,
       response_format: kwargs?.response_format,
     };
 
