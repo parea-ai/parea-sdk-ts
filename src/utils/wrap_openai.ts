@@ -8,9 +8,15 @@ import { ChatCompletionMessage } from 'openai/src/resources/chat/completions';
 
 function convertOAIMessage(m: any): Message {
   if (m.role === 'assistant' && !!m.tool_calls) {
+    let content = `${m}`;
+    try {
+      content = formatToolCalls(m);
+    } catch (e) {
+      console.error(`Error converting assistant message with tool calls: ${e}`);
+    }
     return {
       role: Role.assistant,
-      content: formatToolCalls(m),
+      content: content,
     };
   } else if (m.role === 'tool') {
     return {
@@ -101,37 +107,50 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
         try {
           const startTime = startTimestamp.getTime() / 1000;
           response = await method.apply(this, args);
-          if (streamEnabled) {
-            let message = {} as ChatCompletionMessage;
-            let timeToFirstToken;
-            const [loggingStream, originalStream] = response.tee();
-            response = originalStream;
+          try {
+            if (streamEnabled) {
+              let message = {} as ChatCompletionMessage;
+              let timeToFirstToken;
+              const [loggingStream, originalStream] = response.tee();
+              response = originalStream;
 
-            for await (const item of loggingStream) {
-              const out = messageReducer(message, item, startTime);
-              message = out.output;
-              if (!timeToFirstToken) {
-                timeToFirstToken = out.timeToFirstToken;
+              for await (const item of loggingStream) {
+                const out = messageReducer(message, item, startTime);
+                message = out.output;
+                if (!timeToFirstToken) {
+                  timeToFirstToken = out.timeToFirstToken;
+                }
               }
+              traceInsert(
+                {
+                  output: getOutput({ choices: [{ message }] }),
+                  time_to_first_token: timeToFirstToken,
+                },
+                traceId,
+              );
+            } else {
+              traceInsert(
+                {
+                  output: getOutput(response),
+                  input_tokens: response.usage.prompt_tokens,
+                  output_tokens: response.usage.completion_tokens,
+                  total_tokens: response.usage.total_tokens,
+                  cost: getTotalCost(
+                    args[idxArgs].model,
+                    response.usage.prompt_tokens,
+                    response.usage.completion_tokens,
+                  ),
+                },
+                traceId,
+              );
             }
-            traceInsert(
-              {
-                output: getOutput({ choices: [{ message }] }),
-                time_to_first_token: timeToFirstToken,
-              },
-              traceId,
-            );
-          } else {
-            traceInsert(
-              {
-                output: getOutput(response),
-                input_tokens: response.usage.prompt_tokens,
-                output_tokens: response.usage.completion_tokens,
-                total_tokens: response.usage.total_tokens,
-                cost: getTotalCost(args[idxArgs].model, response.usage.prompt_tokens, response.usage.completion_tokens),
-              },
-              traceId,
-            );
+          } catch (err: unknown) {
+            let trace_error = 'An unknown error occurred in trace';
+            if (err instanceof Error) {
+              trace_error = err.message;
+            }
+            console.error(`Error processing response for trace ${traceId}: ${err}`);
+            traceInsert({ metadata: { trace_error: trace_error } }, traceId);
           }
         } catch (err: unknown) {
           if (err instanceof Error) {
@@ -233,7 +252,12 @@ function parseArgs(responseFunctionArgs: any): any {
   if (responseFunctionArgs instanceof Object) {
     return responseFunctionArgs;
   } else {
-    return JSON.parse(responseFunctionArgs);
+    try {
+      return JSON.parse(responseFunctionArgs);
+    } catch (e) {
+      console.error(`Error parsing tool call arguments as Object, storing as string instead: ${e}`);
+      return typeof responseFunctionArgs === 'string' ? responseFunctionArgs : `${responseFunctionArgs}`;
+    }
   }
 }
 
@@ -266,7 +290,7 @@ function messageReducer(previous: ChatCompletionMessage, item: any, startTime: n
         for (let i = 0; i < value.length; i++) {
           const { index, ...chunkTool } = value[i];
           if (index - accArray.length > 1) {
-            throw new Error(
+            console.error(
               `Error: An array has an empty value when tool_calls are constructed. tool_calls: ${accArray}; tool: ${value}`,
             );
           }
