@@ -103,6 +103,8 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
         }
         status = 'error';
         traceInsert({ error, status }, traceId);
+
+        throw err;
       } finally {
         endTimestamp = new Date();
         traceInsert(
@@ -118,10 +120,6 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
         } catch (e) {
           console.error(`Error recording log for trace ${traceId}: ${e}`);
         }
-      }
-
-      if (error) {
-        throw new Error(error);
       }
 
       return response;
