@@ -120,6 +120,7 @@ export type Log = {
   output?: string;
   target?: string;
   latency?: number;
+  time_to_first_token?: number;
   input_tokens?: number;
   output_tokens?: number;
   total_tokens?: number;
