@@ -122,23 +122,32 @@ export const trace = <TReturn, TArgs extends unknown[]>(
 
       try {
         const result = await func(...args);
-        const output = typeof result === 'string' ? result : JSON.stringify(result);
-        let outputForEvalMetrics = output;
-        if (options?.accessOutputOfFunc) {
-          try {
-            outputForEvalMetrics = options?.accessOutputOfFunc(result);
-          } catch (e) {
-            console.error(`Error accessing output of func with output: ${output}. Error: ${e}`, e);
+        try {
+          const output = typeof result === 'string' ? result : JSON.stringify(result);
+          let outputForEvalMetrics = output;
+          if (options?.accessOutputOfFunc) {
+            try {
+              outputForEvalMetrics = options?.accessOutputOfFunc(result);
+            } catch (e) {
+              console.error(`Error accessing output of func with output: ${output}. Error: ${e}`, e);
+            }
           }
+          traceInsert(
+            {
+              output,
+              evaluation_metric_names: options?.evalFuncNames,
+              output_for_eval_metrics: outputForEvalMetrics,
+            },
+            traceId,
+          );
+        } catch (err: unknown) {
+          let trace_error = 'An unknown error occurred in trace';
+          if (err instanceof Error) {
+            trace_error = err.message;
+          }
+          console.error(`Error processing response for trace ${traceId}: ${err}`);
+          traceInsert({ metadata: { trace_error: trace_error } }, traceId);
         }
-        traceInsert(
-          {
-            output,
-            evaluation_metric_names: options?.evalFuncNames,
-            output_for_eval_metrics: outputForEvalMetrics,
-          },
-          traceId,
-        );
         return result;
       } catch (error: any) {
         console.error(`Error occurred in function ${func.name}, ${error}`);
