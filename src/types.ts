@@ -120,6 +120,7 @@ export type Log = {
   output?: string;
   target?: string;
   latency?: number;
+  time_to_first_token?: number;
   input_tokens?: number;
   output_tokens?: number;
   total_tokens?: number;
@@ -389,6 +390,53 @@ export class TestCaseCollection {
       ...test_case.inputs,
       target: test_case.target || '',
     }));
+  }
+
+  convertToFinetuneJsonl(): any[] {
+    const jsonlRows: any[] = [];
+
+    for (const testCase of Object.values(this.test_cases)) {
+      try {
+        const messages = JSON.parse(testCase.inputs.messages);
+        let assistantResponse: any;
+        let functionCall;
+
+        if (testCase.target) {
+          try {
+            functionCall = JSON.parse(testCase.target);
+
+            if (Array.isArray(functionCall)) {
+              functionCall = functionCall[0];
+            }
+
+            if (!functionCall.hasOwnProperty('arguments')) {
+              // Assuming need to convert to a different format
+              functionCall = functionCall['function'];
+            }
+
+            functionCall['arguments'] = JSON.stringify(functionCall['arguments']);
+            assistantResponse = { role: 'assistant', function_call: functionCall };
+          } catch (error) {
+            assistantResponse = { role: 'assistant', content: testCase.target };
+          }
+          messages.push(assistantResponse);
+        }
+
+        let loadedFunctions;
+        if (testCase.inputs.functions) {
+          loadedFunctions = JSON.parse(testCase.inputs.functions);
+        }
+
+        jsonlRows.push({
+          messages: messages,
+          ...(loadedFunctions?.length > 0 && { functions: loadedFunctions }),
+        });
+      } catch (error) {
+        console.error('Error handling test case and ignoring it: ', error);
+      }
+    }
+
+    return jsonlRows;
   }
 }
 

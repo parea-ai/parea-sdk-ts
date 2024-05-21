@@ -3,12 +3,20 @@ import { LLMInputs, Message, Role, TraceLog } from '../types';
 import { pareaLogger } from '../parea_logger';
 import { asyncLocalStorage, executionOrderCounters, traceInsert } from './trace_utils';
 import { genTraceId, toDateTimeString } from '../helpers';
+import { MODEL_COST_MAPPING } from './constants';
+import { ChatCompletionMessage } from 'openai/src/resources/chat/completions';
 
 function convertOAIMessage(m: any): Message {
   if (m.role === 'assistant' && !!m.tool_calls) {
+    let content = `${m}`;
+    try {
+      content = formatToolCalls(m);
+    } catch (e) {
+      console.error(`Error converting assistant message with tool calls: ${e}`);
+    }
     return {
       role: Role.assistant,
-      content: formatToolCalls(m),
+      content: content,
     };
   } else if (m.role === 'tool') {
     return {
@@ -50,15 +58,16 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
     let endTimestamp: Date | null;
 
     const kwargs = args[idxArgs];
+    const streamEnabled = kwargs?.stream;
     const functions = kwargs?.functions || kwargs?.tools?.map((tool: any) => tool?.function) || [];
     const functionCallDefault = functions?.length > 0 ? 'auto' : null;
 
     const modelParams = {
-      temp: kwargs?.temperature || 1.0,
+      temp: kwargs?.temperature ?? 1.0,
       max_length: kwargs?.max_tokens,
-      top_p: kwargs?.top_p || 1.0,
-      frequency_penalty: kwargs?.frequency_penalty || 0.0,
-      presence_penalty: kwargs?.presence_penalty || 0.0,
+      top_p: kwargs?.top_p ?? 1.0,
+      frequency_penalty: kwargs?.frequency_penalty ?? 0.0,
+      presence_penalty: kwargs?.presence_penalty ?? 0.0,
       response_format: kwargs?.response_format,
     };
 
@@ -85,58 +94,104 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
       execution_order: executionOrder,
     };
 
-    return asyncLocalStorage.run(new Map([[traceId, { traceLog, isRunningEval: false, rootTraceId }]]), async () => {
-      if (parentStore && parentTraceId) {
-        const parentTraceLog = parentStore.get(parentTraceId);
-        if (parentTraceLog) {
-          parentTraceLog.traceLog.children.push(traceId);
-          parentStore.set(parentTraceId, parentTraceLog);
+    return asyncLocalStorage.run(
+      new Map([
+        [
+          traceId,
+          {
+            traceLog,
+            isRunningEval: false,
+            rootTraceId,
+            startTimestamp,
+          },
+        ],
+      ]),
+      async () => {
+        if (parentStore && parentTraceId) {
+          const parentTraceLog = parentStore.get(parentTraceId);
+          if (parentTraceLog) {
+            parentTraceLog.traceLog.children.push(traceId);
+            parentStore.set(parentTraceId, parentTraceLog);
+          }
         }
-      }
 
-      try {
-        response = await method.apply(this, args);
-        traceInsert(
-          {
-            output: getOutput(response),
-            input_tokens: response.usage.prompt_tokens,
-            output_tokens: response.usage.completion_tokens,
-            total_tokens: response.usage.total_tokens,
-            cost: getTotalCost(args[idxArgs].model, response.usage.prompt_tokens, response.usage.completion_tokens),
-          },
-          traceId,
-        );
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          error = err.message;
-        } else {
-          error = 'An unknown error occurred';
-        }
-        status = 'error';
-        traceInsert({ error, status }, traceId);
-      } finally {
-        endTimestamp = new Date();
-        traceInsert(
-          {
-            end_timestamp: toDateTimeString(endTimestamp),
-            latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
-            status: status,
-          },
-          traceId,
-        );
         try {
-          await pareaLogger.recordLog(traceLog);
-        } catch (e) {
-          console.error(`Error recording log for trace ${traceId}: ${e}`);
+          const startTime = startTimestamp.getTime() / 1000;
+          response = await method.apply(this, args);
+          try {
+            if (streamEnabled) {
+              let message = {} as ChatCompletionMessage;
+              let timeToFirstToken;
+              const [loggingStream, originalStream] = response.tee();
+              response = originalStream;
+
+              for await (const item of loggingStream) {
+                const out = messageReducer(message, item, startTime);
+                message = out.output;
+                if (!timeToFirstToken) {
+                  timeToFirstToken = out.timeToFirstToken;
+                }
+              }
+              traceInsert(
+                {
+                  output: getOutput({ choices: [{ message }] }),
+                  time_to_first_token: timeToFirstToken,
+                },
+                traceId,
+              );
+            } else {
+              traceInsert(
+                {
+                  output: getOutput(response),
+                  input_tokens: response.usage.prompt_tokens,
+                  output_tokens: response.usage.completion_tokens,
+                  total_tokens: response.usage.total_tokens,
+                  cost: getTotalCost(
+                    args[idxArgs].model,
+                    response.usage.prompt_tokens,
+                    response.usage.completion_tokens,
+                  ),
+                },
+                traceId,
+              );
+            }
+          } catch (err: unknown) {
+            let trace_error = 'An unknown error occurred in trace';
+            if (err instanceof Error) {
+              trace_error = err.message;
+            }
+            console.error(`Error processing response for trace ${traceId}: ${err}`);
+            traceInsert({ metadata: { trace_error: trace_error } }, traceId);
+          }
+        } catch (err: unknown) {
+          if (err instanceof Error) {
+            error = err.message;
+          } else {
+            error = 'An unknown error occurred';
+          }
+          status = 'error';
+          traceInsert({ error, status }, traceId);
+          throw err;
+        } finally {
+          endTimestamp = new Date();
+          traceInsert(
+            {
+              end_timestamp: toDateTimeString(endTimestamp),
+              latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
+              status: status,
+            },
+            traceId,
+          );
+          try {
+            await pareaLogger.recordLog(traceLog);
+          } catch (e) {
+            console.error(`Error recording log for trace ${traceId}: ${e}`);
+          }
         }
-      }
 
-      if (error) {
-        throw new Error(error);
-      }
-
-      return response;
-    });
+        return response;
+      },
+    );
   };
 }
 
@@ -148,97 +203,6 @@ export function patchOpenAI(openai: OpenAI) {
   // @ts-ignore
   openai.chat.completions.create = wrapMethod(openai.chat.completions.create);
 }
-
-const MODEL_COST_MAPPING: { [key: string]: { [key: string]: number } } = {
-  'gpt-3.5-turbo-0301': {
-    prompt: 1.5,
-    completion: 4.0,
-  },
-  'gpt-3.5-turbo-0613': {
-    prompt: 1.5,
-    completion: 4.0,
-  },
-  'gpt-3.5-turbo-16k': {
-    prompt: 3.0,
-    completion: 4.0,
-  },
-  'gpt-3.5-turbo-16k-0301': {
-    prompt: 3.0,
-    completion: 4.0,
-  },
-  'gpt-3.5-turbo-16k-0613': {
-    prompt: 3.0,
-    completion: 4.0,
-  },
-  'gpt-3.5-turbo-1106': {
-    prompt: 1.0,
-    completion: 2.0,
-  },
-  'gpt-3.5-turbo-0125': {
-    prompt: 0.5,
-    completion: 2.0,
-  },
-  'gpt-3.5-turbo': {
-    prompt: 0.5,
-    completion: 2.0,
-  },
-  'gpt-3.5-turbo-instruct': {
-    prompt: 1.5,
-    completion: 4.0,
-  },
-  'gpt-4': {
-    prompt: 30.0,
-    completion: 60.0,
-  },
-  'gpt-4-0314': {
-    prompt: 30.0,
-    completion: 60.0,
-  },
-  'gpt-4-0613': {
-    prompt: 30.0,
-    completion: 60.0,
-  },
-  'gpt-4-32k': {
-    prompt: 60.0,
-    completion: 120.0,
-  },
-  'gpt-4-32k-0314': {
-    prompt: 60.0,
-    completion: 120.0,
-  },
-  'gpt-4-32k-0613': {
-    prompt: 60.0,
-    completion: 120.0,
-  },
-  'gpt-4-vision-preview': {
-    prompt: 30.0,
-    completion: 60.0,
-  },
-  'gpt-4-1106-vision-preview': {
-    prompt: 30.0,
-    completion: 60.0,
-  },
-  'gpt-4-turbo-preview': {
-    prompt: 10.0,
-    completion: 30.0,
-  },
-  'gpt-4-1106-preview': {
-    prompt: 10.0,
-    completion: 30.0,
-  },
-  'gpt-4-0125-preview': {
-    prompt: 10.0,
-    completion: 30.0,
-  },
-  'gpt-4-turbo': {
-    prompt: 10.0,
-    completion: 30.0,
-  },
-  'gpt-4-turbo-2024-04-09': {
-    prompt: 10.0,
-    completion: 30.0,
-  },
-};
 
 function getTotalCost(modelName: string, promptTokens: number, completionTokens: number): number {
   if (!Object.keys(MODEL_COST_MAPPING).includes(modelName)) {
@@ -299,6 +263,60 @@ function parseArgs(responseFunctionArgs: any): any {
   if (responseFunctionArgs instanceof Object) {
     return responseFunctionArgs;
   } else {
-    return JSON.parse(responseFunctionArgs);
+    try {
+      return JSON.parse(responseFunctionArgs);
+    } catch (e) {
+      console.error(`Error parsing tool call arguments as Object, storing as string instead: ${e}`);
+      return typeof responseFunctionArgs === 'string' ? responseFunctionArgs : `${responseFunctionArgs}`;
+    }
   }
+}
+
+function messageReducer(previous: ChatCompletionMessage, item: any, startTime: number) {
+  let first = true;
+  let timeToFirstToken;
+  const reduce = (acc: any, delta: any) => {
+    acc = { ...acc };
+    for (const [key, value] of Object.entries(delta)) {
+      if (acc[key] === undefined || acc[key] === null) {
+        if (first) {
+          const now = getCurrentUnixTimestamp();
+          timeToFirstToken = now - startTime;
+          first = false;
+        }
+        acc[key] = Array.isArray(value) ? [...value] : value;
+        if (Array.isArray(acc[key])) {
+          acc[key] = acc[key].map((arr: any) => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { index, ...rest } = arr;
+            return rest;
+          });
+        }
+      } else if (typeof acc[key] === 'string' && typeof value === 'string') {
+        acc[key] += value;
+      } else if (typeof acc[key] === 'number' && typeof value === 'number') {
+        acc[key] = value;
+      } else if (Array.isArray(acc[key]) && Array.isArray(value)) {
+        const accArray = acc[key];
+        for (let i = 0; i < value.length; i++) {
+          const { index, ...chunkTool } = value[i];
+          if (index - accArray.length > 1) {
+            console.error(
+              `Error: An array has an empty value when tool_calls are constructed. tool_calls: ${accArray}; tool: ${value}`,
+            );
+          }
+          accArray[index] = reduce({ ...accArray[index] }, chunkTool);
+        }
+      } else if (typeof acc[key] === 'object' && typeof value === 'object') {
+        acc[key] = reduce({ ...acc[key] }, value);
+      }
+    }
+    return acc;
+  };
+  const output = reduce({ ...previous }, item.choices[0]!.delta) as ChatCompletionMessage;
+  return { output, timeToFirstToken };
+}
+
+export function getCurrentUnixTimestamp(): number {
+  return new Date().getTime() / 1000;
 }

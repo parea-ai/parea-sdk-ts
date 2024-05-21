@@ -26,7 +26,7 @@ export const getCurrentTraceId = (): string | undefined => {
   return traceIds[traceIds.length - 1];
 };
 
-const merge = (old: any, newValue: any) => {
+export const merge = (old: any, newValue: any) => {
   if (typeof old === 'object' && typeof newValue === 'object') {
     return { ...old, ...newValue };
   }
