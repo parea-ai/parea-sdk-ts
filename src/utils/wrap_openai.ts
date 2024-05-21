@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import { LLMInputs, Message, Role, TraceLog } from '../types';
 import { pareaLogger } from '../parea_logger';
-import { asyncLocalStorage, traceInsert } from './trace_utils';
+import { asyncLocalStorage, executionOrderCounters, traceInsert } from './trace_utils';
 import { genTraceId, toDateTimeString } from '../helpers';
 import { MODEL_COST_MAPPING } from './constants';
 import { ChatCompletionMessage } from 'openai/src/resources/chat/completions';
@@ -37,6 +37,15 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
     const parentStore = asyncLocalStorage.getStore();
     const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined;
     const rootTraceId = parentStore ? Array.from(parentStore.values())[0].rootTraceId : traceId;
+
+    const depth = parentStore ? Array.from(parentStore.values())[0].traceLog.depth + 1 : 0;
+
+    // Get the execution order counter for the current root trace
+    let executionOrder = executionOrderCounters.get(rootTraceId);
+    if (executionOrder === undefined) {
+      executionOrder = 0;
+    }
+    executionOrderCounters.set(rootTraceId, executionOrder + 1);
 
     if (parentStore && Array.from(parentStore.values())[0].isRunningEval) {
       return await method.apply(this, args);
@@ -75,12 +84,14 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
       trace_id: traceId,
       parent_trace_id: parentTraceId || traceId,
       root_trace_id: rootTraceId,
-      trace_name: 'LLM',
+      trace_name: 'llm-openai',
       start_timestamp: toDateTimeString(startTimestamp),
       configuration: configuration,
       children: [],
       status: status,
       experiment_uuid: process.env.PAREA_OS_ENV_EXPERIMENT_UUID || null,
+      depth,
+      execution_order: executionOrder,
     };
 
     return asyncLocalStorage.run(
