@@ -121,6 +121,7 @@ async function experiment(
     void _;
   }
   if (bar) bar.stop();
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   const datasetLevelEvalPromises: Promise<EvaluationResult[] | null>[] =
     datasetLevelEvalFuncs?.map(async (func): Promise<EvaluationResult[] | null> => {
@@ -197,6 +198,12 @@ export class Experiment {
         );
       }
       this.metadata = { ...this.metadata, Dataset: data };
+    } else {
+      for (const item of data) {
+        if (typeof item.target === 'object') {
+          item.target = JSON.stringify(item.target);
+        }
+      }
     }
   }
 

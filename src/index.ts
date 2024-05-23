@@ -44,4 +44,4 @@ export {
   CreateTestCaseCollection,
 } from './types';
 
-export { levenshtein } from './evals/general/levenshtein';
+export { levenshtein, levenshteinDistance } from './evals/general/levenshtein';
