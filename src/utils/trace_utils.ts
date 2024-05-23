@@ -90,6 +90,8 @@ export const trace = <TReturn, TArgs extends unknown[]>(
     const numParams = extractFunctionParamNames(func)?.length || 0;
     if (args?.length > numParams && typeof args[args.length - 1] === 'string') {
       target = args.pop() as string;
+    } else if (parentStore && parentTraceId) {
+      target = parentStore?.get(parentTraceId)?.traceLog.target;
     }
 
     const traceLog: TraceLog = {
