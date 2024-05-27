@@ -153,7 +153,9 @@ async function experiment(
     statNameToAvgStd[result.name] = result.score.toFixed(2);
   });
   console.log(`Experiment ${name} Run ${runName} stats:\n${JSON.stringify(statNameToAvgStd, null, 2)}\n\n`);
-  console.log(`View experiment & its traces at: https://app.parea.ai/experiments/${experimentUUID}\n`);
+  console.log(
+    `View experiment & traces at: https://app.parea.ai/experiments/${encodeURIComponent(name)}/${experimentUUID}\n`,
+  );
   return experimentStats;
 }
 
