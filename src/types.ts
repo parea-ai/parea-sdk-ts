@@ -516,3 +516,20 @@ export type ExperimentWithStatsSchema = ExperimentSchema & {
   num_samples: number | null;
   pinned_stats: ExperimentPinnedStatistic[];
 };
+
+/**
+ * Represents a trace log object containing information about a function's execution.
+ */
+export interface ITraceLog {
+  traceId: string;
+  rootTraceId: string;
+  parentTraceId?: string;
+  children: string[];
+  functionName: string;
+  inputParams: any[];
+  outputValue: any;
+  startTimestamp: number;
+  endTimestamp: number;
+  metadata?: Record<string, any>;
+  error?: Error;
+}

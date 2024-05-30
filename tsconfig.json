@@ -1,9 +1,11 @@
 {
   "extends": "@tsconfig/recommended",
   "compilerOptions": {
-    "target": "ES2021",
+    "target": "ES2022",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "lib": [
-      "ES2021",
+      "ES2022",
       "ES2022.Object",
       "DOM"
     ],
