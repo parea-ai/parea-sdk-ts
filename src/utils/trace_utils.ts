@@ -1,7 +1,7 @@
 import { EvaluationResult, TraceLog, TraceOptions } from '../types';
 import { pareaLogger } from '../parea_logger';
 import { genTraceId, toDateTimeString } from '../helpers';
-import { AsyncLocalStorage } from 'node:async_hooks';
+import { asyncLocalStorage } from './LogDecorator';
 
 export type ContextObject = {
   traceLog: TraceLog;
@@ -9,7 +9,7 @@ export type ContextObject = {
   rootTraceId: string;
 };
 
-export const asyncLocalStorage = new AsyncLocalStorage<Map<string, ContextObject>>();
+// export const asyncLocalStorage = new AsyncLocalStorage<Map<string, ContextObject>>();
 export const rootTraces = new Map<string, TraceLog>();
 
 export const executionOrderCounters = new Map<string, number>();
@@ -87,16 +87,20 @@ export const trace = <TReturn, TArgs extends unknown[]>(
     const parentStore = asyncLocalStorage.getStore();
     const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined;
     const isRootTrace = !parentTraceId; // It's a root trace if there is no parent.
-    const rootTraceId = isRootTrace ? traceId : parentStore ? Array.from(parentStore.values())[0].rootTraceId : traceId;
+    // const rootTraceId = isRootTrace ? traceId : parentStore ? Array.from(parentStore.values())[0].rootTraceId : traceId;
+    const rootTraceId = isRootTrace
+      ? traceId
+      : parentStore
+      ? Array.from(parentStore.values())[0].traceLog.root_trace_id
+      : traceId;
 
     const depth = parentStore ? Array.from(parentStore.values())[0].traceLog.depth + 1 : 0;
-
-    // Get the execution order counter for the current root trace
-    let executionOrder = executionOrderCounters.get(rootTraceId);
-    if (executionOrder === undefined) {
-      executionOrder = 0;
+    let executionOrder = 0;
+    if (rootTraceId) {
+      // Get the execution order counter for the current root trace
+      executionOrder = executionOrderCounters.get(rootTraceId) || 0;
+      executionOrderCounters.set(rootTraceId, executionOrder + 1);
     }
-    executionOrderCounters.set(rootTraceId, executionOrder + 1);
 
     let target: string | undefined;
     const numParams = extractFunctionParamNames(func)?.length || 0;
@@ -178,10 +182,10 @@ export const trace = <TReturn, TArgs extends unknown[]>(
         } catch (e) {
           console.error(`Error occurred recording log for trace ${traceId}, ${e}`);
         }
-        if (isRootTrace) {
-          const finalTraceLog = asyncLocalStorage.getStore()?.get(rootTraceId)?.traceLog || traceLog;
-          rootTraces.set(rootTraceId, finalTraceLog);
-        }
+        // if (isRootTrace) {
+        //   const finalTraceLog = asyncLocalStorage.getStore()?.get(rootTraceId)?.traceLog || traceLog;
+        //   rootTraces.set(rootTraceId, finalTraceLog);
+        // }
       }
     });
   };
@@ -256,7 +260,7 @@ export const handleRunningEvals = async (
   }
 };
 
-function extractFunctionParamNames(func: Function): string[] {
+export function extractFunctionParamNames(func: Function): string[] {
   try {
     const functionString = func.toString();
     const match = functionString.match(/\(([^)]*)\)/);
@@ -277,7 +281,7 @@ function extractFunctionParamNames(func: Function): string[] {
   }
 }
 
-function extractFunctionParams(func: Function, args: any[]): { [key: string]: any } {
+export function extractFunctionParams(func: Function, args: any[]): { [key: string]: any } {
   const paramNames = extractFunctionParamNames(func);
 
   // Constructing an object of paramName: value

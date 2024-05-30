@@ -1,12 +1,13 @@
 import OpenAI from 'openai';
 import { LLMInputs, Message, Role, TraceLog } from '../types';
 import { pareaLogger } from '../parea_logger';
-import { asyncLocalStorage, executionOrderCounters, traceInsert } from './trace_utils';
+import { executionOrderCounters, traceInsert } from './trace_utils';
 import { genTraceId, toDateTimeString } from '../helpers';
 import { MODEL_COST_MAPPING } from './constants';
 import { ChatCompletionMessage } from 'openai/src/resources/chat/completions';
+import { asyncLocalStorage } from './LogDecorator';
 
-function convertOAIMessage(m: any): Message {
+export function convertOAIMessage(m: any): Message {
   if (m.role === 'assistant' && !!m.tool_calls) {
     let content = `${m}`;
     try {
@@ -36,16 +37,22 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
     const traceId = genTraceId();
     const parentStore = asyncLocalStorage.getStore();
     const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined;
-    const rootTraceId = parentStore ? Array.from(parentStore.values())[0].rootTraceId : traceId;
+    const isRootTrace = !parentTraceId; // It's a root trace if there is no parent.
+    // const rootTraceId = parentStore ? Array.from(parentStore.values())[0].rootTraceId : traceId;
+    const rootTraceId = isRootTrace
+      ? traceId
+      : parentStore
+      ? Array.from(parentStore.values())[0].traceLog.root_trace_id
+      : traceId;
 
     const depth = parentStore ? Array.from(parentStore.values())[0].traceLog.depth + 1 : 0;
 
     // Get the execution order counter for the current root trace
-    let executionOrder = executionOrderCounters.get(rootTraceId);
-    if (executionOrder === undefined) {
-      executionOrder = 0;
+    let executionOrder = 0;
+    if (rootTraceId) {
+      executionOrder = executionOrderCounters.get(rootTraceId) || 0;
+      executionOrderCounters.set(rootTraceId, executionOrder + 1);
     }
-    executionOrderCounters.set(rootTraceId, executionOrder + 1);
 
     if (parentStore && Array.from(parentStore.values())[0].isRunningEval) {
       return await method.apply(this, args);
@@ -204,7 +211,7 @@ export function patchOpenAI(openai: OpenAI) {
   openai.chat.completions.create = wrapMethod(openai.chat.completions.create);
 }
 
-function getTotalCost(modelName: string, promptTokens: number, completionTokens: number): number {
+export function getTotalCost(modelName: string, promptTokens: number, completionTokens: number): number {
   if (!Object.keys(MODEL_COST_MAPPING).includes(modelName)) {
     console.error(
       `Unknown model: ${modelName}. Please provide a valid OpenAI model name. Known models are: ${Object.keys(
@@ -218,7 +225,7 @@ function getTotalCost(modelName: string, promptTokens: number, completionTokens:
   return (promptCost + completionCost) / 1000000;
 }
 
-function getOutput(result: any): string {
+export function getOutput(result: any): string {
   const responseMessage = result?.choices[0]?.message;
   let completion: string = '';
   if (responseMessage.hasOwnProperty('function_call')) {
@@ -272,7 +279,7 @@ function parseArgs(responseFunctionArgs: any): any {
   }
 }
 
-function messageReducer(previous: ChatCompletionMessage, item: any, startTime: number) {
+export function messageReducer(previous: ChatCompletionMessage, item: any, startTime: number) {
   let first = true;
   let timeToFirstToken;
   const reduce = (acc: any, delta: any) => {

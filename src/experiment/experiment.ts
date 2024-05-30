@@ -69,7 +69,7 @@ async function experiment(
   name: string,
   runName: string,
   data: string | Iterable<DataItem>,
-  func: (...dataItem: any[]) => Promise<any>,
+  func: (...dataItem: any[]) => Promise<any> | any,
   p: Parea,
   nTrials: number = 1,
   metadata?: { [key: string]: string } | undefined,
@@ -176,7 +176,7 @@ export class Experiment {
   constructor(
     name: string,
     data: string | Iterable<DataItem>,
-    func: (...dataItem: any[]) => Promise<any>,
+    func: (...dataItem: any[]) => Promise<any> | any,
     p: Parea,
     nTrials: number = 1,
     metadata?: { [key: string]: string },

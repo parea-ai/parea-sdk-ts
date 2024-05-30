@@ -30,7 +30,6 @@
     "dotenv": "^16.4.5",
     "moment-timezone": "^0.5.45",
     "openai": "^4.47.1",
-    "reflect-metadata": "^0.2.2",
     "semantic-release": "^21.1.2",
     "ts-node": "^10.9.2",
     "uuid": "^9.0.1"

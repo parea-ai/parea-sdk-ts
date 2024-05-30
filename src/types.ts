@@ -104,9 +104,7 @@ export type FeedbackRequest = {
   comment?: string;
 };
 
-export type TraceLogInputs = {
-  [key: string]: string;
-};
+export type TraceLogInputs = Record<string, any>;
 
 export type EvaluationResult = {
   name: string;
@@ -170,7 +168,7 @@ export type TraceLog = EvaluatedLog & {
   end_timestamp?: string;
   end_user_identifier?: string;
   session_id?: string;
-  metadata?: { [key: string]: any };
+  metadata?: Record<string, any>;
   tags?: string[];
   experiment_uuid?: string | null;
   images?: TraceLogImage[];
@@ -195,6 +193,7 @@ export type TraceOptions = {
   applyEvalFrac?: number;
   deploymentId?: string;
   target?: string;
+  sampleRate?: number;
 };
 
 export type UpdateLog = {
@@ -516,20 +515,3 @@ export type ExperimentWithStatsSchema = ExperimentSchema & {
   num_samples: number | null;
   pinned_stats: ExperimentPinnedStatistic[];
 };
-
-/**
- * Represents a trace log object containing information about a function's execution.
- */
-export interface ITraceLog {
-  traceId: string;
-  rootTraceId: string;
-  parentTraceId?: string;
-  children: string[];
-  functionName: string;
-  inputParams: any[];
-  outputValue: any;
-  startTimestamp: number;
-  endTimestamp: number;
-  metadata?: Record<string, any>;
-  error?: Error;
-}

@@ -1,4 +1,4 @@
-import { ITraceLog } from '../types';
+import { TraceLog } from '../types';
 
 /**
  * Represents a batcher that accumulates trace logs and sends them in batches.
@@ -6,9 +6,9 @@ import { ITraceLog } from '../types';
 export class LogBatcher {
   private batchSize: number;
   private batchInterval: number;
-  private batchQueue: ITraceLog[] = [];
+  private batchQueue: TraceLog[] = [];
   private timer: NodeJS.Timeout | null = null;
-  private onBatchReady: (batch: ITraceLog[]) => void;
+  private onBatchReady: (batch: TraceLog[]) => void;
 
   /**
    * Creates a new instance of the LogBatcher.
@@ -16,7 +16,7 @@ export class LogBatcher {
    * @param batchSize The maximum number of trace logs in a batch.
    * @param batchInterval The interval (in milliseconds) at which to send batches.
    */
-  constructor(onBatchReady: (batch: ITraceLog[]) => void, batchSize: number = 100, batchInterval: number = 5000) {
+  constructor(onBatchReady: (batch: TraceLog[]) => void, batchSize: number = 100, batchInterval: number = 2000) {
     this.onBatchReady = onBatchReady;
     this.batchSize = batchSize;
     this.batchInterval = batchInterval;
@@ -26,7 +26,7 @@ export class LogBatcher {
    * Adds a trace log to the batch queue.
    * @param traceLog The trace log to add to the batch.
    */
-  public addTracelog(traceLog: ITraceLog): void {
+  public addTracelog(traceLog: TraceLog): void {
     this.batchQueue.push(traceLog);
 
     if (this.batchQueue.length >= this.batchSize) {
