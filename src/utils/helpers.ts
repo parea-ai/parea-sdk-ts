@@ -1,6 +1,6 @@
 import { ContextObject, LLMInputs, Message, ModelParams, Role, TraceLog, TraceOptions } from '../types';
 import { asyncLocalStorage, executionOrderCounters, rootTraces } from './context';
-import { MessageQueue } from './messageQueue';
+import { MessageQueue } from './MessageQueue';
 import { MODEL_COST_MAPPING } from './constants';
 import { ChatCompletionMessage } from 'openai/src/resources/chat/completions';
 
@@ -215,26 +215,31 @@ export function getCurrentUnixTimestamp(): number {
  * @param kwargs
  */
 export function _determineOpenAIConfiguration(kwargs: any): LLMInputs {
-  const functions = kwargs?.functions || kwargs?.tools?.map((tool: any) => tool?.function) || [];
-  const functionCallDefault = functions?.length > 0 ? 'auto' : null;
+  try {
+    const functions = kwargs?.functions || kwargs?.tools?.map((tool: any) => tool?.function) || [];
+    const functionCallDefault = functions?.length > 0 ? 'auto' : null;
 
-  const modelParams: ModelParams = {
-    temp: kwargs?.temperature ?? 1.0,
-    max_length: kwargs?.max_tokens,
-    top_p: kwargs?.top_p ?? 1.0,
-    frequency_penalty: kwargs?.frequency_penalty ?? 0.0,
-    presence_penalty: kwargs?.presence_penalty ?? 0.0,
-    response_format: kwargs?.response_format,
-  };
+    const modelParams: ModelParams = {
+      temp: kwargs?.temperature ?? 1.0,
+      max_length: kwargs?.max_tokens,
+      top_p: kwargs?.top_p ?? 1.0,
+      frequency_penalty: kwargs?.frequency_penalty ?? 0.0,
+      presence_penalty: kwargs?.presence_penalty ?? 0.0,
+      response_format: kwargs?.response_format,
+    };
 
-  return {
-    model: kwargs?.model,
-    provider: 'openai',
-    messages: kwargs?.messages?.map((message: any) => convertOAIMessage(message)),
-    functions: functions,
-    function_call: kwargs?.function_call || kwargs?.tool_choice || functionCallDefault,
-    model_params: modelParams,
-  };
+    return {
+      model: kwargs?.model,
+      provider: 'openai',
+      messages: kwargs?.messages?.map((message: any) => convertOAIMessage(message)),
+      functions: functions,
+      function_call: kwargs?.function_call || kwargs?.tool_choice || functionCallDefault,
+      model_params: modelParams,
+    };
+  } catch (e) {
+    console.error(`Error determining OpenAI configuration: ${e}`);
+    return {};
+  }
 }
 
 /**
@@ -275,17 +280,22 @@ function convertOAIMessage(m: any): Message {
  * @returns The total cost.
  */
 export function getTotalCost(modelName: string, promptTokens: number, completionTokens: number): number {
-  if (!Object.keys(MODEL_COST_MAPPING).includes(modelName)) {
-    console.error(
-      `Unknown model: ${modelName}. Please provide a valid OpenAI model name. Known models are: ${Object.keys(
-        MODEL_COST_MAPPING,
-      ).join(', ')}`,
-    );
+  try {
+    if (!Object.keys(MODEL_COST_MAPPING).includes(modelName)) {
+      console.error(
+        `Unknown model: ${modelName}. Please provide a valid OpenAI model name. Known models are: ${Object.keys(
+          MODEL_COST_MAPPING,
+        ).join(', ')}`,
+      );
+    }
+    const modelCost = MODEL_COST_MAPPING[modelName] || { prompt: 0, completion: 0 };
+    const promptCost = promptTokens * modelCost.prompt;
+    const completionCost = completionTokens * modelCost.completion;
+    return (promptCost + completionCost) / 1000000;
+  } catch (e) {
+    console.error(`Error getting total cost: ${e}`);
+    return 0;
   }
-  const modelCost = MODEL_COST_MAPPING[modelName] || { prompt: 0, completion: 0 };
-  const promptCost = promptTokens * modelCost.prompt;
-  const completionCost = completionTokens * modelCost.completion;
-  return (promptCost + completionCost) / 1000000;
 }
 
 /**
@@ -294,16 +304,21 @@ export function getTotalCost(modelName: string, promptTokens: number, completion
  * @returns The output.
  */
 export function getOutput(result: any): string {
-  const responseMessage = result?.choices[0]?.message;
-  let completion: string;
-  if (responseMessage.hasOwnProperty('function_call')) {
-    completion = formatFunctionCall(responseMessage);
-  } else if (responseMessage.hasOwnProperty('tool_calls')) {
-    completion = formatToolCalls(responseMessage);
-  } else {
-    completion = responseMessage?.content?.trim() ?? '';
+  try {
+    const responseMessage = result?.choices[0]?.message;
+    let completion: string;
+    if (responseMessage.hasOwnProperty('function_call')) {
+      completion = formatFunctionCall(responseMessage);
+    } else if (responseMessage.hasOwnProperty('tool_calls')) {
+      completion = formatToolCalls(responseMessage);
+    } else {
+      completion = responseMessage?.content?.trim() ?? '';
+    }
+    return completion;
+  } catch (e) {
+    console.error(`Error getting output: ${e}`);
+    return '';
   }
-  return completion;
 }
 
 /**

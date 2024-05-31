@@ -1,6 +1,6 @@
-import { MessageQueue } from './messageQueue';
+import { MessageQueue } from './MessageQueue';
 import { TraceLog } from '../types';
-import { LogBatcher } from './logBatcher';
+import { LogBatcher } from './LogBatcher';
 import { pareaLogger } from '../parea_logger';
 
 /**

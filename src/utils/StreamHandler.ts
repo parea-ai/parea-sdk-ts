@@ -1,5 +1,5 @@
 import { TraceLog } from '../types';
-import { MessageQueue } from './messageQueue';
+import { MessageQueue } from './MessageQueue';
 import { toDateTimeString } from '../helpers';
 import { ChatCompletionMessage } from 'openai/src/resources/chat/completions';
 import { getOutput, messageReducer } from './helpers';
@@ -38,25 +38,29 @@ export class StreamHandler<Item> {
   public async handle(): Promise<ReadableStream> {
     const startTime = this.startTimestamp.getTime() / 1000;
 
-    // fire and forget
-    // noinspection ES6MissingAwait
-    (async () => {
-      for await (const chunk of this.result) {
-        const { output, timeToFirstToken } = messageReducer(this.message, chunk, startTime);
-        this.message = output;
-        if (!this.timeToFirstToken) {
-          this.timeToFirstToken = timeToFirstToken;
+    try {
+      // fire and forget
+      // noinspection ES6MissingAwait
+      (async () => {
+        for await (const chunk of this.result) {
+          const { output, timeToFirstToken } = messageReducer(this.message, chunk, startTime);
+          this.message = output;
+          if (!this.timeToFirstToken) {
+            this.timeToFirstToken = timeToFirstToken;
+          }
+          await this.writer.write(chunk);
         }
-        await this.writer.write(chunk);
-      }
-      await this.writer.close();
-      const endTimestamp = new Date();
-      this.traceLog.output = getOutput({ choices: [{ message: this.message }] });
-      this.traceLog.time_to_first_token = this.timeToFirstToken;
-      this.traceLog.end_timestamp = toDateTimeString(endTimestamp);
-      this.traceLog.latency = (endTimestamp.getTime() - new Date(startTime).getTime()) / 1000;
-      MessageQueue.enqueue(this.traceLog);
-    })();
+        await this.writer.close();
+        const endTimestamp = new Date();
+        this.traceLog.output = getOutput({ choices: [{ message: this.message }] });
+        this.traceLog.time_to_first_token = this.timeToFirstToken;
+        this.traceLog.end_timestamp = toDateTimeString(endTimestamp);
+        this.traceLog.latency = (endTimestamp.getTime() - new Date(startTime).getTime()) / 1000;
+        MessageQueue.enqueue(this.traceLog);
+      })();
+    } catch (error) {
+      console.error('Error processing stream:', error);
+    }
 
     return this.outputStream.readable;
   }

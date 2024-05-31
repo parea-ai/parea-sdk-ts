@@ -1,4 +1,4 @@
-import { LogWorker } from './logWorker';
+import { LogWorker } from './LogWorker';
 
 export class SDKInitializer {
   private static instance: SDKInitializer;

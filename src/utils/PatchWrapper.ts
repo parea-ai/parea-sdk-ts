@@ -1,8 +1,8 @@
 import { ContextObject, TraceLog } from '../types';
-import { MessageQueue } from './messageQueue';
+import { MessageQueue } from './MessageQueue';
 import { genTraceId, toDateTimeString } from '../helpers';
 import { asyncLocalStorage, executionOrderCounters, traceInsert } from './context';
-import { StreamHandler } from './streamHandler';
+import { StreamHandler } from './StreamHandler';
 import {
   _determineDepthAndExecutionOrder,
   _determineOpenAIConfiguration,

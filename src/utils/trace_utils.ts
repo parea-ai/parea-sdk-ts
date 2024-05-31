@@ -12,8 +12,9 @@ import {
   extractFunctionParams,
   updateTraceLog,
 } from './helpers';
-import { handleRunningEvals } from './evalHandler';
+
 import { asyncLocalStorage } from './context';
+import { handleRunningEvals } from './EvalHandler';
 
 /**
  * Decorator to trace a function.
