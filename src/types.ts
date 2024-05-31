@@ -104,9 +104,7 @@ export type FeedbackRequest = {
   comment?: string;
 };
 
-export type TraceLogInputs = {
-  [key: string]: string;
-};
+export type TraceLogInputs = Record<string, any>;
 
 export type EvaluationResult = {
   name: string;
@@ -170,7 +168,7 @@ export type TraceLog = EvaluatedLog & {
   end_timestamp?: string;
   end_user_identifier?: string;
   session_id?: string;
-  metadata?: { [key: string]: any };
+  metadata?: Record<string, any>;
   tags?: string[];
   experiment_uuid?: string | null;
   images?: TraceLogImage[];
@@ -195,6 +193,7 @@ export type TraceOptions = {
   applyEvalFrac?: number;
   deploymentId?: string;
   target?: string;
+  sampleRate?: number;
 };
 
 export type UpdateLog = {
@@ -515,4 +514,9 @@ export type ExperimentWithStatsSchema = ExperimentSchema & {
   is_public: boolean;
   num_samples: number | null;
   pinned_stats: ExperimentPinnedStatistic[];
+};
+
+export type ContextObject = {
+  traceLog: TraceLog;
+  isRunningEval: boolean;
 };

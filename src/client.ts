@@ -21,10 +21,12 @@ import {
 import { HTTPClient } from './api-client';
 import { pareaLogger } from './parea_logger';
 import { genTraceId, serializeMetadataValues } from './helpers';
-import { asyncLocalStorage } from './utils/trace_utils';
 import { pareaProject } from './project';
 import { Experiment } from './experiment/experiment';
 import { createTestCases, createTestCollection } from './experiment/datasets';
+
+import { SDKInitializer } from './utils/SDKInitializer';
+import { asyncLocalStorage } from './utils/context';
 
 const COMPLETION_ENDPOINT = '/completion';
 const DEPLOYED_PROMPT_ENDPOINT = '/deployed-prompt';
@@ -57,6 +59,7 @@ export class Parea {
     pareaProject.setProjectName(projectName);
     pareaProject.setClient(this.client);
     pareaLogger.setClient(this.client);
+    SDKInitializer.initialize();
   }
 
   public enableTestMode(enable: boolean): void {
@@ -177,7 +180,7 @@ export class Parea {
   public experiment(
     name: string,
     data: string | Iterable<DataItem>,
-    func: (...dataItem: any[]) => Promise<any>,
+    func: (...dataItem: any[]) => Promise<any> | any,
     options?: ExperimentOptions,
   ): Experiment {
     return new Experiment(
@@ -221,10 +224,16 @@ export class Parea {
 
     try {
       const parentStore = asyncLocalStorage.getStore();
-      const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined; // Assuming the last traceId is the parent
+      const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined;
+      const isRootTrace = !parentTraceId;
+      const rootTraceId = isRootTrace
+        ? inference_id
+        : parentStore
+        ? Array.from(parentStore.values())[0].traceLog.root_trace_id
+        : inference_id;
 
-      data.parent_trace_id = parentTraceId || inference_id;
-      data.root_trace_id = parentStore ? Array.from(parentStore.values())[0].rootTraceId : data.parent_trace_id;
+      data.parent_trace_id = parentTraceId;
+      data.root_trace_id = rootTraceId;
 
       if (process.env.PAREA_OS_ENV_EXPERIMENT_UUID) {
         experiment_uuid = process.env.PAREA_OS_ENV_EXPERIMENT_UUID;

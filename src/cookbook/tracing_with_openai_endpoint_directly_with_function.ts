@@ -52,24 +52,14 @@ const functions: OpenAI.Chat.ChatCompletionCreateParams.Function[] = [
   },
 ];
 
-async function callFunction(function_call: ChatCompletionMessage.FunctionCall): Promise<any> {
-  const args = JSON.parse(function_call.arguments!);
-  switch (function_call.name) {
-    case 'list':
-      return await list(args['genre']);
+type DBItem = {
+  id: string;
+  name: string;
+  genre: string;
+  description: string;
+};
 
-    case 'search':
-      return await search(args['name']);
-
-    case 'get':
-      return await get(args['id']);
-
-    default:
-      throw new Error('No function found');
-  }
-}
-
-const db = [
+const db: DBItem[] = [
   {
     id: 'a1',
     name: 'To Kill a Mockingbird',
@@ -92,21 +82,46 @@ But Kya is not what they say. A born naturalist with just one day of school, she
   },
 ];
 
-async function list(genre: string) {
+async function list(genre: string): Promise<{ name: string; id: string }[]> {
   return db.filter((item) => item.genre === genre).map((item) => ({ name: item.name, id: item.id }));
 }
 
-async function search(name: string) {
+async function search(name: string): Promise<{ name: string; id: string }[]> {
   return db.filter((item) => item.name.includes(name)).map((item) => ({ name: item.name, id: item.id }));
 }
 
-async function get(id: string) {
+async function get(id: string): Promise<DBItem> {
   return db.find((item) => item.id === id)!;
+}
+
+async function callFunction(function_call: ChatCompletionMessage.FunctionCall): Promise<
+  | Promise<
+      {
+        name: string;
+        id: string;
+      }[]
+    >
+  | Promise<DBItem>
+> {
+  const args = JSON.parse(function_call.arguments!);
+  switch (function_call.name) {
+    case 'list':
+      return await list(args['genre']);
+
+    case 'search':
+      return await search(args['name']);
+
+    case 'get':
+      return await get(args['id']);
+
+    default:
+      throw new Error('No function found');
+  }
 }
 
 async function callOpenAI(
   messages: any[],
-  model: string = 'gpt-3.5-turbo-0125',
+  model: string = 'gpt-4o',
   temperature: number = 0.0,
 ): Promise<ChatCompletionMessage> {
   const response = await openai.chat.completions.create({
@@ -118,6 +133,7 @@ async function callOpenAI(
   return response.choices[0]!.message;
 }
 
+// Add the function call to the trace
 const TcallFunction = trace('callFunction', callFunction, { metadata: { source: 'tool-oai-function-call' } });
 
 const functionCaller = async (query: string) => {
@@ -157,4 +173,4 @@ async function main() {
   );
 }
 
-main();
+main().then(() => console.log('Done'));

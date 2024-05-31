@@ -1,8 +1,10 @@
 import * as dotenv from 'dotenv';
-import { getCurrentTraceId, trace } from '../utils/trace_utils';
+import { trace } from '../utils/trace_utils';
 import OpenAI from 'openai';
 import { patchOpenAI } from '../utils/wrap_openai';
 import { Parea } from '../client';
+import { getCurrentTraceId } from '../utils/context';
+import { Log } from '../types';
 
 dotenv.config();
 
@@ -62,20 +64,24 @@ const refiner = async (
   ]);
 };
 
+// Example 1: Not using trace wrapper, but OpenAI calls are automatically traced with the patchOpenAI function
 const argumentChain = async (query: string, additionalDescription: string = ''): Promise<string> => {
   const argument = await argumentGenerator(query, additionalDescription);
   const criticism = await critic(argument);
   return await refiner(query, additionalDescription, argument, criticism);
 };
 
-// you can add metadata and endUserIdentifier to trace for filtering in the dashboard
-const TargumentChain = trace('argumentChain', argumentChain, {
-  metadata: {
-    purpose: 'test',
+// Example 2: Using trace wrapper to also capture the inputs and outputs of the argumentChain function
+const TargumentChain = trace(
+  'TargumentChain',
+  argumentChain,
+  // you can add metadata and endUserIdentifier to trace for filtering in the dashboard
+  {
+    metadata: { purpose: 'test' },
+    endUserIdentifier: 'user_id',
+    sessionId: 'session_id',
   },
-  endUserIdentifier: 'user_id',
-  sessionId: 'session_id',
-});
+);
 
 const TRefinedArgument = trace(
   'TDrefinedArgument',
@@ -87,16 +93,23 @@ const TRefinedArgument = trace(
   },
 );
 
+function IsEqual(log: Log): number {
+  return Math.random();
+}
+
+// Example 3: Nested tracing is also supported if the sub-functions are wrapped with trace
 const NestedChain = trace(
   'TDNestedChain',
   async (query: string, additionalDescription: string = ''): Promise<string[]> => {
     const refined = await TargumentChain(query, additionalDescription);
     return await TRefinedArgument(query, refined, additionalDescription);
   },
+  // you can also use other options like evalFuncs to add eval scores to the trace, accessOutputOfFunc, applyEvalFrac and more
   {
-    evalFuncNames: ['Is equal'], // this a deployed evaluation function
-    accessOutputOfFunc: (arg0: any) => arg0[0],
-    applyEvalFrac: 0.5,
+    evalFuncs: [IsEqual],
+    // or evalFuncNames: ["Name of eval defined in Parea"]
+    accessOutputOfFunc: (arg0: any) => arg0[0], // apply a function to the output of the trace to modify it
+    applyEvalFrac: 0.5, // apply evalFuncs to 50% of traces
   },
 );
 
@@ -126,6 +139,7 @@ async function main3() {
   return result;
 }
 
+// Example 4: JSON mode
 async function main4() {
   const response = await openai.chat.completions.create({
     model: 'gpt-4-turbo-2024-04-09',

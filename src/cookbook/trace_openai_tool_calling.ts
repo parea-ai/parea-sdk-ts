@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import { Parea } from '../client';
 import { patchOpenAI } from '../utils/wrap_openai';
 import * as dotenv from 'dotenv';
+import { trace } from '../utils/trace_utils';
 
 dotenv.config();
 const openai = new OpenAI();
@@ -11,7 +12,7 @@ new Parea(process.env.PAREA_API_KEY);
 // Patch OpenAI to add trace logs
 patchOpenAI(openai);
 
-async function main() {
+async function toolCallExample() {
   const messages: any[] = [{ role: 'user', content: "What's the weather like in Boston today?" }];
   const functionDef = {
     name: 'get_current_weather',
@@ -40,6 +41,7 @@ async function main() {
     messages: messages,
     tools: tools,
   });
+  console.log(completion.choices[0].message.tool_calls);
   messages.push(completion.choices[0].message);
   messages.push({
     role: 'tool',
@@ -53,8 +55,10 @@ async function main() {
     tools: tools,
   });
 
-  console.log(response.choices[0].message.tool_calls);
+  console.log(response.choices[0].message);
 }
+
+const main = trace('main', toolCallExample);
 
 main()
   .then(() => console.log('Done'))

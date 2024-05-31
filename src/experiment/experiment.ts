@@ -9,8 +9,8 @@ import {
 import { Parea } from '../client';
 import { asyncPool } from '../helpers';
 import { genRandomName } from './utils';
-import { rootTraces } from '../utils/trace_utils';
 import cliProgress from 'cli-progress';
+import { rootTraces } from '../utils/context';
 
 function calculateAvgAsString(values: number[] | undefined, isCost: boolean = false): string {
   const digits = isCost ? 5 : 2;
@@ -69,7 +69,7 @@ async function experiment(
   name: string,
   runName: string,
   data: string | Iterable<DataItem>,
-  func: (...dataItem: any[]) => Promise<any>,
+  func: (...dataItem: any[]) => Promise<any> | any,
   p: Parea,
   nTrials: number = 1,
   metadata?: { [key: string]: string } | undefined,
@@ -111,18 +111,16 @@ async function experiment(
   const tasksGenerator = asyncPool(nWorkers, data, async (sample) => {
     const { target, ...dataInput } = sample;
     const dataSamples = Object.values(dataInput);
-    const result = func(...dataSamples, target);
-    if (bar) bar.increment();
-    return result;
+    return func(...dataSamples, target);
   });
 
   for await (const _ of tasksGenerator) {
     // Purposely ignore. Result not needed
+    if (bar) bar.increment();
     void _;
   }
-  if (bar) bar.stop();
-  await new Promise((resolve) => setTimeout(resolve, 1000));
 
+  await new Promise((resolve) => setTimeout(resolve, 1000));
   const datasetLevelEvalPromises: Promise<EvaluationResult[] | null>[] =
     datasetLevelEvalFuncs?.map(async (func): Promise<EvaluationResult[] | null> => {
       try {
@@ -144,6 +142,8 @@ async function experiment(
   const datasetLevelEvaluationResults = (await Promise.all(datasetLevelEvalPromises))
     .flat()
     .filter((x): x is EvaluationResult => x !== null);
+
+  if (bar) bar.stop();
 
   const experimentStats: ExperimentStatsSchema = await p.finishExperiment(experimentUUID, {
     dataset_level_stats: datasetLevelEvaluationResults,
@@ -176,7 +176,7 @@ export class Experiment {
   constructor(
     name: string,
     data: string | Iterable<DataItem>,
-    func: (...dataItem: any[]) => Promise<any>,
+    func: (...dataItem: any[]) => Promise<any> | any,
     p: Parea,
     nTrials: number = 1,
     metadata?: { [key: string]: string },

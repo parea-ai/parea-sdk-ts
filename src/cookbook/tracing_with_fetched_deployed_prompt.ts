@@ -2,9 +2,10 @@ import * as dotenv from 'dotenv';
 
 import { Log, UseDeployedPromptResponse } from '../types';
 import { Parea } from '../client';
-import { trace, traceInsert } from '../utils/trace_utils';
+import { trace } from '../utils/trace_utils';
 import OpenAI from 'openai';
 import { patchOpenAI } from '../utils/wrap_openai';
+import { traceInsert } from '../utils/context';
 
 dotenv.config();
 
@@ -36,12 +37,12 @@ async function callOpenAI(
   return response.choices[0].message;
 }
 
-const getPrompt = async (
-  deployment_id: string,
-  llm_inputs: Record<string, any>,
-): Promise<UseDeployedPromptResponse> => {
-  return await p.getPrompt({ deployment_id, llm_inputs });
-};
+const getPrompt = trace(
+  'getPrompt',
+  async (deployment_id: string, llm_inputs: Record<string, any>): Promise<UseDeployedPromptResponse> => {
+    return await p.getPrompt({ deployment_id, llm_inputs });
+  },
+);
 
 async function llmJudgeEval(log: Log): Promise<number> {
   const question = log?.inputs?.question;
@@ -65,7 +66,7 @@ async function llmJudgeEval(log: Log): Promise<number> {
           CompareGPT response:`,
         },
       ],
-      'gpt-3.5-turbo',
+      'gpt-4o',
       1.0,
     );
     return (response?.content || '')?.toLowerCase()?.includes('yes') ? 1.0 : 0.0;
@@ -74,29 +75,32 @@ async function llmJudgeEval(log: Log): Promise<number> {
   }
 }
 
-const _ragTemplate = async (deployment_id: string, llm_inputs: Record<string, any>): Promise<string> => {
-  // The Deployed Prompt is:
-  // Use the following pieces of context to answer the question. Do not make up an answer if no context is provided to help answer it.
-  //
-  // Context:
-  // ---------
-  // {{context}}
-  //
-  // ---------
-  // Question: {{question}}
-  // ---------
-  //
-  // Answer:
+const _ragTemplate = trace(
+  '_ragTemplate',
+  async (deployment_id: string, llm_inputs: Record<string, any>): Promise<string> => {
+    // The Deployed Prompt is:
+    // Use the following pieces of context to answer the question. Do not make up an answer if no context is provided to help answer it.
+    //
+    // Context:
+    // ---------
+    // {{context}}
+    //
+    // ---------
+    // Question: {{question}}
+    // ---------
+    //
+    // Answer:
 
-  const deployedPrompt: UseDeployedPromptResponse = await getPrompt(deployment_id, llm_inputs);
-  const response = await callOpenAI(
-    deployedPrompt.prompt?.messages,
-    deployedPrompt.model,
-    deployedPrompt?.model_params?.temp,
-  );
-  console.log('deployedPrompt', deployedPrompt);
-  return response.content ?? '';
-};
+    const deployedPrompt: UseDeployedPromptResponse = await getPrompt(deployment_id, llm_inputs);
+    const response = await callOpenAI(
+      deployedPrompt.prompt?.messages,
+      deployedPrompt.model,
+      deployedPrompt?.model_params?.temp,
+    );
+    // console.log('deployedPrompt', deployedPrompt);
+    return response.content ?? '';
+  },
+);
 
 const ragTemplate = trace(
   'ragTemplate',
