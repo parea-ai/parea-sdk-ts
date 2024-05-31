@@ -104,7 +104,7 @@ export function trace<T extends (...args: any[]) => any>(
           const endTimestamp = new Date();
           const outputForEval = _determineOutputForEvalMetrics(outputValue, options);
           updateTraceLog(traceLog, {
-            output: _stringifyOutput(outputForEval),
+            output: _stringifyOutput(outputValue),
             end_timestamp: toDateTimeString(endTimestamp),
             latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
             output_for_eval_metrics: outputForEval,
