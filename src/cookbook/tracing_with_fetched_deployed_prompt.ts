@@ -2,9 +2,10 @@ import * as dotenv from 'dotenv';
 
 import { Log, UseDeployedPromptResponse } from '../types';
 import { Parea } from '../client';
-import { trace, traceInsert } from '../utils/trace_utils';
+import { trace } from '../utils/trace_utils';
 import OpenAI from 'openai';
 import { patchOpenAI } from '../utils/wrap_openai';
+import { traceInsert } from '../utils/context';
 
 dotenv.config();
 

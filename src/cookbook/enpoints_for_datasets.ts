@@ -18,14 +18,14 @@ export async function main() {
   // this will create a new dataset on Parea named "Math problems".
   // The dataset will have one column named "problem", and two columns using the reserved names "target" and "tags".
   // when using this dataset the expected prompt template should have a placeholder for the variable problem.
-  p.createTestCollection(data, 'Math problems 2');
+  await p.createTestCollection(data, 'Math problems 3');
 
   const new_data = [{ problem: 'Evaluate the integral ∫x^2 dx from 0 to 3.', target: 9, tags: ['hard'] }];
   // this will add the new test cases to the existing "Math problems" dataset.
   // New test cases must have the same columns as the existing dataset.
-  p.addTestCases(new_data, 'Math problems');
+  await p.addTestCases(new_data, 'Math problems 3');
   // Or if you can use the dataset ID instead of the name
-  p.addTestCases(new_data, undefined, 121);
+  // await p.addTestCases(new_data, undefined, 121);
 }
 
 main().then(() => {

@@ -8,7 +8,7 @@ dotenv.config();
 
 const p = new Parea(process.env.PAREA_API_KEY);
 
-// eval function for the subsetp chooseGreeting
+// eval function for the substep chooseGreeting
 const evalChooseGreeting = (log: Log): number | null => {
   if (!log?.target) {
     return null;
