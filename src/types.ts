@@ -515,3 +515,8 @@ export type ExperimentWithStatsSchema = ExperimentSchema & {
   num_samples: number | null;
   pinned_stats: ExperimentPinnedStatistic[];
 };
+
+export type ContextObject = {
+  traceLog: TraceLog;
+  isRunningEval: boolean;
+};

@@ -9,8 +9,8 @@ import {
 import { Parea } from '../client';
 import { asyncPool } from '../helpers';
 import { genRandomName } from './utils';
-import { rootTraces } from '../utils/trace_utils';
 import cliProgress from 'cli-progress';
+import { rootTraces } from '../utils/context';
 
 function calculateAvgAsString(values: number[] | undefined, isCost: boolean = false): string {
   const digits = isCost ? 5 : 2;

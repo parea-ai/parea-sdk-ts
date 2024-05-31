@@ -24,8 +24,9 @@ import { genTraceId, serializeMetadataValues } from './helpers';
 import { pareaProject } from './project';
 import { Experiment } from './experiment/experiment';
 import { createTestCases, createTestCollection } from './experiment/datasets';
-import { asyncLocalStorage } from './utils/LogDecorator';
+
 import { SDKInitializer } from './utils/SDKInitializer';
+import { asyncLocalStorage } from './utils/context';
 
 const COMPLETION_ENDPOINT = '/completion';
 const DEPLOYED_PROMPT_ENDPOINT = '/deployed-prompt';

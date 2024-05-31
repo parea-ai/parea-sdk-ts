@@ -1,7 +1,8 @@
 export { Parea } from './client';
 
-export { trace, getCurrentTraceId, traceInsert } from './utils/trace_utils';
-export { patchOpenAI, traceOpenAITriggerDev } from './utils/wrap_openai';
+export { trace } from './utils/LogDecorator';
+export { getCurrentTraceId, traceInsert } from './utils/context';
+export { patchOpenAI, traceOpenAITriggerDev } from './utils/patchOpenAI';
 export { genTraceId, toDateTimeString } from './helpers';
 
 export {

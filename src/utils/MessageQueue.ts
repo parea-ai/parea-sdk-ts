@@ -28,6 +28,8 @@ export class MessageQueue {
    * @param traceLog The trace log to send.
    */
   public static sendImmediately(traceLog: TraceLog): void {
+    // fire and forget
+    // noinspection JSIgnoredPromiseFromCall
     pareaLogger.recordLog(traceLog);
   }
 }

@@ -1,38 +1,11 @@
-import OpenAI from 'openai';
-import { LLMInputs, Message, Role, TraceLog } from '../types';
-import { pareaLogger } from '../parea_logger';
-import { executionOrderCounters, traceInsert } from './trace_utils';
 import { genTraceId, toDateTimeString } from '../helpers';
-import { MODEL_COST_MAPPING } from './constants';
+import { asyncLocalStorage, executionOrderCounters, traceInsert } from './context';
+import { TraceLog } from '../types';
 import { ChatCompletionMessage } from 'openai/src/resources/chat/completions';
-import { asyncLocalStorage } from './LogDecorator';
+import { _determineOpenAIConfiguration, getOutput, getTotalCost, messageReducer } from './helpers';
+import { pareaLogger } from '../parea_logger';
 
-export function convertOAIMessage(m: any): Message {
-  if (m.role === 'assistant' && !!m.tool_calls) {
-    let content = `${m}`;
-    try {
-      content = formatToolCalls(m);
-    } catch (e) {
-      console.error(`Error converting assistant message with tool calls: ${e}`);
-    }
-    return {
-      role: Role.assistant,
-      content: content,
-    };
-  } else if (m.role === 'tool') {
-    return {
-      role: Role.tool,
-      content: JSON.stringify({ tool_call_id: m.tool_call_id, content: m.content }),
-    };
-  } else {
-    return {
-      role: Role[m.role as keyof typeof Role],
-      content: m.content,
-    };
-  }
-}
-
-function wrapMethod(method: Function, idxArgs: number = 0) {
+export function wrapMethod(method: Function, idxArgs: number = 0) {
   return async function (this: any, ...args: any[]) {
     const traceId = genTraceId();
     const parentStore = asyncLocalStorage.getStore();
@@ -66,26 +39,7 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
 
     const kwargs = args[idxArgs];
     const streamEnabled = kwargs?.stream;
-    const functions = kwargs?.functions || kwargs?.tools?.map((tool: any) => tool?.function) || [];
-    const functionCallDefault = functions?.length > 0 ? 'auto' : null;
-
-    const modelParams = {
-      temp: kwargs?.temperature ?? 1.0,
-      max_length: kwargs?.max_tokens,
-      top_p: kwargs?.top_p ?? 1.0,
-      frequency_penalty: kwargs?.frequency_penalty ?? 0.0,
-      presence_penalty: kwargs?.presence_penalty ?? 0.0,
-      response_format: kwargs?.response_format,
-    };
-
-    const configuration: LLMInputs = {
-      model: kwargs?.model,
-      provider: 'openai',
-      messages: kwargs?.messages?.map((message: any) => convertOAIMessage(message)),
-      functions: functions,
-      function_call: kwargs?.function_call || kwargs?.tool_choice || functionCallDefault,
-      model_params: modelParams,
-    };
+    const configuration = _determineOpenAIConfiguration(kwargs);
 
     const traceLog: TraceLog = {
       trace_id: traceId,
@@ -200,130 +154,4 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
       },
     );
   };
-}
-
-export function traceOpenAITriggerDev(ioOpenAIChatCompletionsCreate: Function): Function {
-  return wrapMethod(ioOpenAIChatCompletionsCreate, 1);
-}
-
-export function patchOpenAI(openai: OpenAI) {
-  // @ts-ignore
-  openai.chat.completions.create = wrapMethod(openai.chat.completions.create);
-}
-
-export function getTotalCost(modelName: string, promptTokens: number, completionTokens: number): number {
-  if (!Object.keys(MODEL_COST_MAPPING).includes(modelName)) {
-    console.error(
-      `Unknown model: ${modelName}. Please provide a valid OpenAI model name. Known models are: ${Object.keys(
-        MODEL_COST_MAPPING,
-      ).join(', ')}`,
-    );
-  }
-  const modelCost = MODEL_COST_MAPPING[modelName] || { prompt: 0, completion: 0 };
-  const promptCost = promptTokens * modelCost.prompt;
-  const completionCost = completionTokens * modelCost.completion;
-  return (promptCost + completionCost) / 1000000;
-}
-
-export function getOutput(result: any): string {
-  const responseMessage = result?.choices[0]?.message;
-  let completion: string = '';
-  if (responseMessage.hasOwnProperty('function_call')) {
-    completion = formatFunctionCall(responseMessage);
-  } else if (responseMessage.hasOwnProperty('tool_calls')) {
-    completion = formatToolCalls(responseMessage);
-  } else {
-    completion = responseMessage?.content?.trim() ?? '';
-  }
-  return completion;
-}
-
-function formatToolCalls(responseMessage: any): string {
-  const formattedToolCalls: any[] = [];
-  for (const toolCall of responseMessage['tool_calls']) {
-    if (toolCall['type'] === 'function') {
-      const functionName: string = toolCall['function']['name'];
-      const functionArgs: any = parseArgs(toolCall['function']['arguments']);
-      const toolCallId: string = toolCall['id'];
-      formattedToolCalls.push({
-        id: toolCallId,
-        type: toolCall['type'],
-        function: {
-          name: functionName,
-          arguments: functionArgs,
-        },
-      });
-    } else {
-      formattedToolCalls.push(toolCall);
-    }
-  }
-  return JSON.stringify(formattedToolCalls, null, 4);
-}
-
-function formatFunctionCall(responseMessage: any): string {
-  const functionName = responseMessage['function_call']['name'];
-  const functionArgs: any = parseArgs(responseMessage['function_call']['arguments']);
-  return `\`\`\`${JSON.stringify({ name: functionName, arguments: functionArgs }, null, 4)}\`\`\``;
-}
-
-function parseArgs(responseFunctionArgs: any): any {
-  if (responseFunctionArgs instanceof Object) {
-    return responseFunctionArgs;
-  } else {
-    try {
-      return JSON.parse(responseFunctionArgs);
-    } catch (e) {
-      console.error(`Error parsing tool call arguments as Object, storing as string instead: ${e}`);
-      return typeof responseFunctionArgs === 'string' ? responseFunctionArgs : `${responseFunctionArgs}`;
-    }
-  }
-}
-
-export function messageReducer(previous: ChatCompletionMessage, item: any, startTime: number) {
-  let first = true;
-  let timeToFirstToken;
-  const reduce = (acc: any, delta: any) => {
-    acc = { ...acc };
-    for (const [key, value] of Object.entries(delta)) {
-      if (acc[key] === undefined || acc[key] === null) {
-        if (first) {
-          const now = getCurrentUnixTimestamp();
-          timeToFirstToken = now - startTime;
-          first = false;
-        }
-        acc[key] = Array.isArray(value) ? [...value] : value;
-        if (Array.isArray(acc[key])) {
-          acc[key] = acc[key].map((arr: any) => {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { index, ...rest } = arr;
-            return rest;
-          });
-        }
-      } else if (typeof acc[key] === 'string' && typeof value === 'string') {
-        acc[key] += value;
-      } else if (typeof acc[key] === 'number' && typeof value === 'number') {
-        acc[key] = value;
-      } else if (Array.isArray(acc[key]) && Array.isArray(value)) {
-        const accArray = acc[key];
-        for (let i = 0; i < value.length; i++) {
-          const { index, ...chunkTool } = value[i];
-          if (index - accArray.length > 1) {
-            console.error(
-              `Error: An array has an empty value when tool_calls are constructed. tool_calls: ${accArray}; tool: ${value}`,
-            );
-          }
-          accArray[index] = reduce({ ...accArray[index] }, chunkTool);
-        }
-      } else if (typeof acc[key] === 'object' && typeof value === 'object') {
-        acc[key] = reduce({ ...acc[key] }, value);
-      }
-    }
-    return acc;
-  };
-  const output = reduce({ ...previous }, item.choices[0]!.delta) as ChatCompletionMessage;
-  return { output, timeToFirstToken };
-}
-
-export function getCurrentUnixTimestamp(): number {
-  return new Date().getTime() / 1000;
 }
