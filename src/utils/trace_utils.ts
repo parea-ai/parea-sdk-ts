@@ -12,7 +12,7 @@ import {
   extractFunctionParams,
   updateTraceLog,
 } from './helpers';
-import { handleRunningEvals } from './EvalHandler';
+import { handleRunningEvals } from './evalHandler';
 import { asyncLocalStorage } from './context';
 
 /**

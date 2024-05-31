@@ -1,6 +1,6 @@
 import { ContextObject, LLMInputs, Message, ModelParams, Role, TraceLog, TraceOptions } from '../types';
 import { asyncLocalStorage, executionOrderCounters, rootTraces } from './context';
-import { MessageQueue } from './MessageQueue';
+import { MessageQueue } from './messageQueue';
 import { MODEL_COST_MAPPING } from './constants';
 import { ChatCompletionMessage } from 'openai/src/resources/chat/completions';
 

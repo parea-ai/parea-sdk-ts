@@ -1,5 +1,5 @@
 import { EvaluatedLog, EvaluationResult, TraceLog } from '../types';
-import { MessageQueue } from './MessageQueue';
+import { MessageQueue } from './messageQueue';
 import { asyncLocalStorage } from './context';
 
 /**

@@ -1,5 +1,5 @@
 import { TraceLog } from '../types';
-import { MessageQueue } from './MessageQueue';
+import { MessageQueue } from './messageQueue';
 import { toDateTimeString } from '../helpers';
 import { ChatCompletionMessage } from 'openai/src/resources/chat/completions';
 import { getOutput, messageReducer } from './helpers';
