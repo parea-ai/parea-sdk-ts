@@ -41,6 +41,7 @@ async function toolCallExample() {
     messages: messages,
     tools: tools,
   });
+  console.log(completion.choices[0].message.tool_calls);
   messages.push(completion.choices[0].message);
   messages.push({
     role: 'tool',
@@ -54,7 +55,7 @@ async function toolCallExample() {
     tools: tools,
   });
 
-  console.log(response.choices[0].message.tool_calls);
+  console.log(response.choices[0].message);
 }
 
 const main = trace('main', toolCallExample);

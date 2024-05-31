@@ -16,7 +16,7 @@ export class LogBatcher {
    * @param batchSize The maximum number of trace logs in a batch.
    * @param batchInterval The interval (in milliseconds) at which to send batches.
    */
-  constructor(onBatchReady: (batch: TraceLog[]) => void, batchSize: number = 100, batchInterval: number = 2000) {
+  constructor(onBatchReady: (batch: TraceLog[]) => void, batchSize: number = 100, batchInterval: number = 1000) {
     this.onBatchReady = onBatchReady;
     this.batchSize = batchSize;
     this.batchInterval = batchInterval;

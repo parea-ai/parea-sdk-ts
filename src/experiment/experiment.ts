@@ -111,18 +111,16 @@ async function experiment(
   const tasksGenerator = asyncPool(nWorkers, data, async (sample) => {
     const { target, ...dataInput } = sample;
     const dataSamples = Object.values(dataInput);
-    const result = func(...dataSamples, target);
-    if (bar) bar.increment();
-    return result;
+    return func(...dataSamples, target);
   });
 
   for await (const _ of tasksGenerator) {
     // Purposely ignore. Result not needed
+    if (bar) bar.increment();
     void _;
   }
-  if (bar) bar.stop();
-  await new Promise((resolve) => setTimeout(resolve, 1000));
 
+  await new Promise((resolve) => setTimeout(resolve, 1000));
   const datasetLevelEvalPromises: Promise<EvaluationResult[] | null>[] =
     datasetLevelEvalFuncs?.map(async (func): Promise<EvaluationResult[] | null> => {
       try {
@@ -144,6 +142,8 @@ async function experiment(
   const datasetLevelEvaluationResults = (await Promise.all(datasetLevelEvalPromises))
     .flat()
     .filter((x): x is EvaluationResult => x !== null);
+
+  if (bar) bar.stop();
 
   const experimentStats: ExperimentStatsSchema = await p.finishExperiment(experimentUUID, {
     dataset_level_stats: datasetLevelEvaluationResults,
