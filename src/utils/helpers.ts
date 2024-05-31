@@ -1,5 +1,5 @@
 import { ContextObject, LLMInputs, Message, ModelParams, Role, TraceLog, TraceOptions } from '../types';
-import { asyncLocalStorage, executionOrderCounters, rootTraces, traceInsert } from './context';
+import { asyncLocalStorage, executionOrderCounters, rootTraces } from './context';
 import { MessageQueue } from './MessageQueue';
 import { MODEL_COST_MAPPING } from './constants';
 import { ChatCompletionMessage } from 'openai/src/resources/chat/completions';
@@ -67,22 +67,19 @@ export function _determineTarget(
  * Determine the output for evaluation metrics based on the output value, options, and trace id.
  * @param outputValue The output value.
  * @param options The trace options.
- * @param traceId The trace id.
  */
 export function _determineOutputForEvalMetrics(
   outputValue: any,
   options: TraceOptions | undefined,
-  traceId: string,
-): void {
-  let outputForEvalMetrics = outputValue;
+): string | undefined {
   if (options?.accessOutputOfFunc) {
     try {
-      outputForEvalMetrics = options?.accessOutputOfFunc(outputValue);
-      traceInsert({ output_for_eval_metrics: outputForEvalMetrics }, traceId);
+      return options?.accessOutputOfFunc(outputValue);
     } catch (e) {
       console.error(`Error accessing output of func with output: ${outputValue}. Error: ${e}`, e);
     }
   }
+  return undefined;
 }
 
 /**
@@ -364,7 +361,8 @@ function parseArgs(responseFunctionArgs: any): any {
 }
 
 /**
- * Reduce the OpenAI stream response to a ChatCompletionMessage.
+ * Reduce the OpenAI stream response to a ChatCompletionMessage. Modified from OpenAI Node SDK example.
+ * Source: https://github.com/openai/openai-node/blob/master/examples/tool-calls-stream.ts#L154
  * @param previous The previous message. Updating in place.
  * @param item The current chunk.
  * @param startTime The start time.
@@ -412,4 +410,16 @@ export function messageReducer(previous: ChatCompletionMessage, item: any, start
   };
   const output = reduce({ ...previous }, item.choices[0]!.delta) as ChatCompletionMessage;
   return { output, timeToFirstToken };
+}
+
+/**
+ * Update the trace log with the provided data.
+ * @param traceLog The trace log.
+ * @param data The data to update the trace log with.
+ */
+export function updateTraceLog(traceLog: TraceLog, data: { [key: string]: any }): void {
+  for (const key in data) {
+    // @ts-ignore
+    traceLog[key] = data[key];
+  }
 }

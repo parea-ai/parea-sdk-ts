@@ -36,16 +36,10 @@ export const traceInsert = (data: { [key: string]: any }, traceId?: string) => {
     console.warn('No active store found for traceInsert.');
     return;
   }
-
-  let currentTraceData;
-  if (!traceId) {
-    traceId = getCurrentTraceId() as string;
-    currentTraceData = store.get(traceId);
-  } else {
-    currentTraceData = store.get(traceId);
-  }
+  const useTraceId = traceId || (getCurrentTraceId() as string);
+  const currentTraceData = store.get(useTraceId);
   if (!currentTraceData) {
-    console.warn(`No trace data found for traceId ${traceId}.`);
+    console.warn(`No trace data found for traceId ${useTraceId}.`);
     return;
   }
 
@@ -56,5 +50,5 @@ export const traceInsert = (data: { [key: string]: any }, traceId?: string) => {
     currentTraceData.traceLog[key] = existingValue ? merge(existingValue, newValue) : newValue;
   }
 
-  store.set(traceId, currentTraceData);
+  store.set(useTraceId, currentTraceData);
 };

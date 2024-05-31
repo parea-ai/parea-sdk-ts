@@ -1,28 +1,29 @@
 import { EvaluatedLog, EvaluationResult, TraceLog } from '../types';
 import { MessageQueue } from './MessageQueue';
+import { asyncLocalStorage } from './context';
 
 /**
  * Handles running evaluation functions on a trace log.
  * @param traceId The ID of the trace log.
- * @param store The store containing the trace log data.
+ * @param traceLog
  * @param evalFuncs The evaluation functions to run.
  * @param applyEvalFrac The fraction of traces to apply evaluation functions to.
  */
 export const handleRunningEvals = async (
   traceId: string,
-  store: Map<string, { traceLog: TraceLog; isRunningEval: boolean }>,
+  traceLog: TraceLog,
   evalFuncs: ((
     traceLog: EvaluatedLog,
   ) => Promise<EvaluationResult | EvaluationResult[] | number | boolean | undefined>)[],
   applyEvalFrac: number | undefined,
 ): Promise<void> => {
+  const store = asyncLocalStorage.getStore();
   if (!store) {
     console.warn('No active store found for handleRunningEvals.');
     return;
   }
 
   const currentTraceData = store.get(traceId);
-  const traceLog = currentTraceData?.traceLog;
   if (!currentTraceData || !traceLog) {
     console.warn(`No trace data found for traceId ${traceId}.`);
     return;
@@ -56,7 +57,7 @@ export const handleRunningEvals = async (
     traceLog.scores = scores;
     currentTraceData.isRunningEval = false;
     currentTraceData.traceLog = traceLog;
+    store.set(traceId, currentTraceData);
+    MessageQueue.sendImmediately(traceLog);
   }
-  store.set(traceId, currentTraceData);
-  MessageQueue.sendImmediately(traceLog);
 };

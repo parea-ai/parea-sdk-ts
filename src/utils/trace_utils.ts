@@ -1,4 +1,4 @@
-import { TraceLog, TraceOptions } from '../types';
+import { ContextObject, TraceLog, TraceOptions } from '../types';
 import { genTraceId, toDateTimeString } from '../helpers';
 import {
   _determineDepthAndExecutionOrder,
@@ -10,9 +10,10 @@ import {
   _maybeEnqueue,
   _stringifyOutput,
   extractFunctionParams,
+  updateTraceLog,
 } from './helpers';
 import { handleRunningEvals } from './EvalHandler';
-import { asyncLocalStorage, traceInsert } from './context';
+import { asyncLocalStorage } from './context';
 
 /**
  * Decorator to trace a function.
@@ -63,11 +64,12 @@ export function trace<T extends (...args: any[]) => any>(
       experiment_uuid: process.env.PAREA_OS_ENV_EXPERIMENT_UUID || null,
       apply_eval_frac: options?.applyEvalFrac,
       deployment_id: options?.deploymentId,
+      evaluation_metric_names: options?.evalFuncNames,
       depth,
       execution_order: executionOrder,
     };
 
-    const store = new Map<string, { traceLog: TraceLog; isRunningEval: boolean }>();
+    const store = new Map<string, ContextObject>();
     store.set(traceId, { traceLog, isRunningEval: false });
 
     _fillParentIfNeeded(parentStore, parentTraceId, traceId);
@@ -75,51 +77,59 @@ export function trace<T extends (...args: any[]) => any>(
     return asyncLocalStorage.run(store, () => {
       let outputValue: any;
       let error: Error | undefined;
-      const delaySend = !!options?.evalFuncs;
+      const delaySendUntilAfterEval = !!options?.evalFuncs;
 
       try {
         outputValue = originalMethod.apply(this, args);
-        const endTimestamp = new Date();
-        traceInsert(
-          {
-            evaluation_metric_names: options?.evalFuncNames,
-            end_timestamp: toDateTimeString(endTimestamp),
-            latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
-          },
-          traceId,
-        );
 
         if (outputValue instanceof Promise) {
-          return outputValue
-            .then((result) => {
-              traceInsert({ output: _stringifyOutput(result) }, traceId);
-              _determineOutputForEvalMetrics(result, options, traceId);
-              _maybeEnqueue(delaySend, traceLog);
-              return result;
-            })
-            .catch((error: Error) => {
-              traceInsert({ error: error.toString(), status: 'error' }, traceId);
-              _maybeEnqueue(delaySend, traceLog);
-              throw error;
+          return outputValue.then((result) => {
+            const endTimestamp = new Date();
+            const outputForEval = _determineOutputForEvalMetrics(result, options);
+            updateTraceLog(traceLog, {
+              output: _stringifyOutput(result),
+              end_timestamp: toDateTimeString(endTimestamp),
+              latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
+              output_for_eval_metrics: outputForEval,
             });
+            _maybeEnqueue(delaySendUntilAfterEval, traceLog);
+            if (options?.evalFuncs) {
+              // fire and forget
+              // noinspection JSIgnoredPromiseFromCall
+              handleRunningEvals(traceId, traceLog, options.evalFuncs, options?.applyEvalFrac);
+            }
+            return result;
+          });
+        } else {
+          const endTimestamp = new Date();
+          const outputForEval = _determineOutputForEvalMetrics(outputValue, options);
+          updateTraceLog(traceLog, {
+            output: _stringifyOutput(outputForEval),
+            end_timestamp: toDateTimeString(endTimestamp),
+            latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
+            output_for_eval_metrics: outputForEval,
+          });
+          _maybeEnqueue(delaySendUntilAfterEval, traceLog);
+          if (options?.evalFuncs) {
+            // fire and forget
+            // noinspection JSIgnoredPromiseFromCall
+            handleRunningEvals(traceId, traceLog, options.evalFuncs, options?.applyEvalFrac);
+          }
+          return outputValue;
         }
-
-        traceInsert({ output: _stringifyOutput(outputValue) }, traceId);
-        _determineOutputForEvalMetrics(outputValue, options, traceId);
-        _maybeEnqueue(delaySend, traceLog);
-        return outputValue;
       } catch (err) {
         error = err as Error;
-        traceInsert({ error: error.toString(), status: 'error' }, traceId);
-        _maybeEnqueue(delaySend, traceLog);
+        const endTimestamp = new Date();
+        updateTraceLog(traceLog, {
+          end_timestamp: toDateTimeString(endTimestamp),
+          latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
+          error: error.toString(),
+          status: 'error',
+        });
+        _maybeEnqueue(delaySendUntilAfterEval, traceLog);
         throw err;
       } finally {
         store.set(traceId, { traceLog, isRunningEval: false });
-        if (options?.evalFuncs) {
-          // fire and forget
-          // noinspection JSIgnoredPromiseFromCall
-          handleRunningEvals(traceId, store, options.evalFuncs, options?.applyEvalFrac);
-        }
         _fillRootTracesIfNeeded(isRootTrace, rootTraceId, traceLog);
       }
     });

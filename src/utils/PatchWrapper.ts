@@ -1,4 +1,4 @@
-import { TraceLog } from '../types';
+import { ContextObject, TraceLog } from '../types';
 import { MessageQueue } from './MessageQueue';
 import { genTraceId, toDateTimeString } from '../helpers';
 import { asyncLocalStorage, executionOrderCounters, traceInsert } from './context';
@@ -7,9 +7,11 @@ import {
   _determineDepthAndExecutionOrder,
   _determineOpenAIConfiguration,
   _determineRootTraceId,
+  _fillParentIfNeeded,
   getOutput,
   getTotalCost,
   messageReducer,
+  updateTraceLog,
 } from './helpers';
 import { ChatCompletionMessage } from 'openai/src/resources/chat/completions';
 import { pareaLogger } from '../parea_logger';
@@ -49,15 +51,16 @@ export function PatchWrapper<T extends object>(target: T, methodName: keyof T, s
 
       const parentStore = asyncLocalStorage.getStore();
 
+      const insideEvalFuncSkipLogging = parentStore ? Array.from(parentStore.values())[0].isRunningEval : false;
+      if (insideEvalFuncSkipLogging) {
+        return originalMethod.apply(thisArg, args);
+      }
+
       const traceId = genTraceId();
       const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined;
       const isRootTrace = !parentTraceId;
       const rootTraceId = _determineRootTraceId(isRootTrace, traceId, parentStore);
       const { depth, executionOrder } = _determineDepthAndExecutionOrder(parentStore, rootTraceId);
-
-      if (parentStore && Array.from(parentStore.values())[0].isRunningEval) {
-        return originalMethod.apply(thisArg, args);
-      }
 
       const kwargs = { ...args[idxArgs] };
       const streamEnabled = kwargs?.stream;
@@ -66,9 +69,10 @@ export function PatchWrapper<T extends object>(target: T, methodName: keyof T, s
       const startTimestamp = new Date();
 
       const traceLog: TraceLog = {
-        trace_id: traceId,
-        root_trace_id: traceId,
         trace_name: 'llm-openai',
+        trace_id: traceId,
+        parent_trace_id: parentTraceId,
+        root_trace_id: rootTraceId,
         start_timestamp: toDateTimeString(startTimestamp),
         configuration: configuration,
         children: [],
@@ -78,40 +82,74 @@ export function PatchWrapper<T extends object>(target: T, methodName: keyof T, s
         execution_order: executionOrder,
       };
 
-      try {
-        const result = await originalMethod.apply(thisArg, args);
-        const endTimestamp = new Date();
-        traceInsert(
-          {
+      const store = new Map<string, ContextObject>();
+      store.set(traceId, { traceLog, isRunningEval: false });
+
+      _fillParentIfNeeded(parentStore, parentTraceId, traceId);
+
+      return asyncLocalStorage.run(store, () => {
+        let outputValue: any;
+        let error: Error | undefined;
+
+        try {
+          outputValue = originalMethod.apply(thisArg, args);
+
+          if (outputValue instanceof Promise) {
+            return outputValue.then((result) => {
+              if (streamEnabled) {
+                const streamHandler = new StreamHandler(result, traceLog, startTimestamp);
+                return streamHandler.handle();
+              } else {
+                const endTimestamp = new Date();
+                updateTraceLog(traceLog, {
+                  output: getOutput(result),
+                  input_tokens: result?.usage?.prompt_tokens ?? 0,
+                  output_tokens: result?.usage?.completion_tokens ?? 0,
+                  total_tokens: result?.usage?.total_tokens ?? 0,
+                  cost: getTotalCost(kwargs?.model, result.usage.prompt_tokens, result.usage.completion_tokens) ?? 0,
+                  end_timestamp: toDateTimeString(endTimestamp),
+                  latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
+                });
+                MessageQueue.enqueue(traceLog);
+                return result;
+              }
+            });
+          } else {
+            if (streamEnabled) {
+              const streamHandler = new StreamHandler(outputValue, traceLog, startTimestamp);
+              return streamHandler.handle();
+            } else {
+              const endTimestamp = new Date();
+              updateTraceLog(traceLog, {
+                output: getOutput(outputValue),
+                input_tokens: outputValue?.usage?.prompt_tokens ?? 0,
+                output_tokens: outputValue?.usage?.completion_tokens ?? 0,
+                total_tokens: outputValue?.usage?.total_tokens ?? 0,
+                cost:
+                  getTotalCost(kwargs?.model, outputValue.usage.prompt_tokens, outputValue.usage.completion_tokens) ??
+                  0,
+                end_timestamp: toDateTimeString(endTimestamp),
+                latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
+              });
+              MessageQueue.enqueue(traceLog);
+              return outputValue;
+            }
+          }
+        } catch (err) {
+          error = err as Error;
+          const endTimestamp = new Date();
+          updateTraceLog(traceLog, {
+            error: error.toString(),
+            status: 'error',
             end_timestamp: toDateTimeString(endTimestamp),
             latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
-          },
-          traceId,
-        );
-
-        if (streamEnabled) {
-          const streamHandler = new StreamHandler(result, traceLog, startTimestamp);
-          return streamHandler.handle();
-        } else {
-          traceInsert(
-            {
-              output: getOutput(result),
-              input_tokens: result?.usage?.prompt_tokens ?? 0,
-              output_tokens: result?.usage?.completion_tokens ?? 0,
-              total_tokens: result?.usage?.total_tokens ?? 0,
-              cost: getTotalCost(kwargs?.model, result.usage.prompt_tokens, result.usage.completion_tokens) ?? 0,
-            },
-            traceId,
-          );
+          });
           MessageQueue.enqueue(traceLog);
-          return result;
+          throw error;
+        } finally {
+          store.set(traceId, { traceLog, isRunningEval: false });
         }
-      } catch (err) {
-        const error = err as Error;
-        traceInsert({ error: error.toString(), status: 'error' }, traceId);
-        MessageQueue.enqueue(traceLog);
-        throw error;
-      }
+      });
     };
   };
 
