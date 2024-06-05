@@ -7,9 +7,9 @@ import { pareaLogger } from '../parea_logger';
  * Represents a worker that consumes trace logs from the message queue and sends them to the endpoint.
  */
 export class LogWorker {
+  batcher: LogBatcher;
   private readonly retryCount: number;
   private readonly retryDelay: number;
-  private batcher: LogBatcher;
 
   /**
    * Creates a new instance of the LogWorker.

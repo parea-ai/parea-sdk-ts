@@ -4,7 +4,7 @@ export class SDKInitializer {
   private static instance: SDKInitializer;
   private logWorker: LogWorker;
 
-  private constructor() {
+  constructor() {
     this.logWorker = new LogWorker();
     this.logWorker.start();
   }
@@ -13,5 +13,20 @@ export class SDKInitializer {
     if (!SDKInitializer.instance) {
       SDKInitializer.instance = new SDKInitializer();
     }
+  }
+
+  static async forceSendLogs() {
+    SDKInitializer.getInstance().forceSendLogs();
+  }
+
+  private static getInstance() {
+    if (!SDKInitializer.instance) {
+      SDKInitializer.instance = new SDKInitializer();
+    }
+    return SDKInitializer.instance;
+  }
+
+  public forceSendLogs(): void {
+    this.logWorker.batcher.flush();
   }
 }
