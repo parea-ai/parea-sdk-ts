@@ -129,6 +129,9 @@ export class Parea {
       method: 'GET',
       endpoint: GET_COLLECTION_ENDPOINT.replace('{test_collection_identifier}', String(testCollectionIdentifier)),
     });
+    if (!response.data) {
+      console.error(`No test collection found with identifier ${testCollectionIdentifier}`);
+    }
     return new TestCaseCollection(
       response.data.id,
       response.data.name,
