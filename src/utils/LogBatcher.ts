@@ -39,7 +39,7 @@ export class LogBatcher {
   /**
    * Flushes the current batch queue and sends the batch to the callback function.
    */
-  private flush(): void {
+  public flush(): void {
     if (this.batchQueue.length === 0) {
       return;
     }

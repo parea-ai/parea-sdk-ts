@@ -20,7 +20,7 @@ export {
   Log,
   TraceLog,
   TraceLogImage,
-  TraceLogTreeSchema,
+  TraceLogTree,
   EvaluationResult,
   TraceOptions,
   UpdateLog,

@@ -4,6 +4,7 @@ import {
   CreateExperimentRequest,
   CreateTestCaseCollection,
   DataItem,
+  EvaluationResult,
   ExperimentOptions,
   ExperimentSchema,
   ExperimentStatsSchema,
@@ -13,7 +14,7 @@ import {
   ListExperimentUUIDsFilters,
   TestCaseCollection,
   TraceLogFilters,
-  TraceLogTreeSchema,
+  TraceLogTree,
   UseDeployedPrompt,
   UseDeployedPromptResponse,
 } from './types';
@@ -39,6 +40,7 @@ const CREATE_COLLECTION_ENDPOINT = '/collection';
 const ADD_TEST_CASES_ENDPOINT = '/testcases';
 const LIST_EXPERIMENTS_ENDPOINT = '/experiments';
 const GET_EXP_LOGS_ENDPOINT = '/experiment/{experiment_uuid}/trace_logs';
+const GET_TRACE_LOG_ENDPOINT = '/trace_log/{trace_id}';
 
 export class Parea {
   private apiKey: string;
@@ -124,13 +126,14 @@ export class Parea {
     return response.data;
   }
 
-  public async getCollection(testCollectionIdentifier: string | number): Promise<TestCaseCollection> {
+  public async getCollection(testCollectionIdentifier: string | number): Promise<TestCaseCollection | null> {
     const response = await this.client.request({
       method: 'GET',
       endpoint: GET_COLLECTION_ENDPOINT.replace('{test_collection_identifier}', String(testCollectionIdentifier)),
     });
     if (!response.data) {
       console.error(`No test collection found with identifier ${testCollectionIdentifier}`);
+      return null;
     }
     return new TestCaseCollection(
       response.data.id,
@@ -207,13 +210,59 @@ export class Parea {
     return response.data;
   }
 
-  public async getExperimentLogs(experimentUUID: string, filter: TraceLogFilters = {}): Promise<TraceLogTreeSchema[]> {
+  public async getExperimentLogs(experimentUUID: string, filter: TraceLogFilters = {}): Promise<TraceLogTree[]> {
     const response = await this.client.request({
       method: 'POST',
       endpoint: GET_EXP_LOGS_ENDPOINT.replace('{experiment_uuid}', experimentUUID),
       data: filter,
     });
     return response.data;
+  }
+
+  /**
+   * Get the trace log tree for the given trace ID.
+   * @param traceId - The trace ID to fetch the log for.
+   * @returns The trace log tree.
+   */
+  public async getTraceLog(traceId: string): Promise<TraceLogTree> {
+    const response = await this.client.request({
+      method: 'GET',
+      endpoint: GET_TRACE_LOG_ENDPOINT.replace('{trace_id}', traceId),
+    });
+    return response.data;
+  }
+
+  /**
+   * Get the evaluation scores from the trace log. If the scores are not present in the trace log, fetch them from the DB.
+   * @param traceId - The trace ID to get the scores for.
+   * @param checkContext - If true, will check the context for the scores first before fetching from the DB.
+   * @returns A list of evaluation results.
+   */
+  public async getTraceLogScores(traceId: string, checkContext: boolean = true): Promise<EvaluationResult[]> {
+    await SDKInitializer.forceSendLogs();
+    // try to get trace_id scores from context
+    if (checkContext) {
+      const store = asyncLocalStorage.getStore();
+      if (store) {
+        const currentTraceData = store.get(traceId);
+        if (currentTraceData) {
+          const scores = currentTraceData.traceLog?.scores || [];
+          if (scores) {
+            return scores;
+          }
+        }
+      }
+    }
+
+    // sleep for 2 second to allow logs to flush
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    const response = await this.client.request({
+      method: 'GET',
+      endpoint: GET_TRACE_LOG_ENDPOINT.replace('{trace_id}', traceId),
+    });
+    const tree: TraceLogTree = response.data;
+    return extractScores(tree);
   }
 
   private async updateDataAndTrace(data: Completion): Promise<Completion> {
@@ -257,4 +306,20 @@ export class Parea {
 
     return data;
   }
+}
+
+function extractScores(tree: TraceLogTree): EvaluationResult[] {
+  const scores: EvaluationResult[] = [];
+
+  function traverse(node: TraceLogTree) {
+    if (node.scores) {
+      scores.push(...(node.scores || []));
+    }
+    for (const child of node.children_logs) {
+      traverse(child);
+    }
+  }
+
+  traverse(tree);
+  return scores;
 }
