@@ -81,6 +81,9 @@ async function experiment(
   if (typeof data === 'string') {
     console.log(`Fetching test collection: ${data}`);
     const response = await p.getCollection(data);
+    if (!response) {
+      throw new Error(`Collection ${data} not found`);
+    }
     const testCollection = new TestCaseCollection(
       response.id,
       response.name,

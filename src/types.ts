@@ -178,8 +178,8 @@ export type TraceLog = EvaluatedLog & {
   execution_order: number;
 };
 
-export type TraceLogTreeSchema = TraceLog & {
-  children_logs: TraceLogTreeSchema[];
+export type TraceLogTree = TraceLog & {
+  children_logs: TraceLogTree[];
 };
 
 export type TraceOptions = {
