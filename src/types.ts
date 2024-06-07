@@ -199,6 +199,7 @@ export type TraceOptions = {
 export type UpdateLog = {
   trace_id: string;
   field_name_to_value_map: { [key: string]: any };
+  root_trace_id?: string;
 };
 
 export type CreateExperimentRequest = {
