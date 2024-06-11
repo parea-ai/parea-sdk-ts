@@ -55,7 +55,7 @@ export class StreamHandler<Item> {
         this.traceLog.output = getOutput({ choices: [{ message: this.message }] });
         this.traceLog.time_to_first_token = this.timeToFirstToken;
         this.traceLog.end_timestamp = toDateTimeString(endTimestamp);
-        this.traceLog.latency = (endTimestamp.getTime() - new Date(startTime).getTime()) / 1000;
+        this.traceLog.latency = (endTimestamp.getTime() - this.startTimestamp.getTime()) / 1000;
         MessageQueue.enqueue(this.traceLog);
       })();
     } catch (error) {
