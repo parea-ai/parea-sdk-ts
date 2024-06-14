@@ -281,13 +281,6 @@ function convertOAIMessage(m: any): Message {
  */
 export function getTotalCost(modelName: string, promptTokens: number, completionTokens: number): number {
   try {
-    if (!Object.keys(MODEL_COST_MAPPING).includes(modelName)) {
-      console.error(
-        `Unknown model: ${modelName}. Please provide a valid OpenAI model name. Known models are: ${Object.keys(
-          MODEL_COST_MAPPING,
-        ).join(', ')}`,
-      );
-    }
     const modelCost = MODEL_COST_MAPPING[modelName] || { prompt: 0, completion: 0 };
     const promptCost = promptTokens * modelCost.prompt;
     const completionCost = completionTokens * modelCost.completion;
@@ -309,7 +302,7 @@ export function getOutput(result: any): string {
     let completion: string;
     if (responseMessage.hasOwnProperty('function_call')) {
       completion = formatFunctionCall(responseMessage);
-    } else if (responseMessage.hasOwnProperty('tool_calls')) {
+    } else if (responseMessage.hasOwnProperty('tool_calls') && responseMessage['tool_calls'].length > 0) {
       completion = formatToolCalls(responseMessage);
     } else {
       completion = responseMessage?.content?.trim() ?? '';
@@ -382,9 +375,18 @@ function parseArgs(responseFunctionArgs: any): any {
  * @param item The current chunk.
  * @param startTime The start time.
  */
-export function messageReducer(previous: ChatCompletionMessage, item: any, startTime: number) {
+export function messageReducer(
+  previous: ChatCompletionMessage,
+  item: any,
+  startTime: number,
+): {
+  output: ChatCompletionMessage;
+  timeToFirstToken: number | undefined;
+  model: string | undefined;
+} {
   let first = true;
   let timeToFirstToken;
+  let model = item?.model;
   const reduce = (acc: any, delta: any) => {
     acc = { ...acc };
     for (const [key, value] of Object.entries(delta)) {
@@ -424,7 +426,7 @@ export function messageReducer(previous: ChatCompletionMessage, item: any, start
     return acc;
   };
   const output = reduce({ ...previous }, item.choices[0]!.delta) as ChatCompletionMessage;
-  return { output, timeToFirstToken };
+  return { output, timeToFirstToken, model };
 }
 
 /**

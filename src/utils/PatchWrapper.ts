@@ -69,7 +69,7 @@ export function PatchWrapper<T extends object>(target: T, methodName: keyof T, s
       const startTimestamp = new Date();
 
       const traceLog: TraceLog = {
-        trace_name: 'llm-openai',
+        trace_name: configuration?.model ? `llm-${configuration.model}` : 'llm',
         trace_id: traceId,
         parent_trace_id: parentTraceId,
         root_trace_id: rootTraceId,
@@ -101,14 +101,23 @@ export function PatchWrapper<T extends object>(target: T, methodName: keyof T, s
                 return streamHandler.handle();
               } else {
                 const endTimestamp = new Date();
+                if (result?.model) {
+                  configuration.model = result.model;
+                }
                 updateTraceLog(traceLog, {
                   output: getOutput(result),
                   input_tokens: result?.usage?.prompt_tokens ?? 0,
                   output_tokens: result?.usage?.completion_tokens ?? 0,
                   total_tokens: result?.usage?.total_tokens ?? 0,
-                  cost: getTotalCost(kwargs?.model, result.usage.prompt_tokens, result.usage.completion_tokens) ?? 0,
+                  cost:
+                    getTotalCost(
+                      configuration.model || '',
+                      result.usage.prompt_tokens,
+                      result.usage.completion_tokens,
+                    ) ?? 0,
                   end_timestamp: toDateTimeString(endTimestamp),
                   latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
+                  configuration: configuration,
                 });
                 MessageQueue.enqueue(traceLog);
                 return result;
@@ -120,16 +129,23 @@ export function PatchWrapper<T extends object>(target: T, methodName: keyof T, s
               return streamHandler.handle();
             } else {
               const endTimestamp = new Date();
+              if (outputValue?.model) {
+                configuration.model = outputValue.model;
+              }
               updateTraceLog(traceLog, {
                 output: getOutput(outputValue),
                 input_tokens: outputValue?.usage?.prompt_tokens ?? 0,
                 output_tokens: outputValue?.usage?.completion_tokens ?? 0,
                 total_tokens: outputValue?.usage?.total_tokens ?? 0,
                 cost:
-                  getTotalCost(kwargs?.model, outputValue.usage.prompt_tokens, outputValue.usage.completion_tokens) ??
-                  0,
+                  getTotalCost(
+                    configuration.model || '',
+                    outputValue.usage.prompt_tokens,
+                    outputValue.usage.completion_tokens,
+                  ) ?? 0,
                 end_timestamp: toDateTimeString(endTimestamp),
                 latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
+                configuration: configuration,
               });
               MessageQueue.enqueue(traceLog);
               return outputValue;
