@@ -15,6 +15,7 @@ export class StreamHandler<Item> {
   private message: ChatCompletionMessage;
   private timeToFirstToken: number | undefined;
   private startTimestamp: Date;
+  private responseModel: string | undefined;
 
   /**
    * Creates a new instance of the StreamHandler.
@@ -43,10 +44,13 @@ export class StreamHandler<Item> {
       // noinspection ES6MissingAwait
       (async () => {
         for await (const chunk of this.result) {
-          const { output, timeToFirstToken } = messageReducer(this.message, chunk, startTime);
+          const { output, timeToFirstToken, model } = messageReducer(this.message, chunk, startTime);
           this.message = output;
           if (!this.timeToFirstToken) {
             this.timeToFirstToken = timeToFirstToken;
+          }
+          if (!this.responseModel && model) {
+            this.responseModel = model;
           }
           await this.writer.write(chunk);
         }
@@ -56,6 +60,9 @@ export class StreamHandler<Item> {
         this.traceLog.time_to_first_token = this.timeToFirstToken;
         this.traceLog.end_timestamp = toDateTimeString(endTimestamp);
         this.traceLog.latency = (endTimestamp.getTime() - this.startTimestamp.getTime()) / 1000;
+        if (this.traceLog?.configuration) {
+          this.traceLog.configuration.model = this.responseModel;
+        }
         MessageQueue.enqueue(this.traceLog);
       })();
     } catch (error) {
