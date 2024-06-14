@@ -302,7 +302,7 @@ export function getOutput(result: any): string {
     let completion: string;
     if (responseMessage.hasOwnProperty('function_call')) {
       completion = formatFunctionCall(responseMessage);
-    } else if (responseMessage.hasOwnProperty('tool_calls') && responseMessage['tool_calls'].length > 0) {
+    } else if (responseMessage.hasOwnProperty('tool_calls') && responseMessage?.['tool_calls']?.length > 0) {
       completion = formatToolCalls(responseMessage);
     } else {
       completion = responseMessage?.content?.trim() ?? '';
