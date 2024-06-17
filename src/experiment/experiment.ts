@@ -12,6 +12,13 @@ import { genRandomName } from './utils';
 import cliProgress from 'cli-progress';
 import { rootTraces } from '../utils/context';
 
+enum ExperimentStatus {
+  PENDING = 'pending',
+  RUNNING = 'running',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+}
+
 function calculateAvgAsString(values: number[] | undefined, isCost: boolean = false): string {
   const digits = isCost ? 5 : 2;
   if (!values || values.length === 0) {
@@ -117,39 +124,52 @@ async function experiment(
     return func(...dataSamples, target);
   });
 
-  for await (const _ of tasksGenerator) {
-    // Purposely ignore. Result not needed
-    if (bar) bar.increment();
-    void _;
+  let experimentStatus: ExperimentStatus = ExperimentStatus.COMPLETED;
+  try {
+    for await (const _ of tasksGenerator) {
+      if (bar) bar.increment();
+      void _;
+    }
+  } catch (e) {
+    console.error(`\nError occurred during experiment: ${e}`);
+    if (e instanceof Error) {
+      console.error(e.stack);
+    }
+    experimentStatus = ExperimentStatus.FAILED;
   }
-
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  const datasetLevelEvalPromises: Promise<EvaluationResult[] | null>[] =
-    datasetLevelEvalFuncs?.map(async (func): Promise<EvaluationResult[] | null> => {
-      try {
-        const score = await func(Array.from(rootTraces.values()));
-        if (score !== undefined && score !== null) {
-          if (typeof score === 'number') {
-            return [{ name: func.name, score }];
-          } else if (Array.isArray(score)) {
-            return score;
-          } else {
-            return [score];
-          }
-        }
-      } catch (e) {
-        console.error(`Error occurred calling '${func.name}', ${e}`, e);
-      }
-      return null;
-    }) || [];
-  const datasetLevelEvaluationResults = (await Promise.all(datasetLevelEvalPromises))
-    .flat()
-    .filter((x): x is EvaluationResult => x !== null);
 
   if (bar) bar.stop();
 
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
+  let datasetLevelEvaluationResults: EvaluationResult[] = [];
+  if (experimentStatus === ExperimentStatus.COMPLETED) {
+    const datasetLevelEvalPromises: Promise<EvaluationResult[] | null>[] =
+      datasetLevelEvalFuncs?.map(async (func): Promise<EvaluationResult[] | null> => {
+        try {
+          const score = await func(Array.from(rootTraces.values()));
+          if (score !== undefined && score !== null) {
+            if (typeof score === 'number') {
+              return [{ name: func.name, score }];
+            } else if (Array.isArray(score)) {
+              return score;
+            } else {
+              return [score];
+            }
+          }
+        } catch (e) {
+          console.error(`Error occurred calling '${func.name}', ${e}`, e);
+        }
+        return null;
+      }) || [];
+    datasetLevelEvaluationResults = (await Promise.all(datasetLevelEvalPromises))
+      .flat()
+      .filter((x): x is EvaluationResult => x !== null);
+  }
+
   const experimentStats: ExperimentStatsSchema = await p.finishExperiment(experimentUUID, {
     dataset_level_stats: datasetLevelEvaluationResults,
+    status: experimentStatus,
   });
   const statNameToAvgStd = calculateAvgStdForExperiment(experimentStats);
   datasetLevelEvaluationResults.forEach((result) => {
