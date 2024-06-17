@@ -440,8 +440,16 @@ export class TestCaseCollection {
   }
 }
 
+export enum ExperimentStatus {
+  PENDING = 'pending',
+  RUNNING = 'running',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+}
+
 export type FinishExperimentRequestSchema = {
   dataset_level_stats?: EvaluationResult[];
+  status?: ExperimentStatus;
 };
 
 export type ExperimentOptions = {
@@ -511,7 +519,7 @@ export type ExperimentPinnedStatistic = {
 };
 
 export type ExperimentWithStatsSchema = ExperimentSchema & {
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: ExperimentStatus;
   is_public: boolean;
   num_samples: number | null;
   pinned_stats: ExperimentPinnedStatistic[];
