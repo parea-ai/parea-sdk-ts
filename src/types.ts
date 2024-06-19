@@ -86,6 +86,7 @@ export type Prompt = {
 
 export type UseDeployedPromptResponse = {
   deployment_id: string;
+  version_number: number;
   name?: string;
   functions?: string[];
   function_call?: string;
