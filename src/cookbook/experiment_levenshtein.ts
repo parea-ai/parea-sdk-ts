@@ -5,7 +5,7 @@ import { levenshtein } from '../evals/general/levenshtein';
 
 dotenv.config();
 
-const p = new Parea(process.env.PAREA_API_KEY);
+const p = new Parea('pai-e5dac32b60360c7df2abf0d4b8058d1c01fd693d997e8d97b28a92215689853a');
 
 const greet = trace(
   'greetings',
