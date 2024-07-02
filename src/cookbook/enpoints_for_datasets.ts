@@ -45,9 +45,9 @@ export async function updateTestCaseExample() {
   }
 }
 
-// main().then(() => {
-//   console.log('Done!');
-// });
+main().then(() => {
+  console.log('Done!');
+});
 updateTestCaseExample().then(() => {
   console.log('Done!');
 });
