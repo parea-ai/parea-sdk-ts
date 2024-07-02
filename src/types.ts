@@ -350,6 +350,12 @@ export type TestCase = {
   tags?: string[];
 };
 
+export type UpdateTestCase = {
+  inputs?: Record<string, string>;
+  target?: string;
+  tags?: string[];
+};
+
 export class TestCaseCollection {
   id: number;
   name: string;

@@ -15,6 +15,7 @@ import {
   TestCaseCollection,
   TraceLogFilters,
   TraceLogTree,
+  UpdateTestCase,
   UseDeployedPrompt,
   UseDeployedPromptResponse,
 } from './types';
@@ -38,6 +39,7 @@ const EXPERIMENT_FINISHED_ENDPOINT = '/experiment/{experiment_uuid}/finished';
 const GET_COLLECTION_ENDPOINT = '/collection/{test_collection_identifier}';
 const CREATE_COLLECTION_ENDPOINT = '/collection';
 const ADD_TEST_CASES_ENDPOINT = '/testcases';
+const UPDATE_TEST_CASE_ENDPOINT = '/update_test_case/{dataset_id}/{test_case_id}';
 const LIST_EXPERIMENTS_ENDPOINT = '/experiments';
 const GET_EXP_LOGS_ENDPOINT = '/experiment/{experiment_uuid}/trace_logs';
 const GET_TRACE_LOG_ENDPOINT = '/trace_log/{trace_id}';
@@ -168,6 +170,21 @@ export class Parea {
       method: 'POST',
       endpoint: ADD_TEST_CASES_ENDPOINT,
       data: request,
+    });
+  }
+
+  public async updateTestCase(
+    testCaseId: number | string,
+    datasetId: number | string,
+    updateRequest: UpdateTestCase,
+  ): Promise<void> {
+    await this.client.request({
+      method: 'POST',
+      endpoint: UPDATE_TEST_CASE_ENDPOINT.replace('{dataset_id}', String(datasetId)).replace(
+        '{test_case_id}',
+        String(testCaseId),
+      ),
+      data: updateRequest,
     });
   }
 
