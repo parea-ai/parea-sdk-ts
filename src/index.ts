@@ -1,5 +1,3 @@
-import { SDKInitializer } from './utils/SDKInitializer';
-
 export { Parea } from './client';
 
 export { trace } from './utils/trace_utils';
@@ -48,5 +46,3 @@ export {
 } from './types';
 
 export { levenshtein, levenshteinDistance } from './evals/general/levenshtein';
-
-SDKInitializer.initialize();
