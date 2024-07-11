@@ -1,8 +1,8 @@
 import { TraceLog } from '../types';
-import { MessageQueue } from './MessageQueue';
 import { toDateTimeString } from '../helpers';
 import { ChatCompletionMessage } from 'openai/src/resources/chat/completions';
 import { getOutput, messageReducer } from './helpers';
+import { pareaLogger } from '../parea_logger';
 
 /**
  * Represents a handler for processing stream responses.
@@ -63,7 +63,9 @@ export class StreamHandler<Item> {
         if (this.traceLog?.configuration) {
           this.traceLog.configuration.model = this.responseModel;
         }
-        MessageQueue.enqueue(this.traceLog);
+        // fire and forget
+        // noinspection ES6MissingAwait
+        pareaLogger.recordLog(this.traceLog);
       })();
     } catch (error) {
       console.error('Error processing stream:', error);

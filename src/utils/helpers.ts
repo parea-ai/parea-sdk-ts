@@ -1,6 +1,5 @@
 import { ContextObject, LLMInputs, Message, ModelParams, Role, TraceLog, TraceOptions } from '../types';
 import { asyncLocalStorage, executionOrderCounters, rootTraces } from './context';
-import { MessageQueue } from './MessageQueue';
 import { MODEL_COST_MAPPING } from './constants';
 import { ChatCompletionMessage } from 'openai/src/resources/chat/completions';
 
@@ -99,17 +98,6 @@ export function _fillParentIfNeeded(
       parentTraceLog.traceLog.children.push(traceId);
       parentStore.set(parentTraceId, parentTraceLog);
     }
-  }
-}
-
-/**
- * Maybe enqueue the trace log in the message queue.
- * @param delaySend Whether to delay sending the trace log.
- * @param traceLog The trace log.
- */
-export function _maybeEnqueue(delaySend: boolean, traceLog: TraceLog): void {
-  if (!delaySend) {
-    MessageQueue.enqueue(traceLog);
   }
 }
 
