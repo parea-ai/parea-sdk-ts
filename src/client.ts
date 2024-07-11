@@ -26,6 +26,8 @@ import { genTraceId, serializeMetadataValues } from './helpers';
 import { pareaProject } from './project';
 import { Experiment } from './experiment/experiment';
 import { createTestCases, createTestCollection } from './experiment/datasets';
+
+import { SDKInitializer } from './utils/SDKInitializer';
 import { asyncLocalStorage } from './utils/context';
 
 const COMPLETION_ENDPOINT = '/completion';
@@ -61,6 +63,7 @@ export class Parea {
     pareaProject.setProjectName(projectName);
     pareaProject.setClient(this.client);
     pareaLogger.setClient(this.client);
+    SDKInitializer.initialize();
   }
 
   public enableTestMode(enable: boolean): void {
@@ -253,6 +256,7 @@ export class Parea {
    * @returns A list of evaluation results.
    */
   public async getTraceLogScores(traceId: string, checkContext: boolean = true): Promise<EvaluationResult[]> {
+    await SDKInitializer.forceSendLogs();
     // try to get trace_id scores from context
     if (checkContext) {
       const store = asyncLocalStorage.getStore();

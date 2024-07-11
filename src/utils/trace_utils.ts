@@ -7,6 +7,7 @@ import {
   _determineTarget,
   _fillParentIfNeeded,
   _fillRootTracesIfNeeded,
+  _maybeEnqueue,
   _stringifyOutput,
   extractFunctionParams,
   updateTraceLog,
@@ -14,7 +15,6 @@ import {
 
 import { asyncLocalStorage } from './context';
 import { handleRunningEvals } from './EvalHandler';
-import { pareaLogger } from '../parea_logger';
 
 /**
  * Decorator to trace a function.
@@ -93,11 +93,7 @@ export function trace<T extends (...args: any[]) => any>(
               latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
               output_for_eval_metrics: outputForEval,
             });
-            if (!delaySendUntilAfterEval) {
-              // fire and forget
-              // noinspection JSIgnoredPromiseFromCall
-              pareaLogger.recordLog(traceLog);
-            }
+            _maybeEnqueue(delaySendUntilAfterEval, traceLog);
             if (options?.evalFuncs) {
               // fire and forget
               // noinspection JSIgnoredPromiseFromCall
@@ -114,11 +110,7 @@ export function trace<T extends (...args: any[]) => any>(
             latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
             output_for_eval_metrics: outputForEval,
           });
-          if (!delaySendUntilAfterEval) {
-            // fire and forget
-            // noinspection JSIgnoredPromiseFromCall
-            pareaLogger.recordLog(traceLog);
-          }
+          _maybeEnqueue(delaySendUntilAfterEval, traceLog);
           if (options?.evalFuncs) {
             // fire and forget
             // noinspection JSIgnoredPromiseFromCall
@@ -135,11 +127,7 @@ export function trace<T extends (...args: any[]) => any>(
           error: error.toString(),
           status: 'error',
         });
-        if (!delaySendUntilAfterEval) {
-          // fire and forget
-          // noinspection JSIgnoredPromiseFromCall
-          pareaLogger.recordLog(traceLog);
-        }
+        _maybeEnqueue(delaySendUntilAfterEval, traceLog);
         throw err;
       } finally {
         store.set(traceId, { traceLog, isRunningEval: false });

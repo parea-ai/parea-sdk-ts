@@ -1,6 +1,6 @@
 import { EvaluatedLog, EvaluationResult, TraceLog } from '../types';
+import { MessageQueue } from './MessageQueue';
 import { asyncLocalStorage } from './context';
-import { pareaLogger } from '../parea_logger';
 
 /**
  * Handles running evaluation functions on a trace log.
@@ -58,9 +58,6 @@ export const handleRunningEvals = async (
     currentTraceData.isRunningEval = false;
     currentTraceData.traceLog = traceLog;
     store.set(traceId, currentTraceData);
-
-    // fire and forget
-    // noinspection ES6MissingAwait
-    pareaLogger.recordLog(traceLog);
+    MessageQueue.sendImmediately(traceLog);
   }
 };

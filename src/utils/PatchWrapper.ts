@@ -1,4 +1,5 @@
 import { ContextObject, TraceLog } from '../types';
+import { MessageQueue } from './MessageQueue';
 import { genTraceId, toDateTimeString } from '../helpers';
 import { asyncLocalStorage, executionOrderCounters, traceInsert } from './context';
 import { StreamHandler } from './StreamHandler';
@@ -118,9 +119,7 @@ export function PatchWrapper<T extends object>(target: T, methodName: keyof T, s
                   latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
                   configuration: configuration,
                 });
-                // fire and forget
-                // noinspection ES6MissingAwait
-                pareaLogger.recordLog(traceLog);
+                MessageQueue.enqueue(traceLog);
                 return result;
               }
             });
@@ -148,9 +147,7 @@ export function PatchWrapper<T extends object>(target: T, methodName: keyof T, s
                 latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
                 configuration: configuration,
               });
-              // fire and forget
-              // noinspection ES6MissingAwait
-              pareaLogger.recordLog(traceLog);
+              MessageQueue.enqueue(traceLog);
               return outputValue;
             }
           }
@@ -163,9 +160,7 @@ export function PatchWrapper<T extends object>(target: T, methodName: keyof T, s
             end_timestamp: toDateTimeString(endTimestamp),
             latency: (endTimestamp.getTime() - startTimestamp.getTime()) / 1000,
           });
-          // fire and forget
-          // noinspection ES6MissingAwait
-          pareaLogger.recordLog(traceLog);
+          MessageQueue.enqueue(traceLog);
           throw error;
         } finally {
           store.set(traceId, { traceLog, isRunningEval: false });
