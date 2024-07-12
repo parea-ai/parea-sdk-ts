@@ -179,8 +179,8 @@ export type TraceLog = EvaluatedLog & {
   execution_order: number;
 };
 
-export type TraceLogTree = TraceLog & {
-  children_logs: TraceLogTree[];
+export type TraceLogTreeSchema = TraceLog & {
+  children_logs: TraceLogTreeSchema[];
 };
 
 export type TraceOptions = {
@@ -194,7 +194,6 @@ export type TraceOptions = {
   applyEvalFrac?: number;
   deploymentId?: string;
   target?: string;
-  sampleRate?: number;
 };
 
 export type UpdateLog = {
@@ -530,9 +529,4 @@ export type ExperimentWithStatsSchema = ExperimentSchema & {
   is_public: boolean;
   num_samples: number | null;
   pinned_stats: ExperimentPinnedStatistic[];
-};
-
-export type ContextObject = {
-  traceLog: TraceLog;
-  isRunningEval: boolean;
 };

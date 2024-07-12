@@ -10,15 +10,8 @@ import {
 import { Parea } from '../client';
 import { asyncPool } from '../helpers';
 import { genRandomName } from './utils';
+import { rootTraces } from '../utils/trace_utils';
 import cliProgress from 'cli-progress';
-import { rootTraces } from '../utils/context';
-
-enum ExperimentStatus {
-  PENDING = 'pending',
-  RUNNING = 'running',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-}
 
 function calculateAvgAsString(values: number[] | undefined, isCost: boolean = false): string {
   const digits = isCost ? 5 : 2;
@@ -77,7 +70,7 @@ async function experiment(
   name: string,
   runName: string,
   data: string | Iterable<DataItem>,
-  func: (...dataItem: any[]) => Promise<any> | any,
+  func: (...dataItem: any[]) => Promise<any>,
   p: Parea,
   nTrials: number = 1,
   metadata?: { [key: string]: string } | undefined,
@@ -122,51 +115,38 @@ async function experiment(
   const tasksGenerator = asyncPool(nWorkers, data, async (sample) => {
     const { target, ...dataInput } = sample;
     const dataSamples = Object.values(dataInput);
-    return func(...dataSamples, target);
+    const result = func(...dataSamples, target);
+    if (bar) bar.increment();
+    return result;
   });
 
-  let experimentStatus: ExperimentStatus = ExperimentStatus.COMPLETED;
-  try {
-    for await (const _ of tasksGenerator) {
-      if (bar) bar.increment();
-      void _;
-    }
-  } catch (e) {
-    console.error(`\nError occurred during experiment: ${e}`);
-    if (e instanceof Error) {
-      console.error(e.stack);
-    }
-    experimentStatus = ExperimentStatus.FAILED;
+  for await (const _ of tasksGenerator) {
+    // Purposely ignore. Result not needed
+    void _;
   }
-
   if (bar) bar.stop();
 
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  let datasetLevelEvaluationResults: EvaluationResult[] = [];
-  if (experimentStatus === ExperimentStatus.COMPLETED) {
-    const datasetLevelEvalPromises: Promise<EvaluationResult[] | null>[] =
-      datasetLevelEvalFuncs?.map(async (func): Promise<EvaluationResult[] | null> => {
-        try {
-          const score = await func(Array.from(rootTraces.values()));
-          if (score !== undefined && score !== null) {
-            if (typeof score === 'number') {
-              return [{ name: func.name, score }];
-            } else if (Array.isArray(score)) {
-              return score;
-            } else {
-              return [score];
-            }
+  const datasetLevelEvalPromises: Promise<EvaluationResult[] | null>[] =
+    datasetLevelEvalFuncs?.map(async (func): Promise<EvaluationResult[] | null> => {
+      try {
+        const score = await func(Array.from(rootTraces.values()));
+        if (score !== undefined && score !== null) {
+          if (typeof score === 'number') {
+            return [{ name: func.name, score }];
+          } else if (Array.isArray(score)) {
+            return score;
+          } else {
+            return [score];
           }
-        } catch (e) {
-          console.error(`Error occurred calling '${func.name}', ${e}`, e);
         }
-        return null;
-      }) || [];
-    datasetLevelEvaluationResults = (await Promise.all(datasetLevelEvalPromises))
-      .flat()
-      .filter((x): x is EvaluationResult => x !== null);
-  }
+      } catch (e) {
+        console.error(`Error occurred calling '${func.name}', ${e}`, e);
+      }
+      return null;
+    }) || [];
+  const datasetLevelEvaluationResults = (await Promise.all(datasetLevelEvalPromises))
+    .flat()
+    .filter((x): x is EvaluationResult => x !== null);
 
   const experimentStats: ExperimentStatsSchema = await p.finishExperiment(experimentUUID, {
     dataset_level_stats: datasetLevelEvaluationResults,
@@ -200,7 +180,7 @@ export class Experiment {
   constructor(
     name: string,
     data: string | Iterable<DataItem>,
-    func: (...dataItem: any[]) => Promise<any> | any,
+    func: (...dataItem: any[]) => Promise<any>,
     p: Parea,
     nTrials: number = 1,
     metadata?: { [key: string]: string },
@@ -224,12 +204,6 @@ export class Experiment {
         );
       }
       this.metadata = { ...this.metadata, Dataset: data };
-    } else {
-      for (const item of data) {
-        if (typeof item.target === 'object') {
-          item.target = JSON.stringify(item.target);
-        }
-      }
     }
   }
 

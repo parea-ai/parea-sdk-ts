@@ -23,10 +23,10 @@ import {
 import { HTTPClient } from './api-client';
 import { pareaLogger } from './parea_logger';
 import { genTraceId, serializeMetadataValues } from './helpers';
+import { asyncLocalStorage } from './utils/trace_utils';
 import { pareaProject } from './project';
 import { Experiment } from './experiment/experiment';
 import { createTestCases, createTestCollection } from './experiment/datasets';
-import { asyncLocalStorage } from './utils/context';
 
 const COMPLETION_ENDPOINT = '/completion';
 const DEPLOYED_PROMPT_ENDPOINT = '/deployed-prompt';
@@ -37,7 +37,6 @@ const EXPERIMENT_FINISHED_ENDPOINT = '/experiment/{experiment_uuid}/finished';
 const GET_COLLECTION_ENDPOINT = '/collection/{test_collection_identifier}';
 const CREATE_COLLECTION_ENDPOINT = '/collection';
 const ADD_TEST_CASES_ENDPOINT = '/testcases';
-const UPDATE_TEST_CASE_ENDPOINT = '/update_test_case/{dataset_id}/{test_case_id}';
 const LIST_EXPERIMENTS_ENDPOINT = '/experiments';
 const GET_EXP_LOGS_ENDPOINT = '/experiment/{experiment_uuid}/trace_logs';
 const GET_TRACE_LOG_ENDPOINT = '/trace_log/{trace_id}';
@@ -201,7 +200,7 @@ export class Parea {
   public experiment(
     name: string,
     data: string | Iterable<DataItem>,
-    func: (...dataItem: any[]) => Promise<any> | any,
+    func: (...dataItem: any[]) => Promise<any>,
     options?: ExperimentOptions,
   ): Experiment {
     return new Experiment(
@@ -225,7 +224,7 @@ export class Parea {
     return response.data;
   }
 
-  public async getExperimentLogs(experimentUUID: string, filter: TraceLogFilters = {}): Promise<TraceLogTree[]> {
+  public async getExperimentLogs(experimentUUID: string, filter: TraceLogFilters = {}): Promise<TraceLogTreeSchema[]> {
     const response = await this.client.request({
       method: 'POST',
       endpoint: GET_EXP_LOGS_ENDPOINT.replace('{experiment_uuid}', experimentUUID),
@@ -286,16 +285,10 @@ export class Parea {
 
     try {
       const parentStore = asyncLocalStorage.getStore();
-      const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined;
-      const isRootTrace = !parentTraceId;
-      const rootTraceId = isRootTrace
-        ? inference_id
-        : parentStore
-        ? Array.from(parentStore.values())[0].traceLog.root_trace_id
-        : inference_id;
+      const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined; // Assuming the last traceId is the parent
 
-      data.parent_trace_id = parentTraceId;
-      data.root_trace_id = rootTraceId;
+      data.parent_trace_id = parentTraceId || inference_id;
+      data.root_trace_id = parentStore ? Array.from(parentStore.values())[0].rootTraceId : data.parent_trace_id;
 
       if (process.env.PAREA_OS_ENV_EXPERIMENT_UUID) {
         experiment_uuid = process.env.PAREA_OS_ENV_EXPERIMENT_UUID;
