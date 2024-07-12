@@ -1,8 +1,9 @@
 import * as dotenv from 'dotenv';
 import OpenAI from 'openai';
-import { trace } from '../utils/trace_utils';
+
 import { Log } from '../types';
 import { Parea } from '../client';
+import { trace } from '../utils/trace_utils';
 
 dotenv.config();
 

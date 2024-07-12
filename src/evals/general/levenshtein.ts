@@ -35,13 +35,7 @@ function levenshteinHelper(a: string, b: string): number {
   return matrix[bn][an];
 }
 
-export const levenshtein = (log: Log): number => {
-  if (log.target === undefined || log.target === null) {
-    throw new Error('Levenshtein requires a ground truth');
-  }
-  const output = log.output || '';
-  const target = log.target;
-
+export const levenshteinDistance = (output: string, target: string): number => {
   const maxLen: number = Math.max(output.length, target.length);
 
   let score = 1;
@@ -50,4 +44,14 @@ export const levenshtein = (log: Log): number => {
   }
 
   return score;
+};
+
+export const levenshtein = (log: Log): number => {
+  if (log.target === undefined || log.target === null) {
+    throw new Error('Levenshtein requires a ground truth');
+  }
+  const output = log.output || '';
+  const target = log.target;
+
+  return levenshteinDistance(output, target);
 };

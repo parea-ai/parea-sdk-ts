@@ -1,6 +1,7 @@
 export { Parea } from './client';
 
-export { trace, getCurrentTraceId, traceInsert } from './utils/trace_utils';
+export { trace } from './utils/trace_utils';
+export { getCurrentTraceId, traceInsert } from './utils/context';
 export { patchOpenAI, traceOpenAITriggerDev } from './utils/wrap_openai';
 export { genTraceId, toDateTimeString } from './helpers';
 
@@ -19,7 +20,7 @@ export {
   Log,
   TraceLog,
   TraceLogImage,
-  TraceLogTreeSchema,
+  TraceLogTree,
   EvaluationResult,
   TraceOptions,
   UpdateLog,
@@ -44,4 +45,4 @@ export {
   CreateTestCaseCollection,
 } from './types';
 
-export { levenshtein } from './evals/general/levenshtein';
+export { levenshtein, levenshteinDistance } from './evals/general/levenshtein';
