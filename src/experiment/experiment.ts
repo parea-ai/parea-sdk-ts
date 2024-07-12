@@ -3,6 +3,7 @@ import {
   EvaluatedLog,
   EvaluationResult,
   ExperimentStatsSchema,
+  ExperimentStatus,
   TestCaseCollection,
   TraceStatsSchema,
 } from '../types';
@@ -81,6 +82,9 @@ async function experiment(
   if (typeof data === 'string') {
     console.log(`Fetching test collection: ${data}`);
     const response = await p.getCollection(data);
+    if (!response) {
+      throw new Error(`Collection ${data} not found`);
+    }
     const testCollection = new TestCaseCollection(
       response.id,
       response.name,
@@ -146,13 +150,16 @@ async function experiment(
 
   const experimentStats: ExperimentStatsSchema = await p.finishExperiment(experimentUUID, {
     dataset_level_stats: datasetLevelEvaluationResults,
+    status: ExperimentStatus.COMPLETED,
   });
   const statNameToAvgStd = calculateAvgStdForExperiment(experimentStats);
   datasetLevelEvaluationResults.forEach((result) => {
     statNameToAvgStd[result.name] = result.score.toFixed(2);
   });
   console.log(`Experiment ${name} Run ${runName} stats:\n${JSON.stringify(statNameToAvgStd, null, 2)}\n\n`);
-  console.log(`View experiment & its traces at: https://app.parea.ai/experiments/${experimentUUID}\n`);
+  console.log(
+    `View experiment & traces at: https://app.parea.ai/experiments/${encodeURIComponent(name)}/${experimentUUID}\n`,
+  );
   return experimentStats;
 }
 

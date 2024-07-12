@@ -36,7 +36,9 @@ export class PareaAILangchainTracer extends BaseTracer implements LangChainTrace
   protected async persistRun(_run: LangchainRun): Promise<void> {
     this.parentTraceId = _run.id;
     try {
-      await this.client.recordVendorLog(_run, TraceIntegrations.LANGCHAIN);
+      // fire and forget
+      // noinspection ES6MissingAwait
+      this.client.recordVendorLog(_run, TraceIntegrations.LANGCHAIN);
     } catch (e) {
       console.error(`Error recording log for trace ${_run.id}: ${e}`);
     }

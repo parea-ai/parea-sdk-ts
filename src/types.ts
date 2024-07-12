@@ -86,6 +86,7 @@ export type Prompt = {
 
 export type UseDeployedPromptResponse = {
   deployment_id: string;
+  version_number: number;
   name?: string;
   functions?: string[];
   function_call?: string;
@@ -104,9 +105,7 @@ export type FeedbackRequest = {
   comment?: string;
 };
 
-export type TraceLogInputs = {
-  [key: string]: string;
-};
+export type TraceLogInputs = Record<string, any>;
 
 export type EvaluationResult = {
   name: string;
@@ -120,6 +119,7 @@ export type Log = {
   output?: string;
   target?: string;
   latency?: number;
+  time_to_first_token?: number;
   input_tokens?: number;
   output_tokens?: number;
   total_tokens?: number;
@@ -169,12 +169,14 @@ export type TraceLog = EvaluatedLog & {
   end_timestamp?: string;
   end_user_identifier?: string;
   session_id?: string;
-  metadata?: { [key: string]: any };
+  metadata?: Record<string, any>;
   tags?: string[];
   experiment_uuid?: string | null;
   images?: TraceLogImage[];
   comments?: TraceLogCommentSchema[];
   annotations?: { [key: string]: TraceLogAnnotationSchema };
+  depth: number;
+  execution_order: number;
 };
 
 export type TraceLogTreeSchema = TraceLog & {
@@ -197,6 +199,7 @@ export type TraceOptions = {
 export type UpdateLog = {
   trace_id: string;
   field_name_to_value_map: { [key: string]: any };
+  root_trace_id?: string;
 };
 
 export type CreateExperimentRequest = {
@@ -346,6 +349,12 @@ export type TestCase = {
   tags?: string[];
 };
 
+export type UpdateTestCase = {
+  inputs?: Record<string, string>;
+  target?: string;
+  tags?: string[];
+};
+
 export class TestCaseCollection {
   id: number;
   name: string;
@@ -437,8 +446,16 @@ export class TestCaseCollection {
   }
 }
 
+export enum ExperimentStatus {
+  PENDING = 'pending',
+  RUNNING = 'running',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+}
+
 export type FinishExperimentRequestSchema = {
   dataset_level_stats?: EvaluationResult[];
+  status?: ExperimentStatus;
 };
 
 export type ExperimentOptions = {
@@ -508,7 +525,7 @@ export type ExperimentPinnedStatistic = {
 };
 
 export type ExperimentWithStatsSchema = ExperimentSchema & {
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: ExperimentStatus;
   is_public: boolean;
   num_samples: number | null;
   pinned_stats: ExperimentPinnedStatistic[];

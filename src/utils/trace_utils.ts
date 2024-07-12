@@ -12,6 +12,8 @@ export type ContextObject = {
 export const asyncLocalStorage = new AsyncLocalStorage<Map<string, ContextObject>>();
 export const rootTraces = new Map<string, TraceLog>();
 
+export const executionOrderCounters = new Map<string, number>();
+
 export const getCurrentTraceId = (): string | undefined => {
   const store = asyncLocalStorage.getStore();
 
@@ -86,6 +88,16 @@ export const trace = <TReturn, TArgs extends unknown[]>(
     const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined;
     const isRootTrace = !parentTraceId; // It's a root trace if there is no parent.
     const rootTraceId = isRootTrace ? traceId : parentStore ? Array.from(parentStore.values())[0].rootTraceId : traceId;
+
+    const depth = parentStore ? Array.from(parentStore.values())[0].traceLog.depth + 1 : 0;
+
+    // Get the execution order counter for the current root trace
+    let executionOrder = executionOrderCounters.get(rootTraceId);
+    if (executionOrder === undefined) {
+      executionOrder = 0;
+    }
+    executionOrderCounters.set(rootTraceId, executionOrder + 1);
+
     let target: string | undefined;
     const numParams = extractFunctionParamNames(func)?.length || 0;
     if (args?.length > numParams && typeof args[args.length - 1] === 'string') {
@@ -109,6 +121,8 @@ export const trace = <TReturn, TArgs extends unknown[]>(
       experiment_uuid: process.env.PAREA_OS_ENV_EXPERIMENT_UUID || null,
       apply_eval_frac: options?.applyEvalFrac,
       deployment_id: options?.deploymentId,
+      depth,
+      execution_order: executionOrder,
     };
 
     return asyncLocalStorage.run(new Map([[traceId, { traceLog, isRunningEval: false, rootTraceId }]]), async () => {
@@ -157,7 +171,10 @@ export const trace = <TReturn, TArgs extends unknown[]>(
           if (options?.evalFuncs && traceLog.status === 'success') {
             await handleRunningEvals(traceLog, traceId, options);
           } else {
-            await pareaLogger.recordLog(traceLog);
+            // fire and forget
+            // noinspection ES6MissingAwait
+            pareaLogger.recordLog(traceLog);
+            // await pareaLogger.recordLog(traceLog);
           }
         } catch (e) {
           console.error(`Error occurred recording log for trace ${traceId}, ${e}`);
@@ -233,7 +250,10 @@ export const handleRunningEvals = async (
     store.set(traceId, currentTraceData);
 
     try {
-      await pareaLogger.recordLog(traceLog);
+      // fire and forget
+      // noinspection ES6MissingAwait
+      pareaLogger.recordLog(traceLog);
+      // await pareaLogger.recordLog(traceLog);
     } catch (e) {
       console.error(`Error occurred updating log for trace ${traceId}, ${e}`);
     }

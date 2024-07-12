@@ -100,21 +100,21 @@ const NestedChain = trace(
   },
 );
 
-async function main() {
+export async function main() {
   return await argumentChain(
     'Whether Nitrogen is good for you.',
     'Provide a concise, few sentence argument on why Nitrogen is good for you.',
   );
 }
 
-async function main2() {
+export async function main2() {
   return await TargumentChain(
     'Whether lime juice is good for you.',
     'Provide a concise, few sentence argument on why lime juice is good for you.',
   );
 }
 
-async function main3() {
+export async function main3() {
   const [result, traceId] = await NestedChain(
     'Whether apple juice is good for you.',
     'Provide a concise, few sentence argument on why apple juice is good for you.',

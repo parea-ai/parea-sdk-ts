@@ -1,14 +1,20 @@
 import OpenAI from 'openai';
 import { LLMInputs, Message, Role, TraceLog } from '../types';
 import { pareaLogger } from '../parea_logger';
-import { asyncLocalStorage, traceInsert } from './trace_utils';
+import { asyncLocalStorage, executionOrderCounters, traceInsert } from './trace_utils';
 import { genTraceId, toDateTimeString } from '../helpers';
 
 function convertOAIMessage(m: any): Message {
-  if (m.role === 'assistant' && !!m.tool_calls) {
+  if (m?.role === 'assistant' && !!m?.tool_calls) {
+    let content = `${m}`;
+    try {
+      content = formatToolCalls(m);
+    } catch (e) {
+      console.error(`Error converting assistant message with tool calls: ${e}`);
+    }
     return {
       role: Role.assistant,
-      content: formatToolCalls(m),
+      content: content,
     };
   } else if (m.role === 'tool') {
     return {
@@ -30,6 +36,15 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
     const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined;
     const rootTraceId = parentStore ? Array.from(parentStore.values())[0].rootTraceId : traceId;
 
+    const depth = parentStore ? Array.from(parentStore.values())[0].traceLog.depth + 1 : 0;
+
+    // Get the execution order counter for the current root trace
+    let executionOrder = executionOrderCounters.get(rootTraceId);
+    if (executionOrder === undefined) {
+      executionOrder = 0;
+    }
+    executionOrderCounters.set(rootTraceId, executionOrder + 1);
+
     if (parentStore && Array.from(parentStore.values())[0].isRunningEval) {
       return await method.apply(this, args);
     }
@@ -41,15 +56,16 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
     let endTimestamp: Date | null;
 
     const kwargs = args[idxArgs];
+    // const streamEnabled = kwargs?.stream;
     const functions = kwargs?.functions || kwargs?.tools?.map((tool: any) => tool?.function) || [];
     const functionCallDefault = functions?.length > 0 ? 'auto' : null;
 
     const modelParams = {
-      temp: kwargs?.temperature || 1.0,
+      temp: kwargs?.temperature ?? 1.0,
       max_length: kwargs?.max_tokens,
-      top_p: kwargs?.top_p || 1.0,
-      frequency_penalty: kwargs?.frequency_penalty || 0.0,
-      presence_penalty: kwargs?.presence_penalty || 0.0,
+      top_p: kwargs?.top_p ?? 1.0,
+      frequency_penalty: kwargs?.frequency_penalty ?? 0.0,
+      presence_penalty: kwargs?.presence_penalty ?? 0.0,
       response_format: kwargs?.response_format,
     };
 
@@ -66,12 +82,14 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
       trace_id: traceId,
       parent_trace_id: parentTraceId || traceId,
       root_trace_id: rootTraceId,
-      trace_name: 'LLM',
+      trace_name: configuration?.model ? `llm-${configuration.model}` : 'llm',
       start_timestamp: toDateTimeString(startTimestamp),
       configuration: configuration,
       children: [],
       status: status,
       experiment_uuid: process.env.PAREA_OS_ENV_EXPERIMENT_UUID || null,
+      depth,
+      execution_order: executionOrder,
     };
 
     return asyncLocalStorage.run(new Map([[traceId, { traceLog, isRunningEval: false, rootTraceId }]]), async () => {
@@ -85,13 +103,21 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
 
       try {
         response = await method.apply(this, args);
+        if (response?.model) {
+          configuration.model = response.model;
+        }
         traceInsert(
           {
             output: getOutput(response),
             input_tokens: response.usage.prompt_tokens,
             output_tokens: response.usage.completion_tokens,
             total_tokens: response.usage.total_tokens,
-            cost: getTotalCost(args[idxArgs].model, response.usage.prompt_tokens, response.usage.completion_tokens),
+            cost: getTotalCost(
+              configuration?.model || args[idxArgs].model,
+              response.usage.prompt_tokens,
+              response.usage.completion_tokens,
+            ),
+            configuration: configuration,
           },
           traceId,
         );
@@ -114,7 +140,10 @@ function wrapMethod(method: Function, idxArgs: number = 0) {
           traceId,
         );
         try {
-          await pareaLogger.recordLog(traceLog);
+          // fire and forget
+          // noinspection ES6MissingAwait
+          pareaLogger.recordLog(traceLog);
+          // await pareaLogger.recordLog(traceLog);
         } catch (e) {
           console.error(`Error recording log for trace ${traceId}: ${e}`);
         }
@@ -296,6 +325,11 @@ function parseArgs(responseFunctionArgs: any): any {
   if (responseFunctionArgs instanceof Object) {
     return responseFunctionArgs;
   } else {
-    return JSON.parse(responseFunctionArgs);
+    try {
+      return JSON.parse(responseFunctionArgs);
+    } catch (e) {
+      console.error(`Error parsing tool call arguments as Object, storing as string instead: ${e}`);
+      return typeof responseFunctionArgs === 'string' ? responseFunctionArgs : `${responseFunctionArgs}`;
+    }
   }
 }
