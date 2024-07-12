@@ -2,8 +2,7 @@ import * as dotenv from 'dotenv';
 
 import { Completion, CompletionResponse } from '../types';
 import { Parea } from '../client';
-import { trace } from '../utils/trace_utils';
-import { getCurrentTraceId } from '../utils/context';
+import { getCurrentTraceId, trace } from '../utils/trace_utils';
 
 dotenv.config();
 

@@ -1,8 +1,7 @@
 import { Parea } from '../client';
 import * as dotenv from 'dotenv';
-import { trace } from '../utils/trace_utils';
+import { trace, traceInsert } from '../utils/trace_utils';
 import { Completion, CompletionResponse, TestCase } from '../types';
-import { traceInsert } from '../utils/context';
 
 dotenv.config();
 

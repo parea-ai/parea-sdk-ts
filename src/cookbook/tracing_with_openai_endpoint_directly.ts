@@ -1,9 +1,8 @@
 import * as dotenv from 'dotenv';
-import { trace } from '../utils/trace_utils';
+import { getCurrentTraceId, trace } from '../utils/trace_utils';
 import OpenAI from 'openai';
 import { patchOpenAI } from '../utils/wrap_openai';
 import { Parea } from '../client';
-import { getCurrentTraceId } from '../utils/context';
 import { Log } from '../types';
 
 dotenv.config();
@@ -94,6 +93,7 @@ const TRefinedArgument = trace(
 );
 
 function IsEqual(log: Log): number {
+  console.log(log?.inputs);
   return Math.random();
 }
 

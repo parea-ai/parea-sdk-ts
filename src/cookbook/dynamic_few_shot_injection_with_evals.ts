@@ -3,8 +3,7 @@ import { OpenAI } from 'openai';
 import { patchOpenAI } from '../utils/wrap_openai';
 import { Log, TestCase } from '../types';
 import { Parea } from '../client';
-import { trace } from '../utils/trace_utils';
-import { getCurrentTraceId, traceInsert } from '../utils/context';
+import { getCurrentTraceId, trace, traceInsert } from '../utils/trace_utils';
 
 dotenv.config();
 
@@ -34,6 +33,7 @@ async function callOpenAI(messages: any[]): Promise<string> {
 }
 
 const evalFunc = (log: Log): number => {
+  console.log(log?.inputs);
   return Math.random();
 };
 
