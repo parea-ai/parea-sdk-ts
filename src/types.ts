@@ -1,3 +1,6 @@
+import { TraceId } from './utils/V3/types';
+import { EvalFunction } from './utils/V4/core/EvaluationHandler';
+
 export enum Role {
   user = 'user',
   assistant = 'assistant',
@@ -151,9 +154,9 @@ export type TraceLogAnnotationSchema = {
 };
 
 export type TraceLog = EvaluatedLog & {
-  trace_id: string;
-  parent_trace_id?: string;
-  root_trace_id?: string;
+  trace_id: TraceId | string;
+  parent_trace_id?: TraceId | string;
+  root_trace_id: TraceId | string;
   start_timestamp: string;
   organization_id?: string;
   error?: string;
@@ -189,7 +192,7 @@ export type TraceOptions = {
   sessionId?: string;
   tags?: string[];
   evalFuncNames?: string[];
-  evalFuncs?: any[];
+  evalFuncs?: EvalFunction[];
   accessOutputOfFunc?: (arg0: any) => string;
   applyEvalFrac?: number;
   deploymentId?: string;
