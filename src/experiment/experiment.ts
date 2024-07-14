@@ -1,5 +1,6 @@
 import {
   DataItem,
+  EvalFunctionReturn,
   EvaluatedLog,
   EvaluationResult,
   ExperimentStatsSchema,
@@ -70,13 +71,11 @@ async function experiment(
   name: string,
   runName: string,
   data: string | Iterable<DataItem>,
-  func: (...dataItem: any[]) => Promise<any>,
+  func: (...dataItem: any[]) => Promise<any> | any,
   p: Parea,
   nTrials: number = 1,
   metadata?: { [key: string]: string } | undefined,
-  datasetLevelEvalFuncs?: ((
-    logs: EvaluatedLog[],
-  ) => Promise<number | null | undefined | EvaluationResult | EvaluationResult[]>)[],
+  datasetLevelEvalFuncs?: ((logs: EvaluatedLog[]) => EvalFunctionReturn)[],
   nWorkers: number = 10,
 ): Promise<ExperimentStatsSchema> {
   if (typeof data === 'string') {
@@ -126,8 +125,8 @@ async function experiment(
   }
   if (bar) bar.stop();
 
-  const datasetLevelEvalPromises: Promise<EvaluationResult[] | null>[] =
-    datasetLevelEvalFuncs?.map(async (func): Promise<EvaluationResult[] | null> => {
+  const datasetLevelEvalPromises: Promise<EvalFunctionReturn | null>[] =
+    datasetLevelEvalFuncs?.map(async (func): Promise<EvalFunctionReturn | null> => {
       try {
         const score = await func(Array.from(rootTraces.values()));
         if (score !== undefined && score !== null) {
@@ -135,6 +134,8 @@ async function experiment(
             return [{ name: func.name, score }];
           } else if (Array.isArray(score)) {
             return score;
+          } else if (typeof score === 'boolean') {
+            return [{ name: func.name, score: score ? 1 : 0 }];
           } else {
             return [score];
           }
@@ -172,19 +173,17 @@ export class Experiment {
   experimentStats?: ExperimentStatsSchema;
   nTrials: number = 1;
   metadata?: { [key: string]: string };
-  datasetLevelEvalFuncs?: ((
-    logs: EvaluatedLog[],
-  ) => Promise<number | null | undefined | EvaluationResult | EvaluationResult[]>)[];
+  datasetLevelEvalFuncs?: ((logs: EvaluatedLog[]) => EvalFunctionReturn)[];
   nWorkers: number = 10;
 
   constructor(
     name: string,
     data: string | Iterable<DataItem>,
-    func: (...dataItem: any[]) => Promise<any>,
+    func: (...dataItem: any[]) => Promise<any> | any,
     p: Parea,
     nTrials: number = 1,
     metadata?: { [key: string]: string },
-    datasetLevelEvalFuncs?: ((logs: EvaluatedLog[]) => Promise<number | null | undefined>)[],
+    datasetLevelEvalFuncs?: ((logs: EvaluatedLog[]) => EvalFunctionReturn)[],
     nWorkers: number = 10,
   ) {
     this.name = name;

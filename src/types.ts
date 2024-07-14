@@ -1,5 +1,4 @@
 import { TraceId } from './utils/V3/types';
-import { EvalFunction } from './utils/V4/core/EvaluationHandler';
 
 export enum Role {
   user = 'user',
@@ -204,6 +203,15 @@ export type UpdateLog = {
   field_name_to_value_map: { [key: string]: any };
   root_trace_id?: string;
 };
+
+export type EvalFunctionReturn =
+  | Promise<EvaluationResult | EvaluationResult[] | number | boolean>
+  | EvaluationResult
+  | EvaluationResult[]
+  | number
+  | boolean;
+
+export type EvalFunction = (...args: any[]) => EvalFunctionReturn;
 
 export type CreateExperimentRequest = {
   name: string;

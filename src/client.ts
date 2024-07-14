@@ -200,7 +200,7 @@ export class Parea {
   public experiment(
     name: string,
     data: string | Iterable<DataItem>,
-    func: (...dataItem: any[]) => Promise<any>,
+    func: (...dataItem: any[]) => Promise<any> | any,
     options?: ExperimentOptions,
   ): Experiment {
     return new Experiment(

@@ -1,7 +1,7 @@
 import { Parea } from '../client';
 import * as dotenv from 'dotenv';
-import { trace, traceInsert } from '../utils/trace_utils';
 import { Completion, CompletionResponse, TestCase } from '../types';
+import { trace3, traceInsert3 } from '../utils/V4/utils/trace';
 
 dotenv.config();
 
@@ -33,11 +33,10 @@ const callLLM = async (messages: { role: string; content: string }[]): Promise<C
 };
 
 // Imitate collecting few shot examples from prod based on user feedback
-const emailWriter = trace(
+const emailWriter = trace3(
   'emailWriter',
   async (main_objective: string, contact: Person, few_shot_examples?: string[] | null): Promise<string> => {
-    traceInsert({ end_user_identifier: contact.name, metadata: { has_few_shot_examples: !!few_shot_examples } });
-
+    traceInsert3({ end_user_identifier: contact.name, metadata: { has_few_shot_examples: !!few_shot_examples } });
     const few_shot_examples_prompt = few_shot_examples
       ? '\nHere are some examples of good emails\n' + few_shot_examples.join('\n')
       : '';
