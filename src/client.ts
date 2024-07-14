@@ -3,7 +3,6 @@ import {
   CompletionResponse,
   CreateExperimentRequest,
   CreateTestCaseCollection,
-  DataItem,
   EvaluationResult,
   ExperimentOptions,
   ExperimentSchema,
@@ -23,10 +22,10 @@ import {
 import { HTTPClient } from './api-client';
 import { pareaLogger } from './parea_logger';
 import { genTraceId, serializeMetadataValues } from './helpers';
-import { asyncLocalStorage } from './utils/trace_utils';
 import { pareaProject } from './project';
-import { Experiment } from './experiment/experiment';
 import { createTestCases, createTestCollection } from './experiment/datasets';
+import { Experiment } from './experiment/V2/experiment';
+import { TraceManager } from './utils/V4/core/TraceManager';
 
 const COMPLETION_ENDPOINT = '/completion';
 const DEPLOYED_PROMPT_ENDPOINT = '/deployed-prompt';
@@ -43,6 +42,7 @@ const GET_TRACE_LOG_ENDPOINT = '/trace_log/{trace_id}';
 const UPDATE_TEST_CASE_ENDPOINT = '/update_test_case/{dataset_id}/{test_case_id}';
 
 export class Parea {
+  public project_uuid: string;
   private apiKey: string;
   private client: HTTPClient;
 
@@ -61,6 +61,14 @@ export class Parea {
     pareaProject.setProjectName(projectName);
     pareaProject.setClient(this.client);
     pareaLogger.setClient(this.client);
+    // fire and forget
+    // noinspection JSIgnoredPromiseFromCall
+    this.getProjectUUID();
+  }
+
+  public async getProjectUUID(): Promise<void> {
+    this.project_uuid = await pareaProject.getProjectUUID();
+    pareaLogger.setProjectUUID(this.project_uuid);
   }
 
   public enableTestMode(enable: boolean): void {
@@ -197,23 +205,32 @@ export class Parea {
    *  :nWorkers: The number of workers to use for running the experiment.
    * @returns Experiment
    */
-  public experiment(
+  public experiment<T extends Record<string, any>, R>(
     name: string,
-    data: string | Iterable<DataItem>,
-    func: (...dataItem: any[]) => Promise<any> | any,
+    data: string | T[],
+    func: { (...args: any[]): Promise<any> },
     options?: ExperimentOptions,
-  ): Experiment {
-    return new Experiment(
-      name,
-      data,
-      func,
-      this,
-      options?.nTrials,
-      options?.metadata,
-      options?.datasetLevelEvalFuncs,
-      options?.nWorkers,
-    );
+  ): Experiment<T, R> {
+    return new Experiment(name, data, func, options || {}, this);
   }
+
+  // public experiment(
+  //   name: string,
+  //   data: string | Iterable<DataItem>,
+  //   func: (...dataItem: any[]) => Promise<any> | any,
+  //   options?: ExperimentOptions,
+  // ): Experiment {
+  //   return new Experiment(
+  //     name,
+  //     data,
+  //     func,
+  //     this,
+  //     options?.nTrials,
+  //     options?.metadata,
+  //     options?.datasetLevelEvalFuncs,
+  //     options?.nWorkers,
+  //   );
+  // }
 
   public async listExperiments(filters: ListExperimentUUIDsFilters = {}): Promise<ExperimentWithStatsSchema[]> {
     const response = await this.client.request({
@@ -254,16 +271,24 @@ export class Parea {
    */
   public async getTraceLogScores(traceId: string, checkContext: boolean = true): Promise<EvaluationResult[]> {
     if (checkContext) {
-      const store = asyncLocalStorage.getStore();
-      if (store) {
-        const currentTraceData = store.get(traceId);
-        if (currentTraceData) {
-          const scores = currentTraceData.traceLog?.scores || [];
-          if (scores) {
-            return scores;
-          }
+      const traceManager = TraceManager.getInstance();
+      const currentTrace = traceManager.getCurrentTrace();
+      if (currentTrace) {
+        const scores = currentTrace.getLog()?.scores;
+        if (scores) {
+          return scores;
         }
       }
+      // const store = asyncLocalStorage.getStore();
+      // if (store) {
+      //   const currentTraceData = store.get(traceId);
+      //   if (currentTraceData) {
+      //     const scores = currentTraceData.traceLog?.scores || [];
+      //     if (scores) {
+      //       return scores;
+      //     }
+      //   }
+      // }
     }
 
     const response = await this.client.request({
@@ -277,32 +302,39 @@ export class Parea {
   private async updateDataAndTrace(data: Completion): Promise<Completion> {
     // @ts-ignore
     data = serializeMetadataValues(data);
+    const traceManager = TraceManager.getInstance();
 
     let experiment_uuid;
     const inference_id = genTraceId();
     data.inference_id = inference_id;
-    data.project_uuid = await pareaProject.getProjectUUID();
+    data.project_uuid = this.project_uuid || (await pareaProject.getProjectUUID());
 
     try {
-      const parentStore = asyncLocalStorage.getStore();
-      const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined; // Assuming the last traceId is the parent
+      // const parentStore = asyncLocalStorage.getStore();
+      // const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined; // Assuming the last traceId is the parent
 
-      data.parent_trace_id = parentTraceId || inference_id;
-      data.root_trace_id = parentStore ? Array.from(parentStore.values())[0].rootTraceId : data.parent_trace_id;
+      const parentTrace = traceManager.getCurrentTrace();
+      data.root_trace_id = parentTrace ? parentTrace.getLog().root_trace_id : inference_id;
+      data.parent_trace_id = parentTrace ? parentTrace.id : undefined;
+
+      // data.parent_trace_id = parentTraceId || inference_id;
+      // data.root_trace_id = parentStore ? Array.from(parentStore.values())[0].rootTraceId : data.parent_trace_id;
 
       if (process.env.PAREA_OS_ENV_EXPERIMENT_UUID) {
         experiment_uuid = process.env.PAREA_OS_ENV_EXPERIMENT_UUID;
         data.experiment_uuid = experiment_uuid;
       }
-
-      if (parentStore && parentTraceId) {
-        const parentTraceLog = parentStore.get(parentTraceId);
-        if (parentTraceLog) {
-          parentTraceLog.traceLog.children.push(inference_id);
-          parentTraceLog.traceLog.experiment_uuid = experiment_uuid;
-          parentStore.set(parentTraceId, parentTraceLog);
-        }
+      if (parentTrace) {
+        parentTrace.addChild(inference_id);
       }
+      // if (parentStore && parentTraceId) {
+      //   const parentTraceLog = parentStore.get(parentTraceId);
+      //   if (parentTraceLog) {
+      //     parentTraceLog.traceLog.children.push(inference_id);
+      //     parentTraceLog.traceLog.experiment_uuid = experiment_uuid;
+      //     parentStore.set(parentTraceId, parentTraceLog);
+      //   }
+      // }
     } catch (e) {
       console.debug(`Error updating trace ids for completion. Trace log will be absent: ${e}`);
     }

@@ -8,6 +8,7 @@ const VENDOR_LOG_ENDPOINT = '/trace_log/{vendor}';
 
 export class PareaLogger {
   private client: HTTPClient | null = null;
+  private project_uuid: string | null = null;
 
   constructor() {}
 
@@ -15,12 +16,22 @@ export class PareaLogger {
     this.client = client;
   }
 
+  public setProjectUUID(project_uuid: string): void {
+    this.project_uuid = project_uuid;
+  }
+
+  public async getProjectUUID(): Promise<string> {
+    const project_uuid = await pareaProject.getProjectUUID();
+    this.project_uuid = project_uuid;
+    return project_uuid;
+  }
+
   public async recordLog(data: TraceLog): Promise<void> {
     if (!this.client) {
       console.error('Parea Client not instantiated');
       return;
     }
-    const log = { ...data, project_uuid: await pareaProject.getProjectUUID() };
+    const log = { ...data, project_uuid: this.project_uuid || (await this.getProjectUUID()) };
     await this.client.request({
       method: 'POST',
       endpoint: LOG_ENDPOINT,
@@ -37,7 +48,7 @@ export class PareaLogger {
     await this.client.request({
       method: 'POST',
       endpoint: VENDOR_LOG_ENDPOINT.replace('{vendor}', vendor),
-      data: { ...data, project_uuid: await pareaProject.getProjectUUID() },
+      data: { ...data, project_uuid: this.project_uuid || (await this.getProjectUUID()) },
     });
     return;
   }

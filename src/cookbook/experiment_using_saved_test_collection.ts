@@ -1,7 +1,7 @@
 import { Parea } from '../client';
 import { Completion, CompletionResponse, Log, Message } from '../types';
-import { trace } from '../utils/trace_utils';
 import * as dotenv from 'dotenv';
+import { trace3 } from '../utils/V4/utils/trace';
 
 dotenv.config();
 
@@ -25,7 +25,7 @@ const callLLM = async (data: Message[]): Promise<CompletionResponse> => {
   return await p.completion(completion);
 };
 
-const helloWorld = trace(
+const helloWorld = trace3(
   'helloWorld',
   async (x: string, y: string): Promise<string> => {
     const response = await callLLM([{ role: 'user', content: `Write a hello world program in ${x} using ${y}` }]);

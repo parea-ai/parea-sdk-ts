@@ -30,6 +30,14 @@ export async function main() {
   return await e.run();
 }
 
+// const e = p.experiment(
+//     'ExperimentName',
+//     DatasetListofObjs,
+//     functionToRun,
+//     { nTrials: 3 },
+//   );
+//   return await e.run();
+
 main().then(() => {
   console.log('Experiment complete!');
 });
