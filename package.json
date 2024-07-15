@@ -24,11 +24,11 @@
   "dependencies": {
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
-    "axios": "^1.6.8",
+    "axios": "^1.7.2",
     "axios-retry": "^3.9.1",
     "dotenv": "^16.4.5",
     "moment-timezone": "^0.5.45",
-    "openai": "^4.29.1",
+    "openai": "^4.52.5",
     "semantic-release": "^21.1.2",
     "ts-node": "^10.9.2",
     "uuid": "^9.0.1"
