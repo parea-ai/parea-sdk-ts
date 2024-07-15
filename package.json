@@ -42,7 +42,6 @@
     "@langchain/core": "^0.1.48",
     "@langchain/openai": "^0.0.14",
     "@tsconfig/recommended": "^1.0.3",
-    "@types/cli-progress": "^3.11.5",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.11.28",
     "@types/uuid": "^9.0.8",
