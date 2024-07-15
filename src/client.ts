@@ -278,6 +278,10 @@ export class Parea {
     func: { (...args: any[]): any | Promise<any> },
     options?: ExperimentOptions,
   ): Experiment<T, R> {
+    const traceDisabled = process.env.PAREA_TRACE_ENABLED === 'false';
+    if (traceDisabled) {
+      throw new Error('Tracing is disabled. Please enable tracing to run experiments.');
+    }
     return new Experiment(name, data, func, options || {}, this);
   }
 
