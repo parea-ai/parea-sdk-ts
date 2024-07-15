@@ -1,12 +1,17 @@
 import { AsyncLocalStorage } from 'async_hooks';
-import { EvaluationResult } from '../../types';
+import { EvaluatedLog, EvaluationResult } from '../../types';
+
+type ExperimentContextValues = {
+  logs: EvaluatedLog[];
+  scores: EvaluationResult[];
+};
 
 class ExperimentContext {
   private static instance: ExperimentContext;
-  private context: AsyncLocalStorage<Map<string, EvaluationResult[]>>;
+  private context: AsyncLocalStorage<Map<string, ExperimentContextValues>>;
 
   private constructor() {
-    this.context = new AsyncLocalStorage<Map<string, EvaluationResult[]>>();
+    this.context = new AsyncLocalStorage<Map<string, ExperimentContextValues>>();
   }
 
   public static getInstance(): ExperimentContext {
@@ -17,9 +22,9 @@ class ExperimentContext {
   }
 
   runInContext<T>(experimentUUID: string, callback: () => T): T {
-    const store = new Map<string, EvaluationResult[]>();
+    const store = new Map<string, ExperimentContextValues>();
     return this.context.run(store, () => {
-      store.set(experimentUUID, []);
+      store.set(experimentUUID, { logs: [], scores: [] });
       return callback();
     });
   }
@@ -27,15 +32,31 @@ class ExperimentContext {
   addScore(experimentUUID: string, score: EvaluationResult): void {
     const store = this.context.getStore();
     if (store) {
-      const scores = store.get(experimentUUID) || [];
-      scores.push(score);
-      store.set(experimentUUID, scores);
+      const context = store.get(experimentUUID) || { logs: [], scores: [] };
+      context.scores.push(score);
+      store.set(experimentUUID, context);
+    }
+  }
+
+  addLog(experimentUUID: string, log: EvaluatedLog): void {
+    const store = this.context.getStore();
+    if (store) {
+      const context = store.get(experimentUUID) || { logs: [], scores: [] };
+      context.logs.push(log);
+      store.set(experimentUUID, context);
     }
   }
 
   getScores(experimentUUID: string): EvaluationResult[] {
     const store = this.context.getStore();
-    return store ? store.get(experimentUUID) || [] : [];
+    const context = store?.get(experimentUUID) || { logs: [], scores: [] };
+    return context.scores;
+  }
+
+  getLogs(experimentUUID: string): EvaluatedLog[] {
+    const store = this.context.getStore();
+    const context = store?.get(experimentUUID) || { logs: [], scores: [] };
+    return context.logs;
   }
 }
 

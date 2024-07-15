@@ -1,11 +1,18 @@
 import { ExperimentRunner } from './experimentRunner';
 import { ExperimentOptions, ExperimentResult, TracedFunction, TrialResult } from './types';
 import { Trial } from './trial';
-import { experimentContext } from './experimentContext';
 import { Parea } from '../../client';
 import { genRandomName } from '../utils';
-import { ExperimentStatsSchema, ExperimentStatus, TestCaseCollection } from '../../types';
+import {
+  EvalFunctionReturn,
+  EvaluatedLog,
+  EvaluationResult,
+  ExperimentStatsSchema,
+  ExperimentStatus,
+  TestCaseCollection,
+} from '../../types';
 import { calculateAvgStdForExperiment } from './utils';
+import { experimentContext } from './experimentContext';
 
 /**
  * Represents an experiment that can be run with multiple trials.
@@ -17,6 +24,7 @@ export class Experiment<T extends Record<string, any>, R> {
   private p: Parea;
   private successRate: number = 0;
   private errors: string = '';
+  private logs: EvaluatedLog[] = [];
 
   /**
    * Creates a new Experiment instance.
@@ -64,6 +72,7 @@ export class Experiment<T extends Record<string, any>, R> {
         const results = await this.runner.runTrials(trials);
         this.state = this.determineState(results);
         const er = new ExperimentResult(this.name, results, this.options.metadata);
+        this.logs = er.getLogs();
         this.successRate = er.getSuccessRate();
         this.errors = er.getErrorsString();
         return er;
@@ -91,6 +100,30 @@ export class Experiment<T extends Record<string, any>, R> {
     return ExperimentStatus.COMPLETED;
   }
 
+  async getDatasetLevelStats(): Promise<EvaluationResult[] | null> {
+    const datasetLevelEvalPromises: Promise<EvalFunctionReturn | null>[] =
+      (this.options.datasetLevelEvalFuncs || []).map(async (func) => {
+        try {
+          const score = await func(this.logs);
+          if (score !== undefined && score !== null) {
+            if (typeof score === 'number') {
+              return [{ name: func.name, score }];
+            } else if (Array.isArray(score)) {
+              return score;
+            } else if (typeof score === 'boolean') {
+              return [{ name: func.name, score: score ? 1 : 0 }];
+            } else {
+              return [score];
+            }
+          }
+        } catch (e) {
+          console.error(`Error occurred calling '${func.name}', ${e}`, e);
+        }
+        return null;
+      }) || [];
+    return (await Promise.all(datasetLevelEvalPromises)).flat().filter((x): x is EvaluationResult => x !== null);
+  }
+
   async determineDataset(dataset: string | T[]): Promise<T[]> {
     if (typeof dataset === 'string') {
       console.log(`Fetching test collection: ${dataset}`);
@@ -116,12 +149,17 @@ export class Experiment<T extends Record<string, any>, R> {
    * Logs the results of the experiment.
    */
   async logExperimentResults(experimentUUID: string): Promise<void> {
+    const dls = await this.getDatasetLevelStats();
     // sleep for 4 seconds for logs to flush
     await new Promise((resolve) => setTimeout(resolve, 4000));
     const experimentStats: ExperimentStatsSchema = await this.p.finishExperiment(experimentUUID, {
+      dataset_level_stats: dls || undefined,
       status: this.getState(),
     });
     const statNameToAvgStd = calculateAvgStdForExperiment(experimentStats);
+    (dls || []).forEach((result) => {
+      statNameToAvgStd[result.name] = result.score.toFixed(2);
+    });
     console.log(
       `Experiment ${this.name} Run ${this.runName} avg. stats:\n${JSON.stringify(statNameToAvgStd, null, 2)}`,
     );

@@ -1,18 +1,8 @@
-import { EvalFunction, EvaluationResult, ExperimentStatus } from '../../types';
-
-export interface ExperimentOptions {
-  nTrials?: number;
-  metadata?: Record<string, any>;
-  nWorkers?: number;
-}
+import { EvalFunctionReturn, EvaluatedLog, EvaluationResult, ExperimentStatus } from '../../types';
 
 export type TracedFunction<T extends Record<string, any>, R> = (
   ...args: [...Array<T[keyof T]>, T['target']]
-) => Promise<R>;
-
-export interface TracedFunctionOptions {
-  evalFuncs: EvalFunction[];
-}
+) => R | Promise<R>;
 
 /**
  * Options for configuring an experiment.
@@ -21,6 +11,7 @@ export interface ExperimentOptions {
   nTrials?: number;
   metadata?: Record<string, any>;
   nWorkers?: number;
+  datasetLevelEvalFuncs?: ((logs: EvaluatedLog[]) => EvalFunctionReturn)[];
 }
 
 /**
@@ -33,36 +24,8 @@ export class TrialResult<T, R> {
     public error: Error | null,
     public state: ExperimentStatus,
     public scores: EvaluationResult[] | null,
+    public logs: EvaluatedLog[] | null,
   ) {}
-
-  /**
-   * Deserializes a trial result from a worker thread.
-   * @param serialized The serialized trial result data.
-   * @returns A new TrialResult instance.
-   */
-  static deserialize<T, R>(serialized: any): TrialResult<T, R> {
-    return new TrialResult(
-      serialized.input,
-      serialized.output,
-      serialized.error ? new Error(serialized.error) : null,
-      serialized.state as ExperimentStatus,
-      serialized.scores,
-    );
-  }
-
-  /**
-   * Serializes the trial result for transfer from a worker thread.
-   * @returns A serialized representation of the trial result.
-   */
-  serialize(): any {
-    return {
-      input: this.input,
-      output: this.output,
-      error: this.error ? this.error.message : null,
-      state: this.state,
-      scores: this.scores,
-    };
-  }
 }
 
 /**
@@ -78,6 +41,13 @@ export class ExperimentResult<T extends Record<string, any>, R> {
   getSuccessRate(): number {
     const successfulTrials = this.results.filter((r) => r.state === ExperimentStatus.COMPLETED);
     return (successfulTrials.length / this.results.length) * 100;
+  }
+
+  getLogs(): EvaluatedLog[] {
+    return this.results
+      .filter((r) => r.logs !== null)
+      .map((r) => r.logs!)
+      .flat();
   }
 
   getErrors(): Error[] {

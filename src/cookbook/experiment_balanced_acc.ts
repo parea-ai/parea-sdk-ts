@@ -1,7 +1,7 @@
 import { Parea } from '../client';
-import { trace } from '../utils/trace_utils';
 import * as dotenv from 'dotenv';
 import { EvaluatedLog, Log } from '../types';
+import { trace3 } from '../utils/V4/utils/trace';
 
 dotenv.config();
 
@@ -11,7 +11,7 @@ function isCorrect(log: Log): number {
   return log?.output === log.target ? 1 : 0;
 }
 
-const startsWithF = trace(
+const startsWithF = trace3(
   'startsWithF',
   (name: string): string => {
     if (name === 'Foo') {
@@ -49,7 +49,7 @@ function balancedAccIsCorrect(logs: EvaluatedLog[]): number {
   return recalls.reduce((acc, curr) => acc + curr, 0) / recalls.length;
 }
 
-export async function main() {
+const main = async () => {
   const e = p.experiment(
     'Balanced Acc',
     [
@@ -62,8 +62,8 @@ export async function main() {
       datasetLevelEvalFuncs: [balancedAccIsCorrect],
     },
   );
-  return await e.run();
-}
+  await e.run();
+};
 
 main().then(() => {
   console.log('Experiment complete!');

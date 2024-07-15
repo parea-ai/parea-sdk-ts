@@ -202,35 +202,17 @@ export class Parea {
    *  :nTrials: The number of times to run the experiment on the same data.
    *  :metadata: Optional metadata to attach to the experiment.
    *  :datasetLevelEvalFuncs: Optional list of functions to run on the dataset level. Each function should accept a list of EvaluatedLog objects and return a float or an EvaluationResult object
-   *  :nWorkers: The number of workers to use for running the experiment.
+   *  :nWorkers: max number of experiment runs to process concurrently (i,e data.length=2 * nTrials=2 = 4 runs; nWorkers 2 = 2 sets of 2 concurrent runs, nWorkers 4 = 1 set of 4 concurrent runs)
    * @returns Experiment
    */
   public experiment<T extends Record<string, any>, R>(
     name: string,
     data: string | T[],
-    func: { (...args: any[]): Promise<any> },
+    func: { (...args: any[]): any | Promise<any> },
     options?: ExperimentOptions,
   ): Experiment<T, R> {
     return new Experiment(name, data, func, options || {}, this);
   }
-
-  // public experiment(
-  //   name: string,
-  //   data: string | Iterable<DataItem>,
-  //   func: (...dataItem: any[]) => Promise<any> | any,
-  //   options?: ExperimentOptions,
-  // ): Experiment {
-  //   return new Experiment(
-  //     name,
-  //     data,
-  //     func,
-  //     this,
-  //     options?.nTrials,
-  //     options?.metadata,
-  //     options?.datasetLevelEvalFuncs,
-  //     options?.nWorkers,
-  //   );
-  // }
 
   public async listExperiments(filters: ListExperimentUUIDsFilters = {}): Promise<ExperimentWithStatsSchema[]> {
     const response = await this.client.request({

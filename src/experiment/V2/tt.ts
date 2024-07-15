@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 import { APIPromise } from 'openai/core';
 import { Parea } from '../../client';
 import { patchOpenAI3 } from '../../utils/V4/wrappers/OpenAIWrapper';
-import { EvaluationResult } from '../../types';
+import { EvaluatedLog, EvaluationResult } from '../../types';
 import { trace3 } from '../../utils/V4/utils/trace';
 import ChatCompletion = OpenAI.ChatCompletion;
 
@@ -42,7 +42,7 @@ async function callOpenAI(body: any) {
   return openai.chat.completions.create(body);
 }
 
-const autoTraceInputs = async (content: string) => {
+export const autoTraceInputs = async (content: string) => {
   return callOpenAI({
     model: 'gpt-4o',
     messages: [
@@ -64,11 +64,20 @@ const TautoTraceScore = trace3(
   },
 );
 
+function balancedAccIsCorrect(logs: EvaluatedLog[]): number {
+  console.log('logs', logs.length);
+  return Math.random();
+}
+
 const main = async () => {
-  const e = p.experiment('ExperimentName', [{ content: 'Who are you' }, { content: 'Who am I' }], TautoTraceScore);
+  const e = p.experiment('ExperimentName', [{ content: 'Who are you' }, { content: 'Who am I' }], TautoTraceScore, {
+    nTrials: 2,
+    datasetLevelEvalFuncs: [balancedAccIsCorrect],
+    // nWorkers: 10,
+  });
   await e.run();
   // console.log(' ExperimentResult', result);
-  // Print scores for each trial
+  // // Print scores for each trial
   // result.results.forEach((trialResult, index) => {
   //   console.log(`Trial ${index + 1} scores:`, trialResult.scores);
   // });

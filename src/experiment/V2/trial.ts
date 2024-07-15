@@ -17,22 +17,9 @@ export class Trial<T extends Record<string, any>, R> {
    */
   constructor(
     private data: T,
-    private func: (...args: any[]) => Promise<R>,
+    private func: (...args: any[]) => R | Promise<R>,
     private experimentUUID: string,
   ) {}
-
-  /**
-   * Deserializes a trial from a worker thread.
-   * @param serialized The serialized trial data.
-   * @param func The function to be executed for the trial.
-   * @returns A new Trial instance.
-   */
-  static deserialize<T extends Record<string, any>, R>(
-    serialized: any,
-    func: (...args: any[]) => Promise<R>,
-  ): Trial<T, R> {
-    return new Trial(serialized.data, func, serialized.experimentUUID);
-  }
 
   /**
    * Runs the trial and returns the result.
@@ -52,35 +39,27 @@ export class Trial<T extends Record<string, any>, R> {
           const { target, ...dataInput } = this.data;
           const dataSamples = Object.values(dataInput);
 
-          // Call the function with unpacked arguments
+          let funcResult: R;
           if (target !== undefined) {
-            return await this.func(...dataSamples, target);
+            funcResult = await this.func(...dataSamples, target);
           } else {
-            return await this.func(...dataSamples);
+            funcResult = await this.func(...dataSamples);
           }
+
+          return funcResult;
         });
 
         this.state = ExperimentStatus.COMPLETED;
-        // Retrieve the scores from the experiment context
+        // Retrieve the scores and logs from the experiment context
         const scores = experimentContext.getScores(this.experimentUUID);
+        const logs = experimentContext.getLogs(this.experimentUUID);
 
-        return new TrialResult(this.data, result, null, this.state, scores);
+        return new TrialResult(this.data, result, null, this.state, scores, logs);
       } catch (error) {
         this.state = ExperimentStatus.FAILED;
         const e = error instanceof Error ? error : new Error(String(error));
-        return new TrialResult(this.data, null, e, this.state, null);
+        return new TrialResult(this.data, null, e, this.state, null, null);
       }
     });
-  }
-
-  /**
-   * Serializes the trial for transfer to a worker thread.
-   * @returns A serialized representation of the trial.
-   */
-  serialize(): any {
-    return {
-      data: this.data,
-      experimentUUID: this.experimentUUID,
-    };
   }
 }
