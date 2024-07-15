@@ -150,7 +150,7 @@ async function main4() {
   return response.choices[0].message.content ?? '';
 }
 
-// main().then((result) => console.log(result));
-// main2().then((result) => console.log(result));
-// main3().then((result) => console.log(result));
+main().then((result) => console.log(result));
+main2().then((result) => console.log(result));
+main3().then((result) => console.log(result));
 main4().then((r) => console.log(r));
