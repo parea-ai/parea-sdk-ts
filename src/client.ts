@@ -24,8 +24,8 @@ import { pareaLogger } from './parea_logger';
 import { genTraceId, serializeMetadataValues } from './helpers';
 import { pareaProject } from './project';
 import { createTestCases, createTestCollection } from './experiment/datasets';
-import { Experiment } from './experiment/V2/experiment';
-import { TraceManager } from './utils/V4/core/TraceManager';
+import { Experiment } from './experiment/experiment';
+import { TraceManager } from './utils/core/TraceManager';
 
 const COMPLETION_ENDPOINT = '/completion';
 const DEPLOYED_PROMPT_ENDPOINT = '/deployed-prompt';
@@ -261,16 +261,6 @@ export class Parea {
           return scores;
         }
       }
-      // const store = asyncLocalStorage.getStore();
-      // if (store) {
-      //   const currentTraceData = store.get(traceId);
-      //   if (currentTraceData) {
-      //     const scores = currentTraceData.traceLog?.scores || [];
-      //     if (scores) {
-      //       return scores;
-      //     }
-      //   }
-      // }
     }
 
     const response = await this.client.request({
@@ -292,15 +282,9 @@ export class Parea {
     data.project_uuid = this.project_uuid || (await pareaProject.getProjectUUID());
 
     try {
-      // const parentStore = asyncLocalStorage.getStore();
-      // const parentTraceId = parentStore ? Array.from(parentStore.keys())[0] : undefined; // Assuming the last traceId is the parent
-
       const parentTrace = traceManager.getCurrentTrace();
       data.root_trace_id = parentTrace ? parentTrace.getLog().root_trace_id : inference_id;
       data.parent_trace_id = parentTrace ? parentTrace.id : undefined;
-
-      // data.parent_trace_id = parentTraceId || inference_id;
-      // data.root_trace_id = parentStore ? Array.from(parentStore.values())[0].rootTraceId : data.parent_trace_id;
 
       if (process.env.PAREA_OS_ENV_EXPERIMENT_UUID) {
         experiment_uuid = process.env.PAREA_OS_ENV_EXPERIMENT_UUID;
@@ -309,14 +293,6 @@ export class Parea {
       if (parentTrace) {
         parentTrace.addChild(inference_id);
       }
-      // if (parentStore && parentTraceId) {
-      //   const parentTraceLog = parentStore.get(parentTraceId);
-      //   if (parentTraceLog) {
-      //     parentTraceLog.traceLog.children.push(inference_id);
-      //     parentTraceLog.traceLog.experiment_uuid = experiment_uuid;
-      //     parentStore.set(parentTraceId, parentTraceLog);
-      //   }
-      // }
     } catch (e) {
       console.debug(`Error updating trace ids for completion. Trace log will be absent: ${e}`);
     }

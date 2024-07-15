@@ -209,7 +209,8 @@ export type EvalFunctionReturn =
   | EvaluationResult
   | EvaluationResult[]
   | number
-  | boolean;
+  | boolean
+  | null;
 
 export type EvalFunction = (...args: any[]) => EvalFunctionReturn;
 
@@ -467,13 +468,6 @@ export enum ExperimentStatus {
 export type FinishExperimentRequestSchema = {
   dataset_level_stats?: EvaluationResult[];
   status?: ExperimentStatus;
-};
-
-export type ExperimentOptions = {
-  nTrials?: number;
-  metadata?: { [key: string]: string };
-  datasetLevelEvalFuncs?: any[];
-  nWorkers?: number;
 };
 
 export type CreateTestCase = {
