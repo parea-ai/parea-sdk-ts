@@ -1,14 +1,25 @@
 import axios, { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
 import axiosRetry from 'axios-retry';
 
+/**
+ * Interface representing the configuration for an HTTP request.
+ */
 interface RequestConfig {
+  /** The HTTP method to be used for the request. */
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  /** The endpoint URL for the request. */
   endpoint: string;
+  /** Optional data to be sent with the request. */
   data?: any;
+  /** Optional query parameters for the request. */
   params?: any;
+  /** Optional API key for authentication. */
   apiKey?: string;
 }
 
+/**
+ * A singleton class for making HTTP requests with configurable options and mock mode.
+ */
 export class HTTPClient {
   private static instance: HTTPClient;
   private baseURL: string;
@@ -36,6 +47,10 @@ export class HTTPClient {
     this.client.interceptors.response.use(this.responseInterceptor, this.errorInterceptor);
   }
 
+  /**
+   * Gets the singleton instance of the HTTPClient.
+   * @returns The HTTPClient instance.
+   */
   public static getInstance(): HTTPClient {
     if (!HTTPClient.instance) {
       HTTPClient.instance = new HTTPClient();
@@ -43,6 +58,10 @@ export class HTTPClient {
     return HTTPClient.instance;
   }
 
+  /**
+   * Sets a custom mock response message.
+   * @param mockMessage - The message to be used in the mock response.
+   */
   public setMockHandler(mockMessage: string): void {
     this.defaultMockResponse = {
       ...this.defaultMockResponse,
@@ -50,19 +69,37 @@ export class HTTPClient {
     };
   }
 
+  /**
+   * Enables or disables mock mode.
+   * @param enable - Boolean flag to enable or disable mock mode.
+   */
   public enableMockMode(enable: boolean): void {
     this.mockMode = enable;
   }
 
+  /**
+   * Sets the API key for authentication.
+   * @param apiKey - The API key to be used for requests.
+   */
   public setApiKey(apiKey: string): void {
     this.apiKey = apiKey;
   }
 
+  /**
+   * Sets the base URL for all requests.
+   * @param baseURL - The base URL to be used.
+   */
   public setBaseURL(baseURL: string): void {
     this.baseURL = baseURL;
     this.client.defaults.baseURL = baseURL;
   }
 
+  /**
+   * Sends an HTTP request based on the provided configuration.
+   * @param config - The request configuration.
+   * @returns A promise that resolves to the axios response.
+   * @throws Will throw an error if the request fails.
+   */
   public async request(config: RequestConfig): Promise<AxiosResponse<any>> {
     if (this.mockMode) {
       return Promise.resolve(this.defaultMockResponse);
@@ -86,14 +123,30 @@ export class HTTPClient {
     }
   }
 
+  /**
+   * Intercepts and processes the request before it is sent.
+   * @param config - The request configuration.
+   * @returns The processed request configuration.
+   */
   private requestInterceptor(config: any) {
     return config;
   }
 
+  /**
+   * Intercepts and processes the response before it is handled.
+   * @param response - The axios response object.
+   * @returns The processed response.
+   */
   private responseInterceptor(response: AxiosResponse) {
     return response;
   }
 
+  /**
+   * Intercepts and processes errors that occur during the request.
+   * @param error - The axios error object.
+   * @returns A rejected promise with the error.
+   * @throws Will throw a custom error if the server is down or unavailable.
+   */
   private errorInterceptor(error: AxiosError) {
     if (error?.code === 'ECONNREFUSED') {
       throw new Error('Server is down or unavailable.');

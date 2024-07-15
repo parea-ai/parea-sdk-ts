@@ -1,3 +1,5 @@
+import { ChatCompletionMessage } from 'openai/src/resources/chat/completions';
+
 export enum Role {
   user = 'user',
   assistant = 'assistant',
@@ -153,7 +155,7 @@ export type TraceLogAnnotationSchema = {
 export type TraceLog = EvaluatedLog & {
   trace_id: string;
   parent_trace_id?: string;
-  root_trace_id?: string;
+  root_trace_id: string;
   start_timestamp: string;
   organization_id?: string;
   error?: string;
@@ -179,8 +181,8 @@ export type TraceLog = EvaluatedLog & {
   execution_order: number;
 };
 
-export type TraceLogTree = TraceLog & {
-  children_logs: TraceLogTree[];
+export type TraceLogTreeSchema = TraceLog & {
+  children_logs: TraceLogTreeSchema[];
 };
 
 export type TraceOptions = {
@@ -189,12 +191,11 @@ export type TraceOptions = {
   sessionId?: string;
   tags?: string[];
   evalFuncNames?: string[];
-  evalFuncs?: any[];
+  evalFuncs?: EvalFunction[];
   accessOutputOfFunc?: (arg0: any) => string;
   applyEvalFrac?: number;
   deploymentId?: string;
   target?: string;
-  sampleRate?: number;
 };
 
 export type UpdateLog = {
@@ -202,6 +203,16 @@ export type UpdateLog = {
   field_name_to_value_map: { [key: string]: any };
   root_trace_id?: string;
 };
+
+export type EvalFunctionReturn =
+  | Promise<EvaluationResult | EvaluationResult[] | number | boolean>
+  | EvaluationResult
+  | EvaluationResult[]
+  | number
+  | boolean
+  | null;
+
+export type EvalFunction = (...args: any[]) => EvalFunctionReturn;
 
 export type CreateExperimentRequest = {
   name: string;
@@ -459,13 +470,6 @@ export type FinishExperimentRequestSchema = {
   status?: ExperimentStatus;
 };
 
-export type ExperimentOptions = {
-  nTrials?: number;
-  metadata?: { [key: string]: string };
-  datasetLevelEvalFuncs?: any[];
-  nWorkers?: number;
-};
-
 export type CreateTestCase = {
   inputs: Record<string, string>;
   target?: string;
@@ -532,7 +536,16 @@ export type ExperimentWithStatsSchema = ExperimentSchema & {
   pinned_stats: ExperimentPinnedStatistic[];
 };
 
-export type ContextObject = {
-  traceLog: TraceLog;
-  isRunningEval: boolean;
+export type StreamingResult = {
+  output: {
+    index: number;
+    message: ChatCompletionMessage;
+    logprobs: null;
+    finish_reason?: string;
+  }[];
+  metrics: Record<string, number>;
 };
+
+export interface MessageConverter {
+  convert(message: any): Message;
+}
