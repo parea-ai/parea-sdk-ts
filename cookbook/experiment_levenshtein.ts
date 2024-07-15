@@ -23,18 +23,10 @@ export async function main() {
       { name: 'Bar', target: 'Hello Bar' },
     ], // Data to run the experiment on (list of dicts)
     greet, // Function to run (callable)
-    // { nTrials: 3 }, // Optional: Number of trials to run (int) default is 1
+    { nTrials: 3 }, // Optional: Number of trials to run (int) default is 1
   );
   return await e.run();
 }
-
-// const e = p.experiment(
-//     'ExperimentName',
-//     DatasetListofObjs,
-//     functionToRun,
-//     { nTrials: 3 },
-//   );
-//   return await e.run();
 
 main().then(() => {
   console.log('Experiment complete!');
