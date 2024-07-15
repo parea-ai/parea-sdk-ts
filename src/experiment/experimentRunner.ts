@@ -17,13 +17,17 @@ export class ExperimentRunner {
 
   /**
    * Runs the given trials in parallel.
-   * @param trials The trials to run.
-   * @returns A promise that resolves to an array of trial results.
+   * @param trials An array of Trial objects to be executed.
+   * @returns A promise that resolves to an array of TrialResult objects.
    */
   async runTrials(trials: Trial<any, any>[]): Promise<TrialResult<any, any>[]> {
     const results: TrialResult<any, any>[] = [];
     let currentIndex = 0;
 
+    /**
+     * Runs a batch of trials concurrently.
+     * @returns A promise that resolves when the batch is complete.
+     */
     const runBatch = async (): Promise<void> => {
       const batch = trials.slice(currentIndex, currentIndex + this.concurrency);
       if (batch.length === 0) return;

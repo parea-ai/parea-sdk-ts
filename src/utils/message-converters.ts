@@ -1,7 +1,14 @@
-import { Message, Role } from '../types';
-import { MessageConverter } from './V3/types';
+import { Message, MessageConverter, Role } from '../types';
 
+/**
+ * Implements the MessageConverter interface for converting OpenAI messages.
+ */
 export class OpenAIMessageConverter implements MessageConverter {
+  /**
+   * Converts an OpenAI message to a standardized Message format.
+   * @param m - The input message to be converted.
+   * @returns A standardized Message object.
+   */
   convert(m: any): Message {
     if (m?.role === 'assistant' && !!m?.tool_calls) {
       let content = `${m}`;
@@ -27,6 +34,12 @@ export class OpenAIMessageConverter implements MessageConverter {
     }
   }
 
+  /**
+   * Formats tool calls from an OpenAI response message.
+   * @param responseMessage - The response message containing tool calls.
+   * @returns A formatted string representation of the tool calls.
+   * @private
+   */
   private formatToolCalls(responseMessage: any): string {
     const formattedToolCalls: any[] = [];
     for (const toolCall of responseMessage['tool_calls']) {
@@ -49,6 +62,13 @@ export class OpenAIMessageConverter implements MessageConverter {
     return JSON.stringify(formattedToolCalls, null, 4);
   }
 
+  /**
+   * Parses function arguments from a response.
+   * @param responseFunctionArgs - The function arguments to parse.
+   * @returns Parsed arguments as an object or string.
+   * @throws {Error} If there's an error parsing the arguments.
+   * @private
+   */
   private parseArgs(responseFunctionArgs: any): any {
     if (responseFunctionArgs instanceof Object) {
       return responseFunctionArgs;

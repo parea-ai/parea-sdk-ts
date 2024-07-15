@@ -1,32 +1,37 @@
 import { EvalFunction, EvaluationResult, TraceLog } from '../../types';
 import { TraceManager } from './TraceManager';
+import { processEvaluationResult } from '../helpers';
 
+/**
+ * Handles the evaluation of trace logs using multiple evaluation functions.
+ */
 export class EvaluationHandler {
   private evalFuncs: EvalFunction[];
   private traceManger: TraceManager;
 
+  /**
+   * Creates an instance of EvaluationHandler.
+   * @param evalFuncs - An array of evaluation functions to be executed.
+   * @param traceManger - The TraceManager instance for managing trace data.
+   */
   constructor(evalFuncs: EvalFunction[], traceManger: TraceManager) {
     this.evalFuncs = evalFuncs;
     this.traceManger = traceManger;
   }
 
+  /**
+   * Runs all evaluation functions on the provided trace log.
+   * @param traceLog - The trace log to be evaluated.
+   * @returns A promise that resolves to an array of EvaluationResult objects.
+   * @throws Will log errors to the trace manager and console if an evaluation function fails.
+   */
   async runEvaluations(traceLog: TraceLog): Promise<EvaluationResult[]> {
     const scores: EvaluationResult[] = [];
 
     for (const func of this.evalFuncs) {
       try {
         const result = await func(traceLog);
-        if (result !== undefined && result !== null) {
-          if (typeof result === 'number') {
-            scores.push({ name: func.name, score: result });
-          } else if (typeof result === 'boolean') {
-            scores.push({ name: func.name, score: result ? 1 : 0 });
-          } else if (Array.isArray(result)) {
-            scores.push(...result);
-          } else {
-            scores.push(result);
-          }
-        }
+        processEvaluationResult(func.name, result, scores);
       } catch (error) {
         const msg = `Error occurred calling evaluation function '${func.name} for trace ${
           traceLog.trace_name

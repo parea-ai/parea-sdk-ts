@@ -1,4 +1,4 @@
-import { TraceId } from './utils/V3/types';
+import { ChatCompletionMessage } from 'openai/src/resources/chat/completions';
 
 export enum Role {
   user = 'user',
@@ -153,9 +153,9 @@ export type TraceLogAnnotationSchema = {
 };
 
 export type TraceLog = EvaluatedLog & {
-  trace_id: TraceId | string;
-  parent_trace_id?: TraceId | string;
-  root_trace_id: TraceId | string;
+  trace_id: string;
+  parent_trace_id?: string;
+  root_trace_id: string;
   start_timestamp: string;
   organization_id?: string;
   error?: string;
@@ -535,3 +535,17 @@ export type ExperimentWithStatsSchema = ExperimentSchema & {
   num_samples: number | null;
   pinned_stats: ExperimentPinnedStatistic[];
 };
+
+export type StreamingResult = {
+  output: {
+    index: number;
+    message: ChatCompletionMessage;
+    logprobs: null;
+    finish_reason?: string;
+  }[];
+  metrics: Record<string, number>;
+};
+
+export interface MessageConverter {
+  convert(message: any): Message;
+}

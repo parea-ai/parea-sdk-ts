@@ -4,9 +4,12 @@ import { TraceManager } from '../core/TraceManager';
 import { LLMInputs, Message, ModelParams, ResponseFormat } from '../../types';
 import { StreamHandler } from '../core/StreamHandler';
 import { OpenAIMessageConverter } from '../message-converters';
-import { MODEL_COST_MAPPING } from '../constants';
+import { MODEL_COST_MAPPING } from '../model-prices';
 import { Trace } from '../core/Trace';
 
+/**
+ * Wrapper class for OpenAI API methods with tracing functionality.
+ */
 export class OpenAIWrapper {
   private static traceManager: TraceManager = TraceManager.getInstance();
   private static messageConverter: OpenAIMessageConverter = new OpenAIMessageConverter();
@@ -57,10 +60,23 @@ export class OpenAIWrapper {
     }) as T;
   }
 
+  /**
+   * Checks if streaming is enabled in the given arguments.
+   * @param args The arguments to check.
+   * @returns True if streaming is enabled, false otherwise.
+   */
   private static isStreamingEnabled(args: any[]): boolean {
     return args[0]?.stream === true;
   }
 
+  /**
+   * Finalizes the trace with the given parameters.
+   * @param trace The trace to finalize.
+   * @param configuration The LLM configuration.
+   * @param result The result of the API call.
+   * @param startTime The start time of the API call.
+   * @param error Optional error if the API call failed.
+   */
   private static finalizeTrace(
     trace: Trace,
     configuration: LLMInputs,
@@ -88,6 +104,11 @@ export class OpenAIWrapper {
     this.traceManager.finalizeTrace(trace, true);
   }
 
+  /**
+   * Extracts the LLM configuration from the given arguments.
+   * @param args The arguments to extract the configuration from.
+   * @returns The extracted LLM configuration.
+   */
   private static extractConfiguration(args: any[]): LLMInputs {
     const [options] = args;
 
@@ -115,6 +136,12 @@ export class OpenAIWrapper {
     };
   }
 
+  /**
+   * Calculates the cost of the API call based on the model and usage.
+   * @param model The model used for the API call.
+   * @param usage The token usage information.
+   * @returns The calculated cost.
+   */
   private static calculateCost(
     model: string | undefined,
     usage?: {
@@ -139,6 +166,11 @@ export class OpenAIWrapper {
     return (promptCost + completionCost) / 1000000;
   }
 
+  /**
+   * Extracts the output from the API result.
+   * @param result The API result.
+   * @returns The extracted output as a string.
+   */
   private static getOutput(result: any): string {
     const responseMessage = result?.choices[0]?.message;
     if (responseMessage?.function_call) {
@@ -150,12 +182,22 @@ export class OpenAIWrapper {
     }
   }
 
+  /**
+   * Formats a function call into a string representation.
+   * @param functionCall The function call to format.
+   * @returns A formatted string representation of the function call.
+   */
   private static formatFunctionCall(functionCall: any): string {
     const functionName = functionCall.name;
     const functionArgs = this.parseArgs(functionCall.arguments);
     return `\`\`\`${JSON.stringify({ name: functionName, arguments: functionArgs }, null, 4)}\`\`\``;
   }
 
+  /**
+   * Parses function call arguments.
+   * @param args The arguments to parse.
+   * @returns The parsed arguments.
+   */
   private static parseArgs(args: any): any {
     if (args instanceof Object) {
       return args;
@@ -174,12 +216,9 @@ export class OpenAIWrapper {
  * @param openai The OpenAI instance to patch.
  */
 export function patchOpenAI(openai: OpenAI): void {
-  // Patch chat completions
   const originalCreate = openai.chat.completions.create;
   openai.chat.completions.create = OpenAIWrapper.wrapMethod(
     originalCreate,
     openai.chat.completions,
   ) as typeof originalCreate;
-
-  // Patch other methods as needed
 }

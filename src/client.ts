@@ -41,11 +41,19 @@ const GET_EXP_LOGS_ENDPOINT = '/experiment/{experiment_uuid}/trace_logs';
 const GET_TRACE_LOG_ENDPOINT = '/trace_log/{trace_id}';
 const UPDATE_TEST_CASE_ENDPOINT = '/update_test_case/{dataset_id}/{test_case_id}';
 
+/**
+ * Main class for interacting with the Parea API.
+ */
 export class Parea {
   public project_uuid: string;
   private apiKey: string;
   private client: HTTPClient;
 
+  /**
+   * Creates a new Parea instance.
+   * @param apiKey - The API key for authentication.
+   * @param projectName - The name of the project (default: 'default').
+   */
   constructor(apiKey: string = '', projectName: string = 'default') {
     this.apiKey = apiKey;
     this.client = HTTPClient.getInstance();
@@ -66,19 +74,35 @@ export class Parea {
     this.getProjectUUID();
   }
 
+  /**
+   * Retrieves and sets the project UUID.
+   */
   public async getProjectUUID(): Promise<void> {
     this.project_uuid = await pareaProject.getProjectUUID();
     pareaLogger.setProjectUUID(this.project_uuid);
   }
 
+  /**
+   * Enables or disables test mode.
+   * @param enable - Whether to enable test mode.
+   */
   public enableTestMode(enable: boolean): void {
     this.client.enableMockMode(enable);
   }
 
+  /**
+   * Sets a mock handler for testing.
+   * @param mockMessage - The mock message to use.
+   */
   public setMockHandler(mockMessage: string): void {
     this.client.setMockHandler(mockMessage);
   }
 
+  /**
+   * Sends a completion request to the API.
+   * @param data - The completion request data.
+   * @returns A promise resolving to the completion response.
+   */
   public async completion(data: Completion): Promise<CompletionResponse> {
     const requestData = await this.updateDataAndTrace(data);
 
@@ -91,16 +115,30 @@ export class Parea {
     return response.data;
   }
 
+  /**
+   * Retrieves a deployed prompt from the API.
+   * @param data - The request data for retrieving the prompt.
+   * @returns A promise resolving to the deployed prompt response.
+   */
   public async getPrompt(data: UseDeployedPrompt): Promise<UseDeployedPromptResponse> {
     const response = await this.client.request({ method: 'POST', endpoint: DEPLOYED_PROMPT_ENDPOINT, data });
     return response.data;
   }
 
+  /**
+   * Records feedback for a completion.
+   * @param data - The feedback request data.
+   */
   public async recordFeedback(data: FeedbackRequest): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 2000)); // give logs time to update
     await this.client.request({ method: 'POST', endpoint: RECORD_FEEDBACK_ENDPOINT, data });
   }
 
+  /**
+   * Creates a new experiment.
+   * @param data - The experiment creation request data.
+   * @returns A promise resolving to the created experiment schema.
+   */
   public async createExperiment(data: CreateExperimentRequest): Promise<ExperimentSchema> {
     const response = await this.client.request({
       method: 'POST',
@@ -113,6 +151,11 @@ export class Parea {
     return response.data;
   }
 
+  /**
+   * Retrieves statistics for a specific experiment.
+   * @param experimentUUID - The UUID of the experiment.
+   * @returns A promise resolving to the experiment statistics.
+   */
   public async getExperimentStats(experimentUUID: string): Promise<ExperimentStatsSchema> {
     const response = await this.client.request({
       method: 'GET',
@@ -121,6 +164,12 @@ export class Parea {
     return response.data;
   }
 
+  /**
+   * Marks an experiment as finished and retrieves its statistics.
+   * @param experimentUUID - The UUID of the experiment.
+   * @param fin_req - The finish experiment request data.
+   * @returns A promise resolving to the experiment statistics.
+   */
   public async finishExperiment(
     experimentUUID: string,
     fin_req: FinishExperimentRequestSchema,
@@ -133,6 +182,11 @@ export class Parea {
     return response.data;
   }
 
+  /**
+   * Retrieves a test case collection.
+   * @param testCollectionIdentifier - The identifier of the test collection.
+   * @returns A promise resolving to the test case collection or null if not found.
+   */
   public async getCollection(testCollectionIdentifier: string | number): Promise<TestCaseCollection | null> {
     const response = await this.client.request({
       method: 'GET',
@@ -152,6 +206,11 @@ export class Parea {
     );
   }
 
+  /**
+   * Creates a new test case collection.
+   * @param data - The test case data.
+   * @param name - Optional name for the collection.
+   */
   public async createTestCollection(data: Record<string, any>[], name?: string | undefined): Promise<void> {
     const request: CreateTestCaseCollection = await createTestCollection(data, name);
     await this.client.request({
@@ -161,6 +220,12 @@ export class Parea {
     });
   }
 
+  /**
+   * Adds test cases to an existing collection.
+   * @param data - The test case data to add.
+   * @param name - Optional name for the test cases.
+   * @param datasetId - Optional dataset ID to add the test cases to.
+   */
   public async addTestCases(
     data: Record<string, any>[],
     name?: string | undefined,
@@ -178,6 +243,12 @@ export class Parea {
     });
   }
 
+  /**
+   * Updates a specific test case.
+   * @param testCaseId - The ID of the test case to update.
+   * @param datasetId - The ID of the dataset containing the test case.
+   * @param updateRequest - The update request data.
+   */
   public async updateTestCase(
     testCaseId: number | string,
     datasetId: number | string,
@@ -198,12 +269,8 @@ export class Parea {
    * @param name - The name of the experiment.
    * @param data - If your dataset is defined locally it should be an iterable of k/v pairs matching the expected inputs of your function. To reference a dataset you have saved on Parea, use the dataset name as a string or the dataset id as an int.
    * @param func - The function to run. This function should accept inputs that match the keys of the data field.
-   * @param options -
-   *  :nTrials: The number of times to run the experiment on the same data.
-   *  :metadata: Optional metadata to attach to the experiment.
-   *  :datasetLevelEvalFuncs: Optional list of functions to run on the dataset level. Each function should accept a list of EvaluatedLog objects and return a float or an EvaluationResult object
-   *  :nWorkers: max number of experiment runs to process concurrently (i,e data.length=2 * nTrials=2 = 4 runs; nWorkers 2 = 2 sets of 2 concurrent runs, nWorkers 4 = 1 set of 4 concurrent runs)
-   * @returns Experiment
+   * @param options - Additional options for the experiment.
+   * @returns An Experiment instance.
    */
   public experiment<T extends Record<string, any>, R>(
     name: string,
@@ -214,6 +281,11 @@ export class Parea {
     return new Experiment(name, data, func, options || {}, this);
   }
 
+  /**
+   * Lists experiments based on provided filters.
+   * @param filters - Filters to apply when listing experiments.
+   * @returns A promise resolving to an array of experiments with stats.
+   */
   public async listExperiments(filters: ListExperimentUUIDsFilters = {}): Promise<ExperimentWithStatsSchema[]> {
     const response = await this.client.request({
       method: 'POST',
@@ -223,6 +295,12 @@ export class Parea {
     return response.data;
   }
 
+  /**
+   * Retrieves logs for a specific experiment.
+   * @param experimentUUID - The UUID of the experiment.
+   * @param filter - Optional filters to apply to the logs.
+   * @returns A promise resolving to an array of trace log trees.
+   */
   public async getExperimentLogs(experimentUUID: string, filter: TraceLogFilters = {}): Promise<TraceLogTreeSchema[]> {
     const response = await this.client.request({
       method: 'POST',
@@ -271,6 +349,12 @@ export class Parea {
     return extractScores(tree);
   }
 
+  /**
+   * Updates the data and trace information for a completion request.
+   * @param data - The completion request data.
+   * @returns The updated completion request data.
+   * @private
+   */
   private async updateDataAndTrace(data: Completion): Promise<Completion> {
     // @ts-ignore
     data = serializeMetadataValues(data);
@@ -301,6 +385,11 @@ export class Parea {
   }
 }
 
+/**
+ * Extracts evaluation scores from a trace log tree.
+ * @param tree - The trace log tree to extract scores from.
+ * @returns An array of evaluation results.
+ */
 function extractScores(tree: TraceLogTreeSchema): EvaluationResult[] {
   const scores: EvaluationResult[] = [];
 

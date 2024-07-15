@@ -13,9 +13,12 @@ import {
 } from '../types';
 import { calculateAvgStdForExperiment, genRandomName } from './utils';
 import { experimentContext } from './experimentContext';
+import { processEvaluationResult } from '../utils/helpers';
 
 /**
  * Represents an experiment that can be run with multiple trials.
+ * @template T - The type of the dataset elements
+ * @template R - The type of the result returned by the traced function
  */
 export class Experiment<T extends Record<string, any>, R> {
   public runName: string;
@@ -32,7 +35,7 @@ export class Experiment<T extends Record<string, any>, R> {
    * @param dataset The dataset to be used for the experiment.
    * @param func The function to be executed for each trial.
    * @param options Additional options for the experiment.
-   * @param parea
+   * @param parea The Parea client instance.
    */
   constructor(
     private name: string,
@@ -47,6 +50,7 @@ export class Experiment<T extends Record<string, any>, R> {
 
   /**
    * Runs the experiment and returns the results.
+   * @param runName Optional name for this specific run of the experiment.
    * @returns A promise that resolves to the experiment results.
    * @throws Error if the experiment fails to run.
    */
@@ -89,11 +93,17 @@ export class Experiment<T extends Record<string, any>, R> {
 
   /**
    * Gets the current state of the experiment.
+   * @returns The current experiment status.
    */
   getState(): ExperimentStatus {
     return this.state;
   }
 
+  /**
+   * Determines the overall state of the experiment based on trial results.
+   * @param results An array of trial results.
+   * @returns The determined experiment status.
+   */
   determineState(results: TrialResult<any, any>[]): ExperimentStatus {
     if (results.some((result) => result.state !== ExperimentStatus.COMPLETED)) {
       return ExperimentStatus.FAILED;
@@ -101,22 +111,18 @@ export class Experiment<T extends Record<string, any>, R> {
     return ExperimentStatus.COMPLETED;
   }
 
+  /**
+   * Calculates dataset-level statistics based on evaluation functions.
+   * @returns A promise that resolves to an array of evaluation results or null.
+   */
   async getDatasetLevelStats(): Promise<EvaluationResult[] | null> {
     const datasetLevelEvalPromises: Promise<EvalFunctionReturn | null>[] =
       (this.options.datasetLevelEvalFuncs || []).map(async (func) => {
         try {
           const score = await func(this.logs);
-          if (score !== undefined && score !== null) {
-            if (typeof score === 'number') {
-              return [{ name: func.name, score }];
-            } else if (Array.isArray(score)) {
-              return score;
-            } else if (typeof score === 'boolean') {
-              return [{ name: func.name, score: score ? 1 : 0 }];
-            } else {
-              return [score];
-            }
-          }
+          const scores: EvaluationResult[] = [];
+          processEvaluationResult(func.name, score, scores);
+          return scores;
         } catch (e) {
           console.error(`Error occurred calling '${func.name}', ${e}`, e);
         }
@@ -125,6 +131,12 @@ export class Experiment<T extends Record<string, any>, R> {
     return (await Promise.all(datasetLevelEvalPromises)).flat().filter((x): x is EvaluationResult => x !== null);
   }
 
+  /**
+   * Determines the dataset to be used for the experiment.
+   * @param dataset The input dataset, either as a string (collection name) or an array of data.
+   * @returns A promise that resolves to the array of dataset elements.
+   * @throws Error if the specified collection is not found.
+   */
   async determineDataset(dataset: string | T[]): Promise<T[]> {
     if (typeof dataset === 'string') {
       console.log(`Fetching test collection: ${dataset}`);
@@ -148,6 +160,7 @@ export class Experiment<T extends Record<string, any>, R> {
 
   /**
    * Logs the results of the experiment.
+   * @param experimentUUID The UUID of the experiment.
    */
   async logExperimentResults(experimentUUID: string): Promise<void> {
     const dls = await this.getDatasetLevelStats();

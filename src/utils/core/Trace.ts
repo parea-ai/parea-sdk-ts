@@ -2,6 +2,9 @@ import { EvalFunction, TraceLog, TraceOptions } from '../../types';
 import { genTraceId, toDateTimeString } from '../../helpers';
 import { pareaLogger } from '../../parea_logger';
 
+/**
+ * Represents a trace for logging and tracking execution of operations.
+ */
 export class Trace {
   public readonly id: string;
   public readonly name: string;
@@ -15,6 +18,15 @@ export class Trace {
   private log: Partial<TraceLog>;
   private evalFuncs: EvalFunction[];
 
+  /**
+   * Creates a new Trace instance.
+   * @param name - The name of the trace.
+   * @param options - Optional configuration options for the trace.
+   * @param parentId - The ID of the parent trace, if any.
+   * @param rootId - The ID of the root trace, if any.
+   * @param depth - The depth of the trace in the execution tree.
+   * @param executionOrder - The order of execution for this trace.
+   */
   constructor(
     name: string,
     options?: TraceOptions,
@@ -49,11 +61,18 @@ export class Trace {
     };
   }
 
+  /**
+   * Adds a child trace ID to this trace.
+   * @param childId - The ID of the child trace to add.
+   */
   addChild(childId: string): void {
     this.children.push(childId);
     this.log.children = this.children;
   }
 
+  /**
+   * Finalizes the trace by setting the end time, calculating latency, and sending the log.
+   */
   finalize(): void {
     this.endTime = new Date();
     this.log.end_timestamp = toDateTimeString(this.endTime);
@@ -61,18 +80,34 @@ export class Trace {
     this.sendLog();
   }
 
+  /**
+   * Returns the current log data for this trace.
+   * @returns The partial TraceLog object.
+   */
   getLog(): Partial<TraceLog> {
     return this.log;
   }
 
+  /**
+   * Returns the evaluation functions associated with this trace.
+   * @returns An array of EvalFunction objects.
+   */
   getEvalFuncs(): EvalFunction[] {
     return this.evalFuncs;
   }
 
+  /**
+   * Updates the log data with new information.
+   * @param data - Partial TraceLog object containing the data to update.
+   */
   updateLog(data: Partial<TraceLog>): void {
     this.log = { ...this.log, ...data };
   }
 
+  /**
+   * Sends the log data to the pareaLogger for recording.
+   * @throws Will log an error to the console if there's an issue recording or initiating the log.
+   */
   sendLog(): void {
     try {
       pareaLogger.recordLog(this.log as TraceLog).catch((e) => {

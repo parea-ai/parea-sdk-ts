@@ -32,10 +32,8 @@ export class Trial<T extends Record<string, any>, R> {
     return experimentContext.runInContext(this.experimentUUID, async () => {
       try {
         const result = await traceManager.runInContext(async () => {
-          // Set the experiment_uuid on the existing trace
           process.env.PAREA_OS_ENV_EXPERIMENT_UUID = this.experimentUUID;
 
-          // Unpack the data
           const { target, ...dataInput } = this.data;
           const dataSamples = Object.values(dataInput);
 
@@ -54,7 +52,6 @@ export class Trial<T extends Record<string, any>, R> {
 
         await this.waitForLogs();
 
-        // Retrieve the scores and logs from the experiment context
         const scores = experimentContext.getScores(this.experimentUUID);
         const logs = experimentContext.getLogs(this.experimentUUID);
 

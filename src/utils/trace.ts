@@ -79,6 +79,10 @@ export function traceInsert(data: Partial<TraceLog>, traceId?: string): void {
   traceManager.insertTraceData(data, traceId);
 }
 
+/**
+ * Retrieves the ID of the current trace.
+ * @returns The current trace ID or undefined if no trace is active.
+ */
 export function getCurrentTraceId(): string | undefined {
   const traceManager = TraceManager.getInstance();
   return traceManager.getCurrentTraceId();

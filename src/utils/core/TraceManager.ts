@@ -6,17 +6,20 @@ import { experimentContext } from '../../experiment/experimentContext';
 
 /**
  * Manages the creation, updating, and finalization of traces.
+ * Implements the Singleton pattern for global access.
  */
 export class TraceManager {
   private static instance: TraceManager;
   private context: AsyncLocalStorage<Map<string, Trace>>;
 
-  // private evaluationHandler: EvaluationHandler | null = null;
-
   private constructor() {
     this.context = new AsyncLocalStorage<Map<string, Trace>>();
   }
 
+  /**
+   * Gets the singleton instance of TraceManager.
+   * @returns {TraceManager} The singleton instance of TraceManager.
+   */
   public static getInstance(): TraceManager {
     if (!TraceManager.instance) {
       TraceManager.instance = new TraceManager();
@@ -24,6 +27,12 @@ export class TraceManager {
     return TraceManager.instance;
   }
 
+  /**
+   * Creates a new trace and adds it to the current context.
+   * @param {string} name - The name of the trace.
+   * @param {TraceOptions} [options] - Optional configuration for the trace.
+   * @returns {Trace} The newly created trace.
+   */
   createTrace(name: string, options?: TraceOptions): Trace {
     let traceMap = this.context.getStore();
     if (!traceMap) {
@@ -53,11 +62,11 @@ export class TraceManager {
     return trace;
   }
 
-  //
-  // setEvalFuncs(evalFuncs: EvalFunction[]): void {
-  //   this.evaluationHandler = new EvaluationHandler(evalFuncs, this);
-  // }
-
+  /**
+   * Finalizes a trace, running evaluations if necessary.
+   * @param {Trace} trace - The trace to finalize.
+   * @param {boolean} [skipEval=false] - Whether to skip evaluations.
+   */
   finalizeTrace(trace: Trace, skipEval: boolean = false): void {
     const traceMap = this.context.getStore();
     if (!traceMap) {
@@ -71,29 +80,13 @@ export class TraceManager {
     const applyEvalFrac = trace.getLog().apply_eval_frac;
     const shouldRunEval = applyEvalFrac === undefined || Math.random() < applyEvalFrac;
 
-    // let scores: EvaluationResult[] = [];
     if (!skipEval && shouldRunEval && trace.getEvalFuncs().length > 0) {
       this.runEvaluationsAsync(trace);
-      // traceMap.set('isRunningEval', new Trace('', {}));
-      // const evaluationHandler = new EvaluationHandler(trace.getEvalFuncs(), this);
-      // scores = await evaluationHandler.runEvaluations(trace.getLog() as TraceLog);
-      // trace.updateLog({ scores });
-      // if (experiment_uuid) {
-      //   experimentContext.addLog(experiment_uuid, trace.getLog());
-      // }
-      // traceMap.delete('isRunningEval');
     } else {
       trace.finalize();
     }
-    // if (experiment_uuid && scores.length > 0) {
-    //   scores.forEach((score) => {
-    //     experimentContext.addScore(experiment_uuid, score);
-    //   });
-    // }
-    // traceMap.delete(trace.id);
 
     if (!trace.getLog().parent_trace_id) {
-      // If this is a root trace, exit the context
       this.context.exit(() => {
         // This callback is called when exiting the context
         // We can perform any necessary cleanup here
@@ -101,6 +94,12 @@ export class TraceManager {
     }
   }
 
+  /**
+   * Sets the output for a trace.
+   * @param {Trace} trace - The trace to set the output for.
+   * @param {any} value - The output value.
+   * @param {Function} [accessOutputOfFunc] - Optional function to access specific output.
+   */
   setTraceOutput(trace: Trace, value: any, accessOutputOfFunc?: (arg0: any) => string): void {
     let outputForEvalMetrics: string | undefined;
 
@@ -121,12 +120,20 @@ export class TraceManager {
     });
   }
 
+  /**
+   * Gets the current active trace.
+   * @returns {Trace | undefined} The current trace or undefined if no active trace.
+   */
   getCurrentTrace(): Trace | undefined {
     const traceMap = this.context.getStore();
     if (!traceMap) return undefined;
     return Array.from(traceMap.values()).pop();
   }
 
+  /**
+   * Gets the ID of the current active trace.
+   * @returns {string | undefined} The ID of the current trace or undefined if no active trace.
+   */
   getCurrentTraceId(): string | undefined {
     const currentTrace = this.getCurrentTrace();
     return currentTrace ? currentTrace.id : undefined;
@@ -134,8 +141,8 @@ export class TraceManager {
 
   /**
    * Inserts data into the trace log for the current or specified trace.
-   * @param data The data to insert into the trace log.
-   * @param traceId The ID of the trace to insert data into. If not provided, uses the current trace.
+   * @param {Partial<TraceLog>} data - The data to insert into the trace log.
+   * @param {string} [traceId] - The ID of the trace to insert data into. If not provided, uses the current trace.
    */
   insertTraceData(data: Partial<TraceLog>, traceId?: string): void {
     const currentContext = this.context.getStore();
@@ -151,16 +158,23 @@ export class TraceManager {
     }
 
     const currentLog = trace.getLog();
-    const updatedLog = { ...currentLog };
+    const updatedLog: Partial<TraceLog> = { ...currentLog };
 
     for (const [key, newValue] of Object.entries(data)) {
       const existingValue = currentLog[key as keyof TraceLog];
+      // @ts-ignore
       updatedLog[key as keyof TraceLog] = existingValue ? this.merge(key, existingValue, newValue) : newValue;
     }
 
-    trace.updateLog(updatedLog);
+    trace.updateLog(updatedLog as TraceLog);
   }
 
+  /**
+   * Runs a callback function within the current context or a new context if none exists.
+   * @param {Function} callback - The function to run within the context.
+   * @returns {T} The result of the callback function.
+   * @template T
+   */
   runInContext<T>(callback: () => T): T {
     const existingContext = this.context.getStore();
     if (existingContext) {
@@ -170,9 +184,13 @@ export class TraceManager {
     }
   }
 
+  /**
+   * Runs evaluations asynchronously for a given trace.
+   * @param {Trace} trace - The trace to run evaluations for.
+   * @private
+   */
   private runEvaluationsAsync(trace: Trace): void {
     const experiment_uuid = trace.getLog().experiment_uuid;
-    // Run evaluations asynchronously
     setImmediate(async () => {
       const evaluationHandler = new EvaluationHandler(trace.getEvalFuncs(), this);
       const scores = await evaluationHandler.runEvaluations(trace.getLog() as TraceLog);
@@ -184,21 +202,26 @@ export class TraceManager {
           experimentContext.addScore(experiment_uuid, score);
         });
       }
-
-      // Send updated log asynchronously
       trace.finalize();
     });
   }
 
-  private merge = (key: string, old: any, newValue: any) => {
+  /**
+   * Merges two values based on the provided key.
+   * @param key - The key indicating the type of merge operation.
+   * @param old - The old value to be merged.
+   * @param newValue - The new value to be merged.
+   * @returns The merged value.
+   */
+  private merge = <T>(key: string, old: T, newValue: T): T => {
     if (key === 'error') {
-      return JSON.stringify([old, newValue], null, 2);
+      return JSON.stringify([old, newValue], null, 2) as unknown as T;
     }
-    if (typeof old === 'object' && typeof newValue === 'object') {
-      return { ...old, ...newValue };
+    if (typeof old === 'object' && !Array.isArray(old) && typeof newValue === 'object' && !Array.isArray(newValue)) {
+      return { ...old, ...newValue } as T;
     }
     if (Array.isArray(old) && Array.isArray(newValue)) {
-      return [...old, ...newValue];
+      return [...old, ...newValue] as T;
     }
     return newValue;
   };
