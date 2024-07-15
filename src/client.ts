@@ -4,7 +4,6 @@ import {
   CreateExperimentRequest,
   CreateTestCaseCollection,
   EvaluationResult,
-  ExperimentOptions,
   ExperimentSchema,
   ExperimentStatsSchema,
   ExperimentWithStatsSchema,
@@ -26,6 +25,7 @@ import { pareaProject } from './project';
 import { createTestCases, createTestCollection } from './experiment/datasets';
 import { Experiment } from './experiment/experiment';
 import { TraceManager } from './utils/core/TraceManager';
+import { ExperimentOptions } from './experiment/types';
 
 const COMPLETION_ENDPOINT = '/completion';
 const DEPLOYED_PROMPT_ENDPOINT = '/deployed-prompt';

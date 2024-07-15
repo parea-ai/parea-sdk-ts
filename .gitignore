@@ -132,4 +132,4 @@ dist
 
 /lib
 /dist
-/src/tmp/
+/tmp/*
