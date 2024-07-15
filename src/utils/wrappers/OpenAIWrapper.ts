@@ -6,6 +6,7 @@ import { StreamHandler } from '../core/StreamHandler';
 import { OpenAIMessageConverter } from '../message-converters';
 import { MODEL_COST_MAPPING } from '../model-prices';
 import { Trace } from '../core/Trace';
+import { toDateTimeString } from '../../helpers';
 
 /**
  * Wrapper class for OpenAI API methods with tracing functionality.
@@ -33,7 +34,6 @@ export class OpenAIWrapper {
 
         const trace = this.traceManager.createTrace(traceName, {});
 
-        const startTime = Date.now();
         const result = method.apply(thisArg, args);
 
         if (result instanceof Promise) {
@@ -43,17 +43,17 @@ export class OpenAIWrapper {
                 const streamHandler = new StreamHandler(trace, configuration);
                 return streamHandler.handle(value);
               } else {
-                this.finalizeTrace(trace, configuration, value, startTime);
+                this.finalizeTrace(trace, configuration, value);
                 return value;
               }
             },
             (error) => {
-              this.finalizeTrace(trace, configuration, undefined, startTime, error);
+              this.finalizeTrace(trace, configuration, undefined, error);
               throw error;
             },
           ) as ReturnType<T>;
         } else {
-          this.finalizeTrace(trace, configuration, result, startTime);
+          this.finalizeTrace(trace, configuration, result);
           return result;
         }
       });
@@ -74,18 +74,12 @@ export class OpenAIWrapper {
    * @param trace The trace to finalize.
    * @param configuration The LLM configuration.
    * @param result The result of the API call.
-   * @param startTime The start time of the API call.
    * @param error Optional error if the API call failed.
    */
-  private static finalizeTrace(
-    trace: Trace,
-    configuration: LLMInputs,
-    result: any,
-    startTime: number,
-    error?: any,
-  ): void {
-    const endTime = Date.now();
-    const latency = (endTime - startTime) / 1000;
+  private static finalizeTrace(trace: Trace, configuration: LLMInputs, result: any, error?: any): void {
+    const endTime = new Date();
+    const end_timestamp = toDateTimeString(endTime);
+    const latency = (endTime.getTime() - trace.startTime.getTime()) / 1000;
     const output = result ? this.getOutput(result) : undefined;
     const status = error ? 'error' : 'success';
 
@@ -94,6 +88,7 @@ export class OpenAIWrapper {
       output,
       status,
       latency,
+      end_timestamp,
       error: error?.toString(),
       input_tokens: result?.usage?.prompt_tokens ?? 0,
       output_tokens: result?.usage?.completion_tokens ?? 0,
@@ -188,9 +183,14 @@ export class OpenAIWrapper {
    * @returns A formatted string representation of the function call.
    */
   private static formatFunctionCall(functionCall: any): string {
-    const functionName = functionCall.name;
-    const functionArgs = this.parseArgs(functionCall.arguments);
-    return `\`\`\`${JSON.stringify({ name: functionName, arguments: functionArgs }, null, 4)}\`\`\``;
+    try {
+      const functionName = functionCall.name;
+      const functionArgs = this.parseArgs(functionCall.arguments);
+      return `\`\`\`${JSON.stringify({ name: functionName, arguments: functionArgs }, null, 4)}\`\`\``;
+    } catch (e) {
+      console.error(`Error formatting function call: ${e}`);
+      return '';
+    }
   }
 
   /**
