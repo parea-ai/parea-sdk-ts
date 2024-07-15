@@ -133,7 +133,3 @@ dist
 /lib
 /dist
 /src/tmp/
-
-/src/utils/V4/*
-/src/utils/V3/*
-/src/utils/V2/*
