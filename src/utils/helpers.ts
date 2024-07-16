@@ -71,5 +71,9 @@ export function processEvaluationResult(
     } else {
       scores.push(result as EvaluationResult);
     }
+  } else {
+    const msg = `Evaluation function ${funcName} returned an undefined or null result.`;
+    console.warn(msg);
+    scores.push({ name: `error-${funcName}`, score: 0, reason: msg });
   }
 }

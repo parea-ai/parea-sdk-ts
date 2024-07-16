@@ -49,6 +49,24 @@ class ExperimentContext {
       const context = store.get(experimentUUID) || { logs: [], scores: [] };
       context.scores.push(score);
       store.set(experimentUUID, context);
+    } else {
+      console.error(`Experiment context store not found for experiment ${experimentUUID}`);
+    }
+  }
+
+  /**
+   * Adds a score to the experiment context.
+   * @param experimentUUID - The UUID of the experiment.
+   * @param scores - The evaluation results to add.
+   */
+  addScores(experimentUUID: string, scores: EvaluationResult[]): void {
+    const store = this.context.getStore();
+    if (store) {
+      const context = store.get(experimentUUID) || { logs: [], scores: [] };
+      context.scores.push(...scores);
+      store.set(experimentUUID, context);
+    } else {
+      console.error(`Experiment context store not found for experiment ${experimentUUID}`);
     }
   }
 
@@ -63,6 +81,8 @@ class ExperimentContext {
       const context = store.get(experimentUUID) || { logs: [], scores: [] };
       context.logs.push(log);
       store.set(experimentUUID, context);
+    } else {
+      console.error(`Experiment context store not found for experiment ${experimentUUID}`);
     }
   }
 

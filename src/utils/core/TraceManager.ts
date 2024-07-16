@@ -198,9 +198,7 @@ export class TraceManager {
       trace.updateLog({ scores });
       if (experiment_uuid) {
         experimentContext.addLog(experiment_uuid, trace.getLog());
-        scores.forEach((score) => {
-          experimentContext.addScore(experiment_uuid, score);
-        });
+        experimentContext.addScores(experiment_uuid, scores);
       }
       trace.finalize();
     });
