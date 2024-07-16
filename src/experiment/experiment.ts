@@ -68,10 +68,11 @@ export class Experiment<T extends Record<string, any>, R> {
     return experimentContext.runInContext(experimentUUID, async () => {
       try {
         this.dataset = await this.determineDataset(this.dataset);
+        const maxRetries = typeof this.options?.maxRetries === 'number' ? this.options.maxRetries : 60;
         const trials = this.dataset.flatMap((data) =>
           Array(this.options.nTrials || 1)
             .fill(null)
-            .map(() => new Trial(data, this.func, experimentUUID, this.options?.maxRetries || 60)),
+            .map(() => new Trial(data, this.func, experimentUUID, maxRetries)),
         );
 
         const results = await this.runner.runTrials(trials);

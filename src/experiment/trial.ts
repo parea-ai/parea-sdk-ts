@@ -8,7 +8,6 @@ import { ExperimentStatus } from '../types';
  */
 export class Trial<T extends Record<string, any>, R> {
   private state: ExperimentStatus = ExperimentStatus.PENDING;
-  private maxRetries: number = 60;
 
   /**
    * Creates a new Trial instance.
@@ -21,12 +20,8 @@ export class Trial<T extends Record<string, any>, R> {
     private data: T,
     private func: (...args: any[]) => R | Promise<R>,
     private experimentUUID: string,
-    maxRetries?: number,
-  ) {
-    if (maxRetries) {
-      this.maxRetries = maxRetries;
-    }
-  }
+    private maxRetries: number,
+  ) {}
 
   /**
    * Runs the trial and returns the result.
@@ -70,7 +65,7 @@ export class Trial<T extends Record<string, any>, R> {
   }
 
   private async waitForLogs(): Promise<{ state: ExperimentStatus; error?: Error }> {
-    await new Promise((resolve) => setTimeout(resolve, 2500)); // Wait for 2.5s before checking logs
+    // await new Promise((resolve) => setTimeout(resolve, 2500)); // Wait for 2.5s before checking logs
     for (let i = 1; i < this.maxRetries; i++) {
       const logs = experimentContext.getLogs(this.experimentUUID);
       if (logs.length > 0) {
