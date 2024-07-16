@@ -101,7 +101,12 @@ async function callFunction(function_call: ChatCompletionMessage.FunctionCall): 
     >
   | Promise<DBItem>
 > {
-  const args = JSON.parse(function_call.arguments!);
+  let args;
+  try {
+    args = JSON.parse(function_call.arguments!);
+  } catch (e) {
+    args = function_call.arguments;
+  }
   switch (function_call.name) {
     case 'list':
       return await list(args['genre']);
