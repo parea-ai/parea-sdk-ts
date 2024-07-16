@@ -94,6 +94,7 @@ export class StreamHandler<Item> {
     let role: string | undefined;
     let content: string | undefined;
     let tool_calls: any[] | undefined;
+    let function_call: any | undefined;
     let finish_reason: string | undefined;
     let metrics: Record<string, number> = {};
 
@@ -137,6 +138,17 @@ export class StreamHandler<Item> {
           tool_calls[0].function.arguments += delta.tool_calls[0].function.arguments;
         }
       }
+
+      if (delta.function_call) {
+        if (!function_call) {
+          function_call = {
+            name: delta.function_call.name,
+            arguments: delta.function_call.arguments,
+          };
+        } else {
+          function_call.arguments += delta.function_call.arguments;
+        }
+      }
     }
 
     return {
@@ -148,6 +160,7 @@ export class StreamHandler<Item> {
             role,
             content,
             tool_calls,
+            function_call,
           } as ChatCompletionMessage,
           logprobs: null,
           finish_reason,
