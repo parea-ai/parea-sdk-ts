@@ -7,6 +7,8 @@ import { OpenAIMessageConverter } from '../message-converters';
 import { MODEL_COST_MAPPING } from '../model-prices';
 import { Trace } from '../core/Trace';
 import { toDateTimeString } from '../../helpers';
+import { ChatCompletionCreateParamsBase, ChatCompletionMessageParam } from 'openai/src/resources/chat/completions';
+import ChatCompletionTool = OpenAI.ChatCompletionTool;
 
 /**
  * Wrapper class for OpenAI API methods with tracing functionality.
@@ -30,7 +32,7 @@ export class OpenAIWrapper {
         }
 
         const configuration = this.extractConfiguration(args);
-        const traceName = configuration?.model ? `llm-${configuration.model}` : 'llm';
+        const traceName = configuration?.model ? `llm-${configuration.model}` : 'llm-openai';
 
         const trace = this.traceManager.createTrace(traceName, {});
 
@@ -89,7 +91,7 @@ export class OpenAIWrapper {
       status,
       latency,
       end_timestamp,
-      error: error?.toString(),
+      error: typeof error === 'string' ? error : error?.toString(),
       input_tokens: result?.usage?.prompt_tokens ?? 0,
       output_tokens: result?.usage?.completion_tokens ?? 0,
       total_tokens: result?.usage?.total_tokens ?? 0,
@@ -105,30 +107,33 @@ export class OpenAIWrapper {
    * @returns The extracted LLM configuration.
    */
   private static extractConfiguration(args: any[]): LLMInputs {
-    const [options] = args;
+    try {
+      const [options] = args;
+      const inputs: ChatCompletionCreateParamsBase = options;
+      const functions = inputs?.functions || options?.tools?.map((tool: ChatCompletionTool) => tool?.function) || [];
+      const functionCallDefault = functions?.length > 0 ? 'auto' : null;
 
-    const functions = options?.functions || options?.tools?.map((tool: any) => tool?.function) || [];
-    const functionCallDefault = functions?.length > 0 ? 'auto' : null;
+      const modelParams: ModelParams = {
+        temp: inputs.temperature ?? 1.0,
+        max_length: inputs.max_tokens || undefined,
+        top_p: inputs.top_p ?? 1.0,
+        frequency_penalty: inputs.frequency_penalty ?? 0.0,
+        presence_penalty: inputs.presence_penalty ?? 0.0,
+        response_format: inputs?.response_format as ResponseFormat | null,
+      };
 
-    const modelParams: ModelParams = {
-      temp: options.temperature ?? 1.0,
-      max_length: options.max_tokens,
-      top_p: options.top_p ?? 1.0,
-      frequency_penalty: options.frequency_penalty ?? 0.0,
-      presence_penalty: options.presence_penalty ?? 0.0,
-      response_format: options.response_format as ResponseFormat | null,
-    };
-
-    const messages: Message[] = options?.messages?.map((message: any) => this.messageConverter.convert(message));
-
-    return {
-      model: options.model,
-      provider: 'openai',
-      messages: messages,
-      functions: functions,
-      function_call: options?.function_call || options?.tool_choice || functionCallDefault,
-      model_params: modelParams,
-    };
+      return {
+        model: inputs?.model,
+        provider: 'openai',
+        messages: this.getMessages(inputs),
+        functions: functions,
+        function_call: options?.function_call || options?.tool_choice || functionCallDefault,
+        model_params: modelParams,
+      };
+    } catch (e) {
+      console.error('Error extracting configuration:', e);
+      return {};
+    }
   }
 
   /**
@@ -167,46 +172,30 @@ export class OpenAIWrapper {
    * @returns The extracted output as a string.
    */
   private static getOutput(result: any): string {
-    const responseMessage = result?.choices[0]?.message;
-    if (responseMessage?.function_call) {
-      return this.formatFunctionCall(responseMessage.function_call);
-    } else if (responseMessage?.tool_calls) {
-      return this.messageConverter.convert(responseMessage).content;
-    } else {
-      return responseMessage?.content?.trim() ?? '';
+    try {
+      const responseMessage = result?.choices[0]?.message;
+      if (responseMessage) {
+        return this.messageConverter.convert(responseMessage).content;
+      } else {
+        return JSON.stringify(result);
+      }
+    } catch (e) {
+      console.error('Error extracting output:', e);
+      return `${result}`;
     }
   }
 
   /**
-   * Formats a function call into a string representation.
-   * @param functionCall The function call to format.
-   * @returns A formatted string representation of the function call.
+   * Extracts the messages from OpenAi args.
+   * @param inputs The inputs to extract messages from.
+   * @returns The extracted messages.
    */
-  private static formatFunctionCall(functionCall: any): string {
+  private static getMessages(inputs: any): Message[] {
     try {
-      const functionName = functionCall.name;
-      const functionArgs = this.parseArgs(functionCall.arguments);
-      return `\`\`\`${JSON.stringify({ name: functionName, arguments: functionArgs }, null, 4)}\`\`\``;
+      return inputs?.messages?.map((message: ChatCompletionMessageParam) => this.messageConverter.convert(message));
     } catch (e) {
-      console.error(`Error formatting function call: ${e}`);
-      return '';
-    }
-  }
-
-  /**
-   * Parses function call arguments.
-   * @param args The arguments to parse.
-   * @returns The parsed arguments.
-   */
-  private static parseArgs(args: any): any {
-    if (args instanceof Object) {
-      return args;
-    }
-    try {
-      return JSON.parse(args);
-    } catch (e) {
-      console.error(`Error parsing function call arguments as Object, storing as string instead: ${e}`);
-      return typeof args === 'string' ? args : `${args}`;
+      console.error(`Error extracting messages from: ${inputs}`, e);
+      return [];
     }
   }
 }

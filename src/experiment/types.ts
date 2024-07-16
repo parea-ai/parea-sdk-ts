@@ -19,12 +19,18 @@ export type TracedFunction<T extends Record<string, any>, R> = (
 
 /**
  * Options for configuring an experiment.
+ * @param nTrials - The number of trials to run
+ * @param metadata - Additional metadata for the experiment
+ * @param nWorkers - The number of workers to use for parallel execution
+ * @param datasetLevelEvalFuncs - An array of evaluation functions to run on the entire dataset
+ * @param maxRetries - The maximum number of retries to wait for eval to finish. Each retry waits for 1s. Default is 60.
  */
 export interface ExperimentOptions {
   nTrials?: number;
   metadata?: Record<string, any>;
   nWorkers?: number;
   datasetLevelEvalFuncs?: ((logs: EvaluatedLog[]) => EvalFunctionReturn)[];
+  maxRetries?: number;
 }
 
 /**

@@ -46,6 +46,7 @@ export class Experiment<T extends Record<string, any>, R> {
   ) {
     this.runner = new ExperimentRunner(this.options.nWorkers || 10);
     this.p = parea;
+    this.trySetDataset(dataset);
   }
 
   /**
@@ -67,10 +68,11 @@ export class Experiment<T extends Record<string, any>, R> {
     return experimentContext.runInContext(experimentUUID, async () => {
       try {
         this.dataset = await this.determineDataset(this.dataset);
+        const maxRetries = typeof this.options?.maxRetries === 'number' ? this.options.maxRetries : 60;
         const trials = this.dataset.flatMap((data) =>
           Array(this.options.nTrials || 1)
             .fill(null)
-            .map(() => new Trial(data, this.func, experimentUUID)),
+            .map(() => new Trial(data, this.func, experimentUUID, maxRetries)),
         );
 
         const results = await this.runner.runTrials(trials);
@@ -184,5 +186,22 @@ export class Experiment<T extends Record<string, any>, R> {
         this.name,
       )}/${experimentUUID}\n`,
     );
+  }
+
+  /**
+   * Set Dataset name as metadata is using dataset
+   * @param dataset The input dataset, either as a string (collection name) or an array of data.
+   */
+  private trySetDataset(dataset: string | T[]): void {
+    if (typeof dataset === 'string') {
+      if (!this.options.metadata) {
+        this.options.metadata = {};
+      } else if (this.options.metadata.Dataset) {
+        console.warn(
+          'Metadata key "Dataset" is reserved for the dataset name. Overwriting it with the provided dataset name.',
+        );
+      }
+      this.options.metadata = { ...this.options.metadata, Dataset: dataset };
+    }
   }
 }
