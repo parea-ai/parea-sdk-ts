@@ -65,7 +65,7 @@ export class Trial<T extends Record<string, any>, R> {
   }
 
   private async waitForLogs(): Promise<{ state: ExperimentStatus; error?: Error }> {
-    // await new Promise((resolve) => setTimeout(resolve, 2500)); // Wait for 2.5s before checking logs
+    await new Promise((resolve) => setTimeout(resolve, 2500)); // Wait for 2.5s before checking logs
     for (let i = 1; i < this.maxRetries; i++) {
       const logs = experimentContext.getLogs(this.experimentUUID);
       if (logs.length > 0) {
