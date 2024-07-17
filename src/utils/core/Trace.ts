@@ -17,6 +17,7 @@ export class Trace {
   private children: string[] = [];
   private log: Partial<TraceLog>;
   private evalFuncs: EvalFunction[];
+  private isRunningEval: boolean = false;
 
   /**
    * Creates a new Trace instance.
@@ -86,6 +87,22 @@ export class Trace {
    */
   getLog(): Partial<TraceLog> {
     return this.log;
+  }
+
+  /**
+   * Sets the trace as currently running an evaluation function.
+   * @param state - Whether the trace is running
+   */
+  setIsRunningEval(state: boolean): void {
+    this.isRunningEval = state;
+  }
+
+  /**
+   * Returns whether the trace is currently running an evaluation function.
+   * @returns Boolean indicating if the trace is running eval.
+   */
+  getIsRunningEval(): boolean {
+    return this.isRunningEval;
   }
 
   /**

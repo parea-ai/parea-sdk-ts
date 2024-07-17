@@ -31,9 +31,10 @@ export class TraceManager {
    * Creates a new trace and adds it to the current context.
    * @param {string} name - The name of the trace.
    * @param {TraceOptions} [options] - Optional configuration for the trace.
+   * @param isLLMCall
    * @returns {Trace} The newly created trace.
    */
-  createTrace(name: string, options?: TraceOptions): Trace {
+  createTrace(name: string, options?: TraceOptions, isLLMCall: boolean = false): Trace {
     let traceMap = this.context.getStore();
     if (!traceMap) {
       traceMap = new Map();
@@ -58,7 +59,9 @@ export class TraceManager {
       parentTrace.addChild(trace.id);
     }
 
-    traceMap.set(trace.id, trace);
+    if (!isLLMCall) {
+      traceMap.set(trace.id, trace);
+    }
     return trace;
   }
 
@@ -192,8 +195,10 @@ export class TraceManager {
   private runEvaluationsAsync(trace: Trace): void {
     const experiment_uuid = trace.getLog().experiment_uuid;
     setImmediate(async () => {
+      trace.setIsRunningEval(true);
       const evaluationHandler = new EvaluationHandler(trace.getEvalFuncs(), this);
       const scores = await evaluationHandler.runEvaluations(trace.getLog() as TraceLog);
+      trace.setIsRunningEval(false);
 
       trace.updateLog({ scores });
       if (experiment_uuid) {
