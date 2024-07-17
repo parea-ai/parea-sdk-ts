@@ -27,14 +27,16 @@ export class OpenAIWrapper {
     return ((...args: Parameters<T>): ReturnType<T> => {
       return this.traceManager.runInContext(() => {
         const traceDisabled = process.env.PAREA_TRACE_ENABLED === 'false';
-        if (traceDisabled) {
+        const parentTrace = this.traceManager.getCurrentTrace();
+        const insideEvalFuncSkipLogging = parentTrace ? parentTrace.getIsRunningEval() : false;
+        if (traceDisabled || insideEvalFuncSkipLogging) {
           return method.apply(thisArg, args);
         }
 
         const configuration = this.extractConfiguration(args);
         const traceName = configuration?.model ? `llm-${configuration.model}` : 'llm-openai';
 
-        const trace = this.traceManager.createTrace(traceName, {});
+        const trace = this.traceManager.createTrace(traceName, {}, true);
 
         const result = method.apply(thisArg, args);
 
@@ -84,6 +86,9 @@ export class OpenAIWrapper {
     const latency = (endTime.getTime() - trace.startTime.getTime()) / 1000;
     const output = result ? this.getOutput(result) : undefined;
     const status = error ? 'error' : 'success';
+    if (result?.model) {
+      configuration.model = result?.model;
+    }
 
     trace.updateLog({
       configuration,
@@ -124,7 +129,6 @@ export class OpenAIWrapper {
 
       return {
         model: inputs?.model,
-        provider: 'openai',
         messages: this.getMessages(inputs),
         functions: functions,
         function_call: options?.function_call || options?.tool_choice || functionCallDefault,
@@ -149,7 +153,7 @@ export class OpenAIWrapper {
       completion_tokens: number;
     },
   ): number {
-    if (!model || !Object.keys(MODEL_COST_MAPPING).includes(model)) {
+    if (!model) {
       console.error(
         `Unknown model: ${model}. Please provide a valid OpenAI model name. Known models are: ${Object.keys(
           MODEL_COST_MAPPING,
@@ -160,7 +164,7 @@ export class OpenAIWrapper {
     if (!usage) {
       return 0;
     }
-    const modelCost = MODEL_COST_MAPPING[model];
+    const modelCost = MODEL_COST_MAPPING[model] || { prompt: 0, completion: 0 };
     const promptCost = usage?.prompt_tokens * modelCost.prompt;
     const completionCost = usage?.completion_tokens * modelCost.completion;
     return (promptCost + completionCost) / 1000000;
