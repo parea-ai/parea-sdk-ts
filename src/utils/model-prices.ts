@@ -95,4 +95,12 @@ export const MODEL_COST_MAPPING: { [key: string]: { [key: string]: number } } = 
     prompt: 5.0,
     completion: 15.0,
   },
+  'gpt-4o-mini': {
+    prompt: 0.15,
+    completion: 0.6,
+  },
+  'gpt-4o-mini-2024-07-18': {
+    prompt: 0.15,
+    completion: 0.6,
+  },
 };
