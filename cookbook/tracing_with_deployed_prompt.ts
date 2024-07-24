@@ -14,6 +14,7 @@ const deployedArgumentGenerator = async (query: string, additionalDescription: s
       date: new Date().toISOString(),
       query: query,
     },
+    llm_configuration: { history: [{ role: 'user', content: 'Some history' }] },
     metadata: { source: 'parea-js-sdk' },
     trace_name: 'deployedArgumentGenerator',
     end_user_identifier: 'test-user',
@@ -26,6 +27,7 @@ const deployedCritic = async (argument: string): Promise<string> => {
   const completion: Completion = {
     deployment_id: 'p-PSOwRyIPaQRq4xQW3MbpV',
     llm_inputs: { argument: argument },
+    llm_configuration: { history: [{ role: 'user', content: 'Some history' }] },
     metadata: { source: 'parea-js-sdk' },
     trace_name: 'deployedCritic',
     end_user_identifier: 'test-user',
@@ -49,6 +51,7 @@ const deployedRefiner = async (
       argument: argument,
       criticism: criticism,
     },
+    llm_configuration: { history: [{ role: 'user', content: 'Some history' }] },
     metadata: { source: 'parea-js-sdk' },
     trace_name: 'deployedRefiner',
     end_user_identifier: 'test-user',
