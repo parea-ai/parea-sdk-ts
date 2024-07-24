@@ -43,7 +43,7 @@ const deployedRefiner = async (
   criticism: string,
 ): Promise<CompletionResponse> => {
   const completion: Completion = {
-    deployment_id: 'p-bJ3-UKh9-ixapZafaRBsj',
+    deployment_id: 'p-bJ3-UKh9-ixapZafaRBs',
     llm_inputs: {
       additional_description: additionalDescription,
       date: new Date().toISOString(),
