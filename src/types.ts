@@ -33,6 +33,7 @@ export type LLMInputs = {
   provider?: string;
   model_params?: ModelParams;
   messages?: Message[];
+  history?: Message[];
   functions?: any[];
   function_call?: string | { [key: string]: string };
 };
