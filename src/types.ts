@@ -494,20 +494,23 @@ export type ListExperimentUUIDsFilters = {
   run_name_filter?: string;
 };
 
+export enum FilterOperator {
+  EQUALS = 'equals',
+  NOT_EQUALS = 'not_equals',
+  LIKE = 'like',
+  GREATER_THAN_OR_EQUAL = 'greater_than_or_equal',
+  LESS_THAN_OR_EQUAL = 'less_than_or_equal',
+  GREATER_THAN = 'greater_than',
+  LESS_THAN = 'less_than',
+  IS_NULL = 'is_null',
+  EXISTS = 'exists',
+  IN = 'in',
+}
+
 export type TraceLogFilters = {
   filter_field?: string;
-  filter_operator?:
-    | 'equals'
-    | 'not_equals'
-    | 'like'
-    | 'greater_than_or_equal'
-    | 'less_than_or_equal'
-    | 'greater_than'
-    | 'less_than'
-    | 'is_null'
-    | 'exists'
-    | 'in'
-    | null;
+  filter_key?: string | null;
+  filter_operator?: FilterOperator | string;
   filter_value?: string;
 };
 
@@ -550,3 +553,39 @@ export type StreamingResult = {
 export interface MessageConverter {
   convert(message: any): Message;
 }
+
+export enum TimeRange {
+  NA = 'na',
+  LAST_1_HOUR = '1h',
+  LAST_3_HOURS = '3h',
+  LAST_6_HOURS = '6h',
+  LAST_24_HOURS = '24h',
+  LAST_7_DAYS = '7d',
+  LAST_1_MONTH = '1m',
+  LAST_3_MONTHS = '3m',
+  LAST_6_MONTHS = '6m',
+  LAST_12_MONTHS = '1y',
+}
+
+export type QueryParams = TraceLogFilters & {
+  project_name: string;
+  page?: number;
+  page_size?: number;
+  time_range?: TimeRange;
+  status?: string;
+};
+
+export const defaultQueryParams: QueryParams = {
+  project_name: 'default',
+  page: 1,
+  page_size: 10,
+  time_range: TimeRange.NA,
+};
+
+export type PaginatedTraceLogsResponse = {
+  total: number;
+  page: number;
+  total_pages: number;
+  page_size: number;
+  results: TraceLogTreeSchema[];
+};

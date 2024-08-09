@@ -3,6 +3,7 @@ import {
   CompletionResponse,
   CreateExperimentRequest,
   CreateTestCaseCollection,
+  defaultQueryParams,
   EvaluationResult,
   ExperimentSchema,
   ExperimentStatsSchema,
@@ -10,6 +11,8 @@ import {
   FeedbackRequest,
   FinishExperimentRequestSchema,
   ListExperimentUUIDsFilters,
+  PaginatedTraceLogsResponse,
+  QueryParams,
   TestCaseCollection,
   TraceLogFilters,
   TraceLogTreeSchema,
@@ -39,6 +42,7 @@ const ADD_TEST_CASES_ENDPOINT = '/testcases';
 const LIST_EXPERIMENTS_ENDPOINT = '/experiments';
 const GET_EXP_LOGS_ENDPOINT = '/experiment/{experiment_uuid}/trace_logs';
 const GET_TRACE_LOG_ENDPOINT = '/trace_log/{trace_id}';
+const GET_TRACE_LOGS_ENDPOINT = '/get_trace_logs';
 const UPDATE_TEST_CASE_ENDPOINT = '/update_test_case/{dataset_id}/{test_case_id}';
 
 /**
@@ -386,6 +390,20 @@ export class Parea {
     }
 
     return data;
+  }
+
+  /**
+   * Fetches trace logs for a given query.
+   * @param queryParams - The query parameters for the trace logs.
+   * @returns A paginated response of trace logs.
+   */
+  public async getTraceLogs(queryParams: QueryParams = defaultQueryParams): Promise<PaginatedTraceLogsResponse> {
+    const response = await this.client.request({
+      method: 'POST',
+      endpoint: GET_TRACE_LOGS_ENDPOINT,
+      data: { ...defaultQueryParams, ...queryParams },
+    });
+    return response.data;
   }
 }
 
