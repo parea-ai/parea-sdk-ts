@@ -55,6 +55,7 @@ export type Completion = {
   log_omit_inputs?: boolean;
   log_omit_outputs?: boolean;
   log_omit?: boolean;
+  log_sample_rate?: number;
   experiment_uuid?: string | null;
   project_uuid?: string;
 };
@@ -164,6 +165,7 @@ export type TraceLog = EvaluatedLog & {
   deployment_id?: string;
   output_for_eval_metrics?: string;
   apply_eval_frac?: number;
+  log_sample_rate?: number;
   cache_hit?: boolean;
   evaluation_metric_names?: string[];
   feedback_score?: number;
@@ -197,6 +199,7 @@ export type TraceOptions = {
   applyEvalFrac?: number;
   deploymentId?: string;
   target?: string;
+  logSampleRate?: number;
 };
 
 export type UpdateLog = {

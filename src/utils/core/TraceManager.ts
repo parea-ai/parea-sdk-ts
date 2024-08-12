@@ -53,6 +53,10 @@ export class TraceManager {
       options.target = parentTarget;
     }
 
+    if (parentTrace && parentTrace.getLog().log_sample_rate !== options.logSampleRate) {
+      options.logSampleRate = parentTrace.getLog().log_sample_rate;
+    }
+
     const trace = new Trace(name, options, parentId, rootId, depth, executionOrder);
 
     if (parentTrace) {

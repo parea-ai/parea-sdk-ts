@@ -37,7 +37,7 @@ export class Trace {
     executionOrder: number = 0,
   ) {
     this.evalFuncs = options?.evalFuncs || [];
-    const { endUserIdentifier, sessionId, deploymentId, ...opts } = options || {};
+    const { endUserIdentifier, sessionId, deploymentId, logSampleRate, ...opts } = options || {};
 
     this.id = genTraceId();
     this.name = name;
@@ -56,6 +56,7 @@ export class Trace {
       root_trace_id: this.rootId,
       children: this.children,
       end_user_identifier: endUserIdentifier,
+      log_sample_rate: logSampleRate,
       session_id: sessionId,
       deployment_id: deploymentId,
       ...opts,
