@@ -103,4 +103,12 @@ export const MODEL_COST_MAPPING: { [key: string]: { [key: string]: number } } = 
     prompt: 0.15,
     completion: 0.6,
   },
+  'chatgpt-4o-latest': {
+    prompt: 5.0,
+    completion: 10.0,
+  },
+  'gpt-4o-2024-08-06': {
+    prompt: 2.5,
+    completion: 10.0,
+  },
 };
