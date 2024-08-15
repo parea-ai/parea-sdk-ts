@@ -34,6 +34,16 @@ export interface ExperimentOptions {
 }
 
 /**
+ * Options for configuring an experiment run.
+ * @param runName - A name for this specific run of the experiment
+ * @param prefix - A prefix for the experiment run name
+ */
+export interface RunOptions {
+  runName?: string;
+  prefix?: string;
+}
+
+/**
  * Represents the result of a single trial in an experiment.
  * @template T - The type of the input
  * @template R - The type of the output

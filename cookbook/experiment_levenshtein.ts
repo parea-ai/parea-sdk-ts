@@ -25,7 +25,7 @@ export async function main() {
     greet, // Function to run (callable)
     { nTrials: 3 }, // Optional: Number of trials to run (int) default is 1
   );
-  return await e.run();
+  return await e.run({ prefix: 'lev' });
 }
 
 main().then(() => {
