@@ -1,5 +1,5 @@
 import { ExperimentRunner } from './experimentRunner';
-import { ExperimentOptions, ExperimentResult, TracedFunction, TrialResult } from './types';
+import { ExperimentOptions, ExperimentResult, RunOptions, TracedFunction, TrialResult } from './types';
 import { Trial } from './trial';
 import { Parea } from '../client';
 
@@ -51,12 +51,29 @@ export class Experiment<T extends Record<string, any>, R> {
 
   /**
    * Runs the experiment and returns the results.
-   * @param runName Optional name for this specific run of the experiment.
+   * @param runNameOrOptions run name as a string or {runName?, prefix?}. If prefix is provided, it will be prepended to the final run name.
+   * @example
+   * ```typescript
+   * run();
+   * run("myRunName");
+   * run({ prefix: "substep" });
+   * run({ runName: "myRunName", prefix: "substep" })
+   * ```
    * @returns A promise that resolves to the experiment results.
    * @throws Error if the experiment fails to run.
    */
-  async run(runName: string | undefined = undefined): Promise<ExperimentResult<T, R>> {
-    this.runName = runName || genRandomName();
+  async run(runNameOrOptions?: string | RunOptions | undefined): Promise<ExperimentResult<T, R>> {
+    let runName: string | undefined;
+    let prefix: string | undefined;
+
+    if (typeof runNameOrOptions === 'string') {
+      runName = runNameOrOptions;
+    } else if (typeof runNameOrOptions === 'object') {
+      ({ runName, prefix } = runNameOrOptions);
+    }
+
+    const name = runName || genRandomName();
+    this.runName = prefix ? `${prefix}_${name}` : name;
     this.state = ExperimentStatus.RUNNING;
     const experimentSchema = await this.p.createExperiment({
       name: this.name,
@@ -66,6 +83,7 @@ export class Experiment<T extends Record<string, any>, R> {
     const experimentUUID = experimentSchema.uuid;
 
     return experimentContext.runInContext(experimentUUID, async () => {
+      console.log(`Experiment started: ${this.name} - ${this.runName}`);
       try {
         this.dataset = await this.determineDataset(this.dataset);
         const maxRetries = typeof this.options?.maxRetries === 'number' ? this.options.maxRetries : 60;
