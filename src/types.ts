@@ -16,7 +16,8 @@ export type Message = {
 };
 
 export type ResponseFormat = {
-  type: 'text' | 'json_object';
+  type: 'text' | 'json_object' | 'json_schema';
+  json_schema?: string | object;
 };
 
 export type ModelParams = {

@@ -1,5 +1,8 @@
 import { Message, MessageConverter, Role } from '../types';
 import { ChatCompletionMessageParam } from 'openai/src/resources/chat/completions';
+import { ParsedChatCompletionMessage } from 'openai/src/resources/beta/chat/completions';
+
+type T = any;
 
 /**
  * Implements the MessageConverter interface for converting OpenAI messages.
@@ -10,7 +13,12 @@ export class OpenAIMessageConverter implements MessageConverter {
    * @param m - The input message to be converted.
    * @returns A standardized Message object.
    */
-  convert(m: ChatCompletionMessageParam): Message {
+  convert(m: ParsedChatCompletionMessage<T> | ChatCompletionMessageParam): Message {
+    // type guard for ParsedChatCompletionMessage
+    function isParsedChatCompletionMessage(message: any): message is ParsedChatCompletionMessage<T> {
+      return 'parsed' in message;
+    }
+
     if (m.role === 'tool') {
       return {
         role: Role.tool,
@@ -20,6 +28,16 @@ export class OpenAIMessageConverter implements MessageConverter {
       return {
         role: Role.function,
         content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+      };
+    } else if (m.role === 'assistant' && m?.refusal) {
+      return {
+        role: Role.assistant,
+        content: JSON.stringify(m.refusal),
+      };
+    } else if (m.role === 'assistant' && isParsedChatCompletionMessage(m) && m?.parsed) {
+      return {
+        role: Role.assistant,
+        content: JSON.stringify(m.parsed),
       };
     } else if (m.role === 'assistant' && !!m.function_call) {
       return {
