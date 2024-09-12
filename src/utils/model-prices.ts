@@ -111,4 +111,20 @@ export const MODEL_COST_MAPPING: { [key: string]: { [key: string]: number } } = 
     prompt: 2.5,
     completion: 10.0,
   },
+  'o1-preview': {
+    prompt: 15.0,
+    completion: 60.0,
+  },
+  'o1-preview-2024-09-12': {
+    prompt: 15.0,
+    completion: 60.0,
+  },
+  'o1-mini': {
+    prompt: 3.0,
+    completion: 12.0,
+  },
+  'o1-mini-2024-09-12': {
+    prompt: 3.0,
+    completion: 12.0,
+  },
 };
