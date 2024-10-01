@@ -103,7 +103,7 @@ export class HTTPClient {
   public async request(config: RequestConfig): Promise<AxiosResponse<any>> {
     if (!this.apiKey) {
       console.log(`No API key`);
-      return Promise.reject('No API key.');
+      return Promise.reject();
     }
 
     if (this.mockMode) {
