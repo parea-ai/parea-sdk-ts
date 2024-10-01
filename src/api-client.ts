@@ -101,6 +101,11 @@ export class HTTPClient {
    * @throws Will throw an error if the request fails.
    */
   public async request(config: RequestConfig): Promise<AxiosResponse<any>> {
+    if (!this.apiKey) {
+      console.log(`No API key`);
+      return Promise.reject('No API key.');
+    }
+
     if (this.mockMode) {
       return Promise.resolve(this.defaultMockResponse);
     } else {

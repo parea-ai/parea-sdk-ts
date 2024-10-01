@@ -73,9 +73,12 @@ export class Parea {
     pareaProject.setProjectName(projectName);
     pareaProject.setClient(this.client);
     pareaLogger.setClient(this.client);
-    // fire and forget
-    // noinspection JSIgnoredPromiseFromCall
-    this.getProjectUUID();
+
+    if (this.apiKey) {
+      // fire and forget
+      // noinspection JSIgnoredPromiseFromCall
+      this.getProjectUUID();
+    }
   }
 
   /**
@@ -358,6 +361,20 @@ export class Parea {
   }
 
   /**
+   * Fetches trace logs for a given query.
+   * @param queryParams - The query parameters for the trace logs.
+   * @returns A paginated response of trace logs.
+   */
+  public async getTraceLogs(queryParams: QueryParams = defaultQueryParams): Promise<PaginatedTraceLogsResponse> {
+    const response = await this.client.request({
+      method: 'POST',
+      endpoint: GET_TRACE_LOGS_ENDPOINT,
+      data: { ...defaultQueryParams, ...queryParams },
+    });
+    return response.data;
+  }
+
+  /**
    * Updates the data and trace information for a completion request.
    * @param data - The completion request data.
    * @returns The updated completion request data.
@@ -390,20 +407,6 @@ export class Parea {
     }
 
     return data;
-  }
-
-  /**
-   * Fetches trace logs for a given query.
-   * @param queryParams - The query parameters for the trace logs.
-   * @returns A paginated response of trace logs.
-   */
-  public async getTraceLogs(queryParams: QueryParams = defaultQueryParams): Promise<PaginatedTraceLogsResponse> {
-    const response = await this.client.request({
-      method: 'POST',
-      endpoint: GET_TRACE_LOGS_ENDPOINT,
-      data: { ...defaultQueryParams, ...queryParams },
-    });
-    return response.data;
   }
 }
 

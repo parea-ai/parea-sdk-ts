@@ -56,21 +56,29 @@ export class Project {
       return '';
     }
     const projectName = this.projectName;
-    const response = await this.client.request({
-      method: 'POST',
-      endpoint: PROJECT_ENDPOINT,
-      data: { name: projectName },
-    });
-    const data: GetProjectResponse = response.data;
-    if (data.was_created) {
-      console.log(`Created project ${projectName} with UUID ${data.uuid}`);
+    try {
+      const response = await this.client.request({
+        method: 'POST',
+        endpoint: PROJECT_ENDPOINT,
+        data: { name: projectName },
+      });
+      if (response.data) {
+        const data: GetProjectResponse = response.data;
+        if (data.was_created) {
+          console.log(`Created project ${projectName} with UUID ${data.uuid}`);
+        }
+        this.project = {
+          name: projectName,
+          uuid: data.uuid,
+          createdAt: data.created_at,
+        };
+        return data.uuid;
+      }
+      return '';
+    } catch (error) {
+      console.error(`Failed to create project ${projectName} with error ${error}`);
+      return '';
     }
-    this.project = {
-      name: projectName,
-      uuid: data.uuid,
-      createdAt: data.created_at,
-    };
-    return data.uuid;
   }
 }
 
