@@ -25,6 +25,15 @@ export class OpenAIWrapper {
    */
   static wrapMethod<T extends (...args: any[]) => any>(method: T, thisArg: any): T {
     return ((...args: Parameters<T>): ReturnType<T> => {
+      try {
+        if (args?.[1]?.headers?.['X-Stainless-Helper-Method'] === 'beta.chat.completions.parse') {
+          console.log('PAREA AI: Tracing is currently disabled for beta.chat.completions.parse');
+          return method.apply(thisArg, args);
+        }
+      } catch (e) {
+        return method.apply(thisArg, args);
+      }
+
       return this.traceManager.runInContext(() => {
         const traceDisabled = process.env.PAREA_TRACE_ENABLED === 'false';
         const parentTrace = this.traceManager.getCurrentTrace();
