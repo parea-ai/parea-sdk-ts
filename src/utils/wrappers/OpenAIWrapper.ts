@@ -8,7 +8,7 @@ import { MODEL_COST_MAPPING } from '../model-prices';
 import { Trace } from '../core/Trace';
 import { toDateTimeString } from '../../helpers';
 import { ChatCompletionCreateParamsBase, ChatCompletionMessageParam } from 'openai/src/resources/chat/completions';
-import ChatCompletionTool = OpenAI.ChatCompletionTool;
+import { parseChatCompletion } from 'openai/lib/parser';
 
 /**
  * Wrapper class for OpenAI API methods with tracing functionality.
@@ -25,15 +25,6 @@ export class OpenAIWrapper {
    */
   static wrapMethod<T extends (...args: any[]) => any>(method: T, thisArg: any): T {
     return ((...args: Parameters<T>): ReturnType<T> => {
-      try {
-        if (args?.[1]?.headers?.['X-Stainless-Helper-Method'] === 'beta.chat.completions.parse') {
-          console.log('PAREA AI: Tracing is currently disabled for beta.chat.completions.parse');
-          return method.apply(thisArg, args);
-        }
-      } catch (e) {
-        return method.apply(thisArg, args);
-      }
-
       return this.traceManager.runInContext(() => {
         const traceDisabled = process.env.PAREA_TRACE_ENABLED === 'false';
         const parentTrace = this.traceManager.getCurrentTrace();
@@ -70,6 +61,53 @@ export class OpenAIWrapper {
           return result;
         }
       });
+    }) as T;
+  }
+
+  /**
+   * Wraps the `beta.chat.completions.parse` method with tracing functionality.
+   * @param method The method to wrap.
+   * @param thisArg The `this` argument for the method.
+   * @returns The wrapped method.
+   */
+  static wrapBetaParse<T extends (...args: any[]) => any>(method: T, thisArg: any): T {
+    return ((...args: Parameters<T>): ReturnType<T> => {
+      const traceDisabled = process.env.PAREA_TRACE_ENABLED === 'false';
+      const parentTrace = this.traceManager.getCurrentTrace();
+      const insideEvalFuncSkipLogging = parentTrace ? parentTrace.getIsRunningEval() : false;
+      if (traceDisabled || insideEvalFuncSkipLogging) {
+        return method.apply(thisArg, args);
+      }
+
+      const configuration = this.extractConfiguration(args);
+      const traceName = configuration?.model ? `llm-${configuration.model}` : 'llm-openai-beta-parse';
+
+      const trace = this.traceManager.createTrace(traceName, {}, true);
+
+      try {
+        // Get the original create result
+        const createResult = thisArg._client.chat.completions.create(args[0], {
+          ...args[1],
+          headers: {
+            ...args[1]?.headers,
+            'X-Stainless-Helper-Method': 'beta.chat.completions.parse',
+          },
+        });
+
+        return createResult
+          .then((completion: any) => {
+            const parsedResult = parseChatCompletion(completion, args[0]);
+            this.finalizeTrace(trace, configuration, parsedResult);
+            return parsedResult;
+          })
+          .catch((error: any) => {
+            this.finalizeTrace(trace, configuration, undefined, error);
+            throw error;
+          });
+      } catch (error) {
+        this.finalizeTrace(trace, configuration, undefined, error);
+        throw error;
+      }
     }) as T;
   }
 
@@ -124,7 +162,7 @@ export class OpenAIWrapper {
     try {
       const [options] = args;
       const inputs: ChatCompletionCreateParamsBase = options;
-      const functions = inputs?.functions || options?.tools?.map((tool: ChatCompletionTool) => tool?.function) || [];
+      const functions = inputs?.functions || inputs?.tools?.map((tool) => tool?.function) || [];
       const functionCallDefault = functions?.length > 0 ? 'auto' : null;
 
       const modelParams: ModelParams = {
@@ -223,4 +261,12 @@ export function patchOpenAI(openai: OpenAI): void {
     originalCreate,
     openai.chat.completions,
   ) as typeof originalCreate;
+
+  if (openai.beta?.chat?.completions?.parse) {
+    const originalParse = openai.beta.chat.completions.parse;
+    openai.beta.chat.completions.parse = OpenAIWrapper.wrapBetaParse(
+      originalParse,
+      openai.beta.chat.completions,
+    ) as typeof originalParse;
+  }
 }
