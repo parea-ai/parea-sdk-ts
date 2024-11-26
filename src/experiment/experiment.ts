@@ -44,6 +44,9 @@ export class Experiment<T extends Record<string, any>, R> {
     private options: ExperimentOptions,
     parea: Parea,
   ) {
+    if (!name) {
+      throw new Error('Experiment name is required');
+    }
     this.runner = new ExperimentRunner(this.options.nWorkers || 10);
     this.p = parea;
     this.trySetDataset(dataset);
