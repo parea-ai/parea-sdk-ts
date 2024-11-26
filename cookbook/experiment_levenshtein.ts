@@ -6,7 +6,7 @@ dotenv.config();
 const p = new Parea(process.env.PAREA_API_KEY);
 
 const greet = trace(
-  'greetings',
+  'greeting',
   (name: string): string => {
     return `Hello ${name}`;
   },
