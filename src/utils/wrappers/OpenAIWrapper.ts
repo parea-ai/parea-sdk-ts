@@ -29,7 +29,7 @@ export class OpenAIWrapper {
         const traceDisabled = process.env.PAREA_TRACE_ENABLED === 'false';
         const parentTrace = this.traceManager.getCurrentTrace();
         const insideEvalFuncSkipLogging = parentTrace ? parentTrace.getIsRunningEval() : false;
-        if (traceDisabled || insideEvalFuncSkipLogging) {
+        if (traceDisabled || insideEvalFuncSkipLogging || this.isBetaCall(args)) {
           return method.apply(thisArg, args);
         }
 
@@ -118,6 +118,18 @@ export class OpenAIWrapper {
    */
   private static isStreamingEnabled(args: any[]): boolean {
     return args[0]?.stream === true;
+  }
+
+  /**
+   * Checks if trace was invoked from `beta.chat.completions.parse` method.
+   * @param args The arguments to check.
+   * @returns True if trace was invoked from `beta.chat.completions.parse` method, false otherwise.
+   */
+  private static isBetaCall(args: any[]): boolean {
+    if (!Array.isArray(args) || args.length < 2) {
+      return false;
+    }
+    return args[1]?.headers?.['X-Stainless-Helper-Method'] === 'beta.chat.completions.parse';
   }
 
   /**
