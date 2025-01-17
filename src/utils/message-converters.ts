@@ -45,10 +45,20 @@ export class OpenAIMessageConverter implements MessageConverter {
         content: JSON.stringify(m.function_call),
       };
     } else if (m.role === 'assistant' && !!m.tool_calls) {
-      return {
-        role: Role.assistant,
-        content: JSON.stringify(m.tool_calls),
-      };
+      if (!!m.content) {
+        return {
+          role: Role.assistant,
+          content: JSON.stringify({
+            content: m.content,
+            tool_calls: m.tool_calls,
+          }),
+        };
+      } else {
+        return {
+          role: Role.assistant,
+          content: JSON.stringify(m.tool_calls),
+        };
+      }
     } else {
       return {
         role: Role[m.role as keyof typeof Role],
